@@ -84,9 +84,11 @@ FORCE:
 $(OBJDIR)/version.o: $(OBJDIR)/version.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-# the desktop icon: icons/, drawn by tools/icon and committed
+# the desktop icon, the About box's and the README's, from the family's
+# drawing (common/icons/EUPDATE.txt, the guidelines 5.5): committed
 icons:
-	python3 tools/icon/make_rsc.py
+	python3 common/tools/appicon.py EUPDATE --rsc icons/EUPDATE.RSC --icn icons/EUPDATE.ICN \
+		--mask icons/EUPDMK.ICN --headers ui --docs docs
 
 $(OBJDIR)/eupdate.elf: $(OBJS) $(OBJDIR)/version.o $(OBJDIR)/libbearssl.a common/atari/link.ld
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(OBJDIR)/version.o $(OBJDIR)/libbearssl.a -lgcc

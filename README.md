@@ -1,6 +1,6 @@
 # EUpdate
 
-<img src="docs/icon16.png" width="96" align="right" alt="EUpdate icon: an Atari SM124-style monitor showing an arrow coming down into a tray, and an orange spot for what is new">
+<img src="docs/icon.png" width="96" align="right" alt="EUpdate icon: a blue floppy disk with git's red diamond mark above its top right corner and a green arrow pointing down beside it">
 
 The latest releases of GitHub repositories, straight to the Atari Falcon and TT: a GEM program,
 written in C, that finds repositories and owners on GitHub, follows the ones you choose into
@@ -115,7 +115,8 @@ atari/      files and time on GEMDOS (plat_tos.c)
 common/     the code the AERA programs share (git subtree of AERA-Atari): the runtime, TLS and
             connections, the DSP, inflate, charsets, the GEM building blocks
 tests/      unit.c, integration.py with server.py, the fuzz targets, the Hatari rigs (tests/hatari)
-tools/      the icon, the help file, the version bump, common/'s update
+tools/      the help file, the version bump, common/'s update (the icon is the family's:
+            common/icons/EUPDATE.txt, made by `make icons`)
 docs/       the user guide (GUIDE.md, the source of EUPDATE.HYP) and pictures
 ```
 
@@ -165,6 +166,8 @@ It includes, under their own licences (compatible with the GPL):
 - [BearSSL](common/third_party/bearssl) by Thomas Pornin: MIT licence
   ([LICENSE.txt](common/third_party/bearssl/LICENSE.txt))
 - `CACERT.PEM`, the root certificates, from Mozilla's CA list (Mozilla Public License 2.0)
+- the icon's mark: the Git logo by Jason Long, under the
+  [Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/) licence (CC BY 3.0)
 
 ---
 

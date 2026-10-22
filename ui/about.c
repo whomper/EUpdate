@@ -21,7 +21,8 @@ void dlg_about(void)
 {
 	static char net[80], gh[60];
 	ABOUT a = { "EUpdate", app_version, "GitHub releases for the Atari Falcon and TT",
-		    { net, gh, about_ram() }, { 0, 0, 0 }, icon_bits, icon16_px, icon16_rgb };
+		    { net, gh, about_ram() }, { "Git logo by Jason Long, CC BY 3.0", 0, 0 },
+		    icon_bits, icon16_px, icon16_rgb };
 	snprintf(net, sizeof(net), "%s  \xF9  TLS on the %s",
 		 strcmp(net_stack(), "none") ? net_stack() : "no network", falcon_dsp_state());
 	if (gh_rate_left >= 0)
