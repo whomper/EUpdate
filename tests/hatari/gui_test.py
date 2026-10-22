@@ -46,6 +46,12 @@ def drive_c():
     return hd
 
 
+def server_token():
+    sys.path.insert(0, os.path.join(TOP, "tests"))
+    import server
+    return server.LONG_TOKEN
+
+
 def wait_port(port):
     for _ in range(50):
         try:
@@ -59,8 +65,9 @@ def main():
     shutil.rmtree(work, ignore_errors=True)
     os.makedirs(work)
     hd = drive_c()
+    auth_log = os.path.join(work, "auth.log")
     srv = subprocess.Popen([sys.executable, os.path.join(TOP, "tests", "server.py"), str(PORT)],
-                           stdout=subprocess.DEVNULL)
+                           stdout=subprocess.DEVNULL, env=dict(os.environ, AUTH_LOG=auth_log))
     wait_port(PORT)
     m = rig.machine(spec, work)
     print("on", m.describe(), flush=True)
@@ -92,6 +99,10 @@ def main():
         r.click(60, 331, double=True)          # whomper/R0: Follow, its latest release asked first
         time.sleep(12)
         r.shot("follow")
+        for _ in range(4):                     # back into the folder's name, a letter in there
+            r.key(K["LEFT"])
+        r.type("Q")
+        r.shot("follow_edit")
         r.key(K["ESC"])                        # Esc cancels
         time.sleep(1.5)
         r.key(K["BACKSPACE"])
@@ -117,12 +128,23 @@ def main():
         r.key(0x33, ctrl=True)                 # ^,
         time.sleep(2)
         r.shot("settings")
-        for page, y in (("github", 241), ("advanced", 321)):
-            r.click(140, y)
-            time.sleep(1)
-            r.shot("settings_" + page)
-        r.key(K["ESC"])
+        # a fine-grained token, 93 characters, into the field 30 wide
+        # (the guidelines 5.4): the field scrolls, and all of it is kept
+        r.click(140, 241)
         time.sleep(1)
+        r.type(server_token())
+        time.sleep(0.5)
+        r.shot("settings_github")
+        r.click(140, 321)
+        time.sleep(1)
+        r.shot("settings_advanced")
+        r.key(K["RETURN"])                     # OK
+        time.sleep(1.5)
+        r.ctrl("r")                            # a check, with the token
+        time.sleep(12)
+        sent = open(auth_log).read().split("\n") if os.path.exists(auth_log) else []
+        check("Bearer " + server_token() in sent,
+              "a 93-character token typed into Settings reaches GitHub whole")
         r.click(40, 9)                         # the Desk menu: About
         time.sleep(1)
         r.click(60, 27)

@@ -690,15 +690,15 @@ static void command(short cmd)
 	switch (cmd) {
 	case C_ABOUT: dlg_about(); break;
 	case C_FIND: {
-		static char text[42];
+		static char text[100];
 		static int owners;
 		if (dlg_find(text, sizeof(text), &owners))
 			find_on_github(text, owners);
 		break;
 	}
 	case C_FOLLOW: {
-		char buf[48] = "", full[90];
-		if (!dlg_ask(" Follow", "A repository: owner/name or its address", buf, 46))
+		char buf[128] = "", full[90];
+		if (!dlg_ask(" Follow", "A repository: owner/name or its address", buf, sizeof(buf) - 1))
 			break;
 		if (repo_of(buf, full, sizeof(full)))
 			follow(full, "");

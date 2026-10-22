@@ -20,7 +20,9 @@ repository's, as the API gave it), over HTTP or TLS.
       (a query of 900 characters and more, as GitHub's), which gives the
       file to Accept: application/octet-stream and the whole query only
 Every request must carry a User-Agent; a token, when one comes, must be
-"Bearer good-token" (401 otherwise), and it must never reach /dl/.
+"Bearer good-token" or LONG_TOKEN, a fine-grained token's 93 characters
+(401 otherwise), and it must never reach /dl/. With AUTH_LOG=FILE each
+request's Authorization goes into FILE, a line each.
 """
 import copy
 import gzip
@@ -41,6 +43,10 @@ SIGNED = "sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-22T09%3A00%3A00Z&rscd=att
          "%2Foctet-stream&skoid=" + "96c2d410-5711-43a1-aedd-ab1947aa7ab0" * 3 + "&sktid=398a6654&skt=2026" \
          "-10-22T08%3A00%3A00Z&ske=2026-10-22T09%3A00%3A00Z&sks=b&skv=2018-11-09&sig=" + "Zm9vYmFy" * 60 + \
          "%3D&jwt=" + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" * 4
+
+# a fine-grained token is 93 characters: "github_pat_" and 82 more
+LONG_TOKEN = "github_pat_11AERA0TEST0" + "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[:70]
+assert len(LONG_TOKEN) == 93
 
 
 def repo(full, stars, desc):
@@ -131,6 +137,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path, _, query = self.path.partition("?")
         auth = self.headers.get("Authorization")
+        if os.environ.get("AUTH_LOG"):
+            with open(os.environ["AUTH_LOG"], "a") as f:
+                f.write("%s\n" % auth)
         if not self.headers.get("User-Agent", "").startswith("EUpdate"):
             return self.send(403, {"message": "no User-Agent"})
         if path.startswith("/dl/"):
@@ -142,7 +151,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(415, {"message": "Accept"})
             data = ZIP if path[4:] == "900" else HYP if path[4:].isdigit() else None
             return self.send(200, data, "application/octet-stream") if data else self.send(404, {})
-        if auth and auth != "Bearer good-token":
+        if auth and auth not in ("Bearer good-token", "Bearer " + LONG_TOKEN):
             return self.send(401, {"message": "Bad credentials"})
         p = path.strip("/").split("/")
         if path == "/search/repositories":

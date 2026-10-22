@@ -13,6 +13,7 @@
 #include "bidi.h"
 #include "util.h"
 #include "clip.h"
+#include "field.h"
 #include "theme.h"
 
 #define DMAX 80
@@ -24,6 +25,11 @@ static short npw;
 static TEDINFO ted[TMAX];
 static char tmpl[TMAX][64], valid[TMAX][64];
 static short nobj, nted, last_child;
+/* the fields that hold more than they show (field.c, the guidelines 5.4):
+   the Follow dialog has ten */
+#define NLF 12
+static LFIELD lfs[NLF];
+static short nlf;
 
 /* ---------------- builder ---------------- */
 
@@ -35,6 +41,8 @@ static void d_begin(short w, short h)
 		eyes_made = 1;
 	}
 	npw = 0;
+	nlf = 0;
+	lf_forget(tree);
 	memset(tree, 0, sizeof(tree));
 	nobj = 1;
 	nted = 0;
@@ -76,19 +84,23 @@ static short d_text(short x, short y, const char *s)
 	return d_add(G_STRING, 0, 0, (long)s, x, y, (short)strlen(s), 1);
 }
 
-/* an editable field showing len characters of buf (buf holds len+1) */
-static short d_edit(short x, short y, char *buf, short len, char kind)
+/* an editable field showing show characters of buf, which holds cap
+   (cap + 1 bytes); when that is more, the field scrolls (field.c) */
+static short d_edit(short x, short y, char *buf, short show, short cap, char kind)
 {
 	TEDINFO *t = &ted[nted];
-	short i;
-	if (len > 60)
-		len = 60;
-	for (i = 0; i < len; i++) {
+	short i, o;
+	if (show > 60)
+		show = 60;
+	for (i = 0; i < show; i++) {
 		tmpl[nted][i] = '_';
 		valid[nted][i] = kind;
 	}
-	tmpl[nted][len] = valid[nted][len] = 0;
-	buf[len] = 0;
+	tmpl[nted][show] = valid[nted][show] = 0;
+	if (cap > show && nlf == NLF)
+		cap = show;			/* no room for one more: as GEM's */
+	if (cap <= show)
+		buf[cap] = 0;
 	t->te_ptext = buf;
 	t->te_ptmplt = tmpl[nted];
 	t->te_pvalid = valid[nted];
@@ -96,10 +108,13 @@ static short d_edit(short x, short y, char *buf, short len, char kind)
 	t->te_just = 0;
 	t->te_color = 0x1180;
 	t->te_thickness = 0;
-	t->te_txtlen = len + 1;
-	t->te_tmplen = len + 1;
+	t->te_txtlen = (cap < show ? cap : show) + 1;
+	t->te_tmplen = show + 1;
 	nted++;
-	return d_add(G_FTEXT, EDITABLE, 0, (long)t, x, y, len, 1);
+	o = d_add(G_FTEXT, EDITABLE, 0, (long)t, x, y, show, 1);
+	if (cap > show)
+		lf_init(&lfs[nlf++], tree, o, buf, cap, 0);
+	return o;
 }
 
 static short d_button(short x, short y, short w, const char *s, short flags)
@@ -117,19 +132,17 @@ static void d_end(void)
 }
 
 /* ---------------- password fields ----------------
- * GEM's text fields can't hide what they show, so a password field
- * shows a row of '*' while the real text is kept aside; the eye button
- * next to it shows it in clear. form_loop() below is form_do() written
- * out with form_keybd/form_button/objc_edit, so it can type into a
- * password field itself. */
+ * GEM's text fields can't hide what they show, so a password field is a
+ * long field (field.c) shown as stars; the eye button next to it shows
+ * it in clear. form_loop() below is form_do() written out with
+ * form_keybd/form_button/objc_edit, so the long fields take their keys
+ * there. */
 
 #define PWMAX 2
 
 typedef struct {
 	short obj, eye;		/* the text field and its eye button */
-	char *real;		/* the password */
-	short max;
-	char shown[48];		/* what the field displays */
+	LFIELD *lf;		/* the password, kept aside */
 	short clear;		/* 1: shown in clear */
 } PWFIELD;
 
@@ -215,48 +228,27 @@ static void make_eyes(void)
 	}
 }
 
-static void pw_update_text(PWFIELD *p)
-{
-	short n = (short)strlen(p->real), i;
-	if (n > p->max)
-		n = p->max;
-	for (i = 0; i < n; i++)
-		p->shown[i] = p->clear ? p->real[i] : '*';
-	p->shown[n] = 0;
-	eye_blk[p - pwf].bi_pdata = p->clear ? eye_shut : eye_open;
-}
-
-/* a password field of len characters on real (which holds len+1) */
-static short d_pass(short x, short y, char *real, short len)
+/* a password field showing show characters of real, which holds cap */
+static short d_pass(short x, short y, char *real, short show, short cap)
 {
 	PWFIELD *p = &pwf[npw];
 	BITBLK *b = &eye_blk[npw];
-	short f;
-	if (len > 46)
-		len = 46;
-	p->real = real;
-	p->max = len;
-	p->clear = 0;
-	real[len] = 0;
-	pw_update_text(p);
-	f = d_edit(x, y, p->shown, len, 'X');
+	short f = d_edit(x, y, real, show, cap, 'X');
 	p->obj = f;
+	p->clear = 0;
+	p->lf = lf_of(tree, f);
+	if (p->lf) {
+		p->lf->mask = '*';
+		lf_view(p->lf);
+	}
+	b->bi_pdata = eye_open;
 	b->bi_wb = 2;
 	b->bi_hl = gl_hchar >= 16 ? 16 : 8;
 	b->bi_x = b->bi_y = 0;
 	b->bi_color = 1;
-	p->eye = d_add(G_IMAGE, TOUCHEXIT, 0, (long)b, x + len + 1, y, 2, 1);
+	p->eye = d_add(G_IMAGE, TOUCHEXIT, 0, (long)b, x + show + 1, y, 2, 1);
 	npw++;
 	return f;
-}
-
-static PWFIELD *pw_of(short obj)
-{
-	short i;
-	for (i = 0; i < npw; i++)
-		if (pwf[i].obj == obj)
-			return &pwf[i];
-	return 0;
 }
 
 static void draw_obj(short obj)
@@ -266,30 +258,6 @@ static void draw_obj(short obj)
 	objc_draw(tree, obj, 0, x - 2, y - 2, tree[obj].ob_width + 4, tree[obj].ob_height + 4);
 }
 
-/* type into a password field; 1 if the key was used */
-static int pw_key(PWFIELD *p, short key, short *idx)
-{
-	short scan = KEY_SCAN(key), ascii = KEY_ASCII(key), n = (short)strlen(p->real);
-	if (scan == 0x0e) {			/* Backspace */
-		if (n)
-			p->real[n - 1] = 0;
-	} else if (scan == 0x01 || scan == 0x53) {	/* Delete (Esc: where nothing cancels): clear */
-		p->real[0] = 0;
-	} else if (scan == 0x4b || scan == 0x4d) {	/* the cursor stays at the end */
-		return 1;
-	} else if (ascii >= 32 && n < p->max) {
-		p->real[n] = (char)ascii;
-		p->real[n + 1] = 0;
-	} else {
-		return ascii >= 32;		/* full */
-	}
-	objc_edit(tree, p->obj, 0, idx, ED_END);
-	pw_update_text(p);
-	draw_obj(p->obj);
-	objc_edit(tree, p->obj, 0, idx, ED_INIT);
-	return 1;
-}
-
 static short first_editable(void)
 {
 	short i;
@@ -297,16 +265,6 @@ static short first_editable(void)
 		if (tree[i].ob_flags & EDITABLE)
 			return i;
 	return 0;
-}
-
-/* ^V in a password field: the clipboard's first line typed in (nothing is
-   ever copied out of one) */
-static void pw_paste(PWFIELD *p, short *idx)
-{
-	char buf[64], *c;
-	clip_get(buf, sizeof(buf));
-	for (c = clip_line(buf); *c; c++)
-		pw_key(p, (unsigned char)*c, idx);
 }
 
 /* what Esc and Undo press (the guidelines, 3.5): Cancel, else the only
@@ -326,41 +284,53 @@ static short esc_button(void)
 	return exits == 1 ? last : 0;
 }
 
-/* form_do, with password fields, the clipboard (^C ^X ^V), and Esc and
-   Undo for Cancel (the AERA guidelines, 3.5): never anything that acts,
-   and never clearing the field the cursor is in, as form_do's Esc does */
+/* the cursor into a field: where its text ends */
+static void field_enter(short obj, short *idx)
+{
+	LFIELD *lf = lf_of(tree, obj);
+	if (lf)
+		lf_enter(lf, idx);
+	else
+		objc_edit(tree, obj, 0, idx, ED_INIT);
+}
+
+/* form_do, with fields longer than they show (passwords among them), the
+   clipboard (^C ^X ^V), and Esc and Undo for Cancel (the AERA
+   guidelines, 3.5): never anything that acts, and never clearing the
+   field the cursor is in, as form_do's Esc does */
 static short form_loop(short start)
 {
 	short next = start ? start : first_editable(), edit = 0, idx = 0, cont = 1;
 	short m[8];
 	AEVENT e;
 	while (cont) {
+		LFIELD *lf;
 		if (next && next != edit) {
 			edit = next;
 			next = 0;
-			objc_edit(tree, edit, 0, &idx, ED_INIT);
+			field_enter(edit, &idx);
 		}
+		lf = edit ? lf_of(tree, edit) : 0;
 		evnt_multi_(MU_KEYBD | MU_BUTTON, 2, 1, 1, 0, m, &e);
 		if (e.which & MU_KEYBD) {
-			PWFIELD *p = pw_of(edit);
 			short scan = KEY_SCAN(e.kreturn);
 			short nav = scan == 0x1c || scan == 0x72 || scan == 0x0f || scan == 0x48 || scan == 0x50;
+			/* the Hebrew keyboard (F10) types into the fields too, not
+			   into a password */
+			short ch = lf && lf->mask ? KEY_ASCII(e.kreturn) : key_char(e.kstate, e.kreturn);
 			if (scan == 0x01 || scan == 0x61) {	/* Esc, Undo */
 				if (esc_button()) {
 					next = esc_button();	/* as if it were clicked */
 					cont = 0;
 				}
-			} else if (edit && clip_key(e.kreturn)) {
-				if (!p)
-					clip_edit(tree, edit, &idx, e.kreturn);
-				else if (clip_key(e.kreturn) == CLIP_PASTE)
-					pw_paste(p, &idx);
-			} else if (!(p && !nav && pw_key(p, e.kreturn, &idx))) {
-				/* the Hebrew keyboard (F10) types into the fields too */
-				short kr, k = (short)((e.kreturn & 0xff00) | (p || nav ? KEY_ASCII(e.kreturn) :
-								    key_char(e.kstate, e.kreturn)));
+			} else if (lf && !nav && lf_key(lf, e.kreturn, ch, e.kstate, &idx)) {
+				/* the long field took it */
+			} else if (edit && !lf && clip_key(e.kreturn)) {
+				clip_edit(tree, edit, &idx, e.kreturn);
+			} else {
+				short kr, k = (short)((e.kreturn & 0xff00) | (nav ? KEY_ASCII(e.kreturn) : ch));
 				cont = form_keybd(tree, edit, next, k, &next, &kr);
-				if (kr)
+				if (kr && !lf)		/* a long field's text isn't objc_edit's */
 					objc_edit(tree, edit, kr, &idx, ED_CHAR);
 			}
 		}
@@ -375,11 +345,12 @@ static short form_loop(short start)
 				if (edit)
 					objc_edit(tree, edit, 0, &idx, ED_END);
 				eye->clear = !eye->clear;
-				pw_update_text(eye);
-				draw_obj(eye->obj);
+				eye_blk[eye - pwf].bi_pdata = eye->clear ? eye_shut : eye_open;
+				if (eye->lf)
+					lf_mask(eye->lf, eye->clear ? 0 : '*', &idx, 0);
 				draw_obj(eye->eye);
 				if (edit)
-					objc_edit(tree, edit, 0, &idx, ED_INIT);
+					field_enter(edit, &idx);
 				evnt_timer_(150);
 			} else if (obj < 0) {
 				next = 0;
@@ -478,9 +449,9 @@ static void tick_draw(short k)
 }
 
 /* a field in a thin frame */
-static short d_field(short x, short y, char *buf, short len, char kind)
+static short d_field(short x, short y, char *buf, short show, short cap, char kind)
 {
-	short i = d_edit(x, y, buf, len, kind);
+	short i = d_edit(x, y, buf, show, cap, kind);
 	TEDINFO *t = (TEDINFO *)tree[i].ob_spec;
 	tree[i].ob_type = G_FBOXTEXT;
 	t->te_thickness = -1;
@@ -599,16 +570,16 @@ static int tick_hit(short r)
 
 int dlg_ask(const char *title, const char *label, char *buf, short len)
 {
-	static char field[48];
-	short f, ok, w;
-	if (len > 46)
-		len = 46;
-	w = len + 6 > 40 ? len + 6 : 40;
+	static char field[128];
+	short f, ok, w, show = len > 46 ? 46 : len;
+	if (len > (short)sizeof(field) - 1)
+		len = (short)sizeof(field) - 1;
+	w = show + 6 > 40 ? show + 6 : 40;
 	str_copy(field, buf, sizeof(field));
 	d_begin(w, 8);
 	d_band(w, title);
 	d_text(2, 2, label);
-	f = d_field(2, 4, field, len, 'X');
+	f = d_field(2, 4, field, show, len, 'X');
 	d_button(w - 24, 6, 10, "Cancel", EXIT);
 	ok = d_button(w - 12, 6, 10, "OK", EXIT | DEFAULT);
 	d_end();
@@ -622,7 +593,7 @@ int dlg_ask(const char *title, const char *label, char *buf, short len)
 
 int dlg_find(char *text, int size, int *owners)
 {
-	static char field[42];
+	static char field[100];
 	short f, ok;
 	str_copy(field, text, sizeof(field));
 	nticks = 0;
@@ -632,7 +603,7 @@ int dlg_find(char *text, int size, int *owners)
 	d_band(48, " Find on GitHub");
 	rows_at(2);
 	d_add(G_STRING, 0, 0, (long)"Look for", 2, ROW(0), 8, 1);
-	f = d_field(11, ROW(0), field, 34, 'X');
+	f = d_field(11, ROW(0), field, 34, (short)(size < (int)sizeof(field) ? size - 1 : (int)sizeof(field) - 1), 'X');
 	d_tick(2, ROW(1), "Repositories with it in their names", T_REPOS);
 	d_tick(2, ROW(2), "Owners: people and organisations", T_OWNERS);
 	d_text(5, ROW(3), "(a double click lists their repositories)");
@@ -659,7 +630,8 @@ int dlg_find(char *text, int size, int *owners)
  * and up to four rules for files that go elsewhere (desk accessories to
  * the boot drive's root) or nowhere ("-": another machine's edition). */
 
-static char fl_folder[46], fl_files[30], fl_names[NRULE][26], fl_rfolder[NRULE][26];
+/* as long as the settings are (store.h): the fields scroll */
+static char fl_folder[160], fl_files[40], fl_names[NRULE][40], fl_rfolder[NRULE][120];
 static char fl_l1[64], fl_l2[64], fl_l3[64];
 
 /* the Atari folder, chosen with the file selector */
@@ -684,7 +656,7 @@ static int pick_folder(char *dir, int size, const char *title)
 
 int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 {
-	short f_folder, b_folder, b_rule[NRULE], ok, k, i, y;
+	short f_folder, f_rule[NRULE], b_folder, b_rule[NRULE], ok, k, i, y;
 	str_copy(fl_folder, r->folder, sizeof(fl_folder));
 	str_copy(fl_files, r->files, sizeof(fl_files));
 	for (k = 0; k < NRULE; k++) {
@@ -718,11 +690,11 @@ int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 		y++;
 	}
 	d_add(G_STRING, 0, 0, (long)"Folder", 2, ROW(y), 6, 1);
-	f_folder = d_field(10, ROW(y), fl_folder, 40, 'X');
+	f_folder = d_field(10, ROW(y), fl_folder, 40, sizeof(fl_folder) - 1, 'X');
 	b_folder = d_button(52, ROW(y), 10, "Choose...", EXIT);
 	y++;
 	d_add(G_STRING, 0, 0, (long)"Files", 2, ROW(y), 5, 1);
-	d_field(10, ROW(y), fl_files, 24, 'X');
+	d_field(10, ROW(y), fl_files, 24, sizeof(fl_files) - 1, 'X');
 	d_text(36, ROW(y), "empty: the zip, or all");
 	y++;
 	d_tick(2, ROW(y), "Unpack a .zip into the folder", T_UNZIP);
@@ -730,9 +702,9 @@ int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 	d_text(2, ROW(y), "These go elsewhere (\"-\": left out), the first that names them:");
 	y++;
 	for (k = 0; k < NRULE; k++, y++) {
-		d_field(2, ROW(y), fl_names[k], 24, 'X');
+		d_field(2, ROW(y), fl_names[k], 24, sizeof(fl_names[k]) - 1, 'X');
 		d_text(28, ROW(y), "->");
-		d_field(32, ROW(y), fl_rfolder[k], 22, 'X');
+		f_rule[k] = d_field(32, ROW(y), fl_rfolder[k], 22, sizeof(fl_rfolder[k]) - 1, 'X');
 		b_rule[k] = d_button(56, ROW(y), 6, "...", EXIT);
 	}
 	if (is_new)
@@ -753,6 +725,11 @@ int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 				pick_folder(fl_folder, sizeof(fl_folder), "Where its files go");
 			else
 				pick_folder(fl_rfolder[k], sizeof(fl_rfolder[k]), "Where these files go");
+			{
+				LFIELD *lf = lf_of(tree, k == NRULE ? f_folder : f_rule[k]);
+				if (lf)
+					lf_end(lf);	/* the folder chosen, shown */
+			}
 			objc_draw(tree, 0, 8, open_at.x, open_at.y, open_at.w, open_at.h);
 			continue;
 		}
@@ -789,7 +766,7 @@ static void part_checks(short x, short y)
 	d_tick(x + 2, ROW(1), "Only when I ask (Check, ^R)", T_NEVER);
 	d_tick(x + 2, ROW(2), "When EUpdate starts", T_START);
 	d_tick(x + 2, ROW(3), "Then every     hours too", T_EVERY);
-	d_field(x + 16, ROW(3), s_hours, 3, '9');
+	d_field(x + 16, ROW(3), s_hours, 3, 3, '9');
 	d_tick(x, ROW(4), "Download what is new, not only say so", T_FETCH);
 	d_add(G_STRING, 0, 0, (long)"(only while EUpdate runs: let the", x + 3, ROW(5), 33, 1);
 	d_add(G_STRING, 0, 0, (long)"desktop start it, to keep to them)", x + 3, ROW(6), 34, 1);
@@ -807,7 +784,7 @@ static void part_github(short x, short y)
 {
 	rows_at(y);
 	d_add(G_STRING, 0, 0, (long)"Token", x, ROW(0), 5, 1);
-	d_pass(x + 6, ROW(0), s_token, 30);
+	d_pass(x + 6, ROW(0), s_token, 30, sizeof(s_token) - 1);
 	d_add(G_STRING, 0, 0, (long)"Without one GitHub answers 60 times", x, ROW(1), 35, 1);
 	d_add(G_STRING, 0, 0, (long)"an hour; with one, 5,000. Make one on", x, ROW(2), 37, 1);
 	d_add(G_STRING, 0, 0, (long)"github.com: Settings > Developer", x, ROW(3), 32, 1);
