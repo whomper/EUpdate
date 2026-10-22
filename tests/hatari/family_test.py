@@ -15,6 +15,8 @@ The check at the start downloads all that is new (FETCH=1).
 
 Erez's TOS 4.04 and NVDI are used when this machine has them
 (machines.py: ~/.aera/tos, AERA_WITH_NVDI=1); EmuTOS otherwise.
+AERA_WITH_ACCS= (empty) runs it with no accessories, as Erez ran 1.1 when
+it crashed on 22 Oct 2026.
 """
 import os
 import shutil
