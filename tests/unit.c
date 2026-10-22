@@ -144,6 +144,25 @@ static void test_http(void)
 	CHECK(rs.status == 200 && !strcmp(b.s, "the file"));
 	http_close_all();
 
+	/* a redirect to a signed address as long as GitHub's (900 characters
+	   and more) is followed whole; one longer than EUpdate takes is
+	   refused, never cut short (1.0 cut the request line at 511 bytes) */
+	{
+		static char ans[12000], loc[5200];
+		memset(loc, 'a', sizeof(loc));
+		memcpy(loc, "/file?sig=", 10);
+		loc[3000] = 0;
+		snprintf(ans, sizeof(ans), "HTTP/1.1 302 Found\r\nLocation: %s\r\nContent-Length: 0\r\n\r\n" FUZZ_NET_NEXT
+			 "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok", loc);
+		CHECK(get(ans, "http://api.test/asset", HTTP_OCTET, &b, &rs, err) && !strcmp(b.s, "ok"));
+		http_close_all();
+		loc[3000] = 'a';
+		loc[5100] = 0;
+		snprintf(ans, sizeof(ans), "HTTP/1.1 302 Found\r\nLocation: %s\r\nContent-Length: 0\r\n\r\n", loc);
+		CHECK(!get(ans, "http://api.test/asset", HTTP_OCTET, &b, &rs, err) && strstr(err, "too long"));
+		http_close_all();
+	}
+
 	/* gzip */
 	gz = load("tests/data/hello.gz", &gzn);
 	snprintf(ans, sizeof(ans), "HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Length: %ld\r\n\r\n", gzn);

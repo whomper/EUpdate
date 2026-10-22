@@ -16,8 +16,9 @@ repository's, as the API gave it), over HTTP or TLS.
       whomper/EDOS       no release (404, and the repository is there)
       anything else      404 twice: no such repository
       whomper/Limit      403, the hour's limit
-  /repos/O/N/releases/assets/ID  302 to /dl/ID on the same server, which
-      gives the file to Accept: application/octet-stream only
+  /repos/O/N/releases/assets/ID  302 to /dl/ID?SIGNED on the same server
+      (a query of 900 characters and more, as GitHub's), which gives the
+      file to Accept: application/octet-stream and the whole query only
 Every request must carry a User-Agent; a token, when one comes, must be
 "Bearer good-token" (401 otherwise), and it must never reach /dl/.
 """
@@ -33,6 +34,13 @@ H = os.path.dirname(os.path.abspath(__file__))
 REPO = json.load(open(os.path.join(H, "github", "repo.json")))
 ZIP = open(os.path.join(H, "data", "good.zip"), "rb").read()
 HYP = b"HDOC" + bytes(range(256)) * 20
+# where GitHub sends a release's file: its file server, with a signature
+# in the query (release-assets.githubusercontent.com, 902 characters for
+# EUpdate 1.0's EUPDATE.PRG); anything else is answered 400
+SIGNED = "sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-22T09%3A00%3A00Z&rscd=attachment&rsct=application" \
+         "%2Foctet-stream&skoid=" + "96c2d410-5711-43a1-aedd-ab1947aa7ab0" * 3 + "&sktid=398a6654&skt=2026" \
+         "-10-22T08%3A00%3A00Z&ske=2026-10-22T09%3A00%3A00Z&sks=b&skv=2018-11-09&sig=" + "Zm9vYmFy" * 60 + \
+         "%3D&jwt=" + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" * 4
 
 
 def repo(full, stars, desc):
@@ -126,6 +134,8 @@ class Handler(BaseHTTPRequestHandler):
         if not self.headers.get("User-Agent", "").startswith("EUpdate"):
             return self.send(403, {"message": "no User-Agent"})
         if path.startswith("/dl/"):
+            if query != SIGNED:
+                return self.send(400, b"<Error>AuthenticationFailed</Error>", "application/xml")
             if auth:
                 return self.send(400, {"message": "the token went to the download's host"})
             if self.headers.get("Accept") != "application/octet-stream":
@@ -155,7 +165,8 @@ class Handler(BaseHTTPRequestHandler):
         if len(p) >= 4 and p[0] == "repos" and p[3] == "releases":
             full = p[1] + "/" + p[2]
             if len(p) == 6 and p[4] == "assets":
-                return self.send(302, b"", "text/html", extra=(("Location", "/dl/" + p[5]),))
+                # as GitHub: on to a signed address of 900 characters and more
+                return self.send(302, b"", "text/html", extra=(("Location", "/dl/%s?%s" % (p[5], SIGNED)),))
             if full == "whomper/Limit":
                 return self.send(403, {"message": "API rate limit exceeded"})
             if full in TAGS:

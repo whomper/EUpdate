@@ -20,7 +20,7 @@ char http_user_agent[48] = "EUpdate";
 void (*http_progress)(long got, long total);
 
 #define MAXHOST   64
-#define MAXPATH   1024
+#define MAXPATH   4096		/* GitHub's signed download addresses are 900 and more */
 #define MAXLINE   8192		/* a header line, a chunk's size line */
 #define MAXHDRS   100
 #define REDIRECTS 5
@@ -342,6 +342,10 @@ static int headers(CONN *c, SBUF *line, HEAD *h, HTTPRESP *rs)
 		} else if (!strcasecmp(line->s, "Connection")) {
 			h->close = str_istr(v, "close") != 0;
 		} else if (!strcasecmp(line->s, "Location")) {
+			if (strlen(v) >= sizeof(h->location)) {	/* never cut short */
+				str_copy(c->err, "a redirect to an address too long", sizeof(c->err));
+				return 0;
+			}
 			str_copy(h->location, v, sizeof(h->location));
 		} else if (!strcasecmp(line->s, "X-RateLimit-Remaining")) {
 			rs->rate_left = number(v);
@@ -367,8 +371,13 @@ static int exchange(int k, const URLP *p, int flags, const char *auth, SBUF *bod
 	sb_init(&req);
 	sb_init(&line);
 	sb_init(&packed);
-	sb_printf(&req, "GET %s HTTP/1.1", p->path);
-	conn_log("HTTP", " >> ", req.s, req.len);
+	/* the path by itself, not through sb_printf, whose 512 bytes would cut
+	   it short: GitHub sends a file's download to a signed address of 900
+	   characters and more, and its server answered half of one with 400 */
+	sb_adds(&req, "GET ");
+	sb_adds(&req, p->path);
+	sb_adds(&req, " HTTP/1.1");
+	conn_log("HTTP", " >> ", req.s, req.len > 200 ? 200 : req.len);
 	if ((p->tls && p->port != 443) || (!p->tls && p->port != 80))
 		sb_printf(&req, "\r\nHost: %s:%u", p->host, p->port);
 	else
