@@ -65,7 +65,13 @@ Erez's Falcon with a NetUSBee, Delay 10 took EFTP's downloads from 40 to 75 KB/s
 
 **GitHub answers 60 questions an hour** from an address without a token (a check asks one a
 repository); with a token, 5,000. Make one with no rights at all on github.com (Settings >
-Developer settings > Personal access tokens) and type it in EUpdate's **Settings > GitHub**.
+Developer settings > Personal access tokens) and type or paste it in EUpdate's **Settings >
+GitHub**: the field takes a fine-grained token's 93 characters, as every field takes what its
+setting holds and scrolls.
+
+**If it crashes,** `CRASH.LOG` in its folder says where; when TOS shows the bombs, start EUpdate
+again and it writes TOS's record of them there. **Options > Protocol log** writes each step of a
+job to `EUPDATE.LOG` as it happens (the token never).
 
 ## How it reaches GitHub
 
@@ -120,20 +126,24 @@ docs/       the user guide (GUIDE.md, the source of EUPDATE.HYP) and pictures
   redirects, broken lengths, endless lines), GitHub's answers (a release, no release, no
   repository, the hour's limit, searches), zips (stored, deflated, a damaged CRC, a name that
   climbs out of the folder), the rules and their suggestions, 8+3 names, and `EUPDATE.INF`
-  written and read back with the token encrypted; then the fuzz targets' seeds and finds.
+  written and read back with the token encrypted (an empty line after every setting, and 1.1's
+  file without them read too); then the fuzz targets' seeds and finds.
 - `make itest`: `eupd-cli` against `tests/server.py`, over HTTP and TLS with a certificate
   authority of the test's own: every question EUpdate asks, a wrong token, a download unpacked
   into a folder, and the token never sent on to the file's server nor written in the log.
 - `tests/hatari/gui_test.py WORK [MACHINE]`: `EUPDATE.PRG` on the family's emulated Falcon
   (`common/tools/machines.py`), through FAKESTNG to `tests/server.py`: the check at the start,
-  Find, an owner's repositories, Follow, Update (unpacked, a rule obeyed, `EUPDATE.INF` written),
-  Get info, Settings and the About box. `tests/hatari/screenshots.py` makes the pictures in
+  Find, an owner's repositories, Follow (a letter typed into the middle of its folder), Update
+  (unpacked, a rule obeyed, `EUPDATE.INF` written), Get info, a 93-character token typed into
+  Settings and reaching the server whole, and the About box. `tests/hatari/screenshots.py` makes the pictures in
   `docs/`.
 - `tests/hatari/family_test.py WORK`: as on Erez's Falcon: the AERA family updated from their real
   latest releases (`tests/github/fetch_family.py`, served by `tests/family_server.py` as GitHub
   serves them: a certificate chain like GitHub's, the files from a second host at signed addresses,
   idle connections closed), at a NetUSBee's pace, with ECal, EContact and EHypView loaded as
-  accessories and the suggested rules on (the ST editions left out, the accessories into `C:\`).
+  accessories and the suggested rules on (the ST editions left out, the accessories into `C:\`);
+  `AERA_WITH_ACCS=` (empty) runs it with none. Under Erez's TOS 4.04 and NVDI where the machine
+  has them (`common/tools/machines.py`), EmuTOS otherwise.
 
 ## Licence
 

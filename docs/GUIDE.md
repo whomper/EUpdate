@@ -208,7 +208,9 @@ and 10 searches a minute; a check asks one question a repository. With
 a token, 5,000 an hour and 30 searches a minute. On github.com: your
 picture > **Settings > Developer settings > Personal access tokens**,
 a fine-grained token with no rights at all (public repositories need
-none). Type it in **Settings > GitHub**; the eye shows it.
+none). Type or paste it (^V) in **Settings > GitHub**: the field takes
+up to 99 characters (a fine-grained token has 93) and scrolls as you
+type; it shows stars, and the eye shows the token itself.
 
 The token is kept in `EUPDATE.INF` encrypted with `EUPDATE.KEY`, goes
 only to GitHub's API (never on to where a download is sent), and never
@@ -258,6 +260,7 @@ fixed-width GDOS font under NVDI or SpeedoGDOS.
 | Tab | the other list |
 | Insert | the row's menu |
 | ^, | Settings |
+| Left, Right | in a dialog's field, the cursor; with Shift, to the start or the end (ClrHome too) |
 | F10 | the Hebrew keyboard |
 | Esc | stops what EUpdate is doing; in a dialog, Cancel |
 | Help | this guide |
@@ -282,12 +285,22 @@ fixed-width GDOS font under NVDI or SpeedoGDOS.
 - **A failed row**: rest the mouse on it for what went wrong.
 
 For anything else, switch on **Options > Protocol log**, try again, and
-look at `EUPDATE.LOG`: it has every question asked and how GitHub
-answered (the token never goes into it).
+look at `EUPDATE.LOG`. It starts each job with a line about your Atari
+(TOS, AES, NVDI, the free ST and TT RAM), then has every question
+asked, how GitHub answered, and each step: what is downloaded, every
+256 KB of it, every file written. Each step is written at once, so
+after a crash its last line says where EUpdate was. The token never
+goes into it.
+
+If EUpdate crashes, `CRASH.LOG` in its folder says where. When TOS
+itself shows the bombs, start EUpdate again: it finds TOS's record of
+the crash and writes it into `CRASH.LOG`.
 
 ## EUPDATE.INF
 
-EUpdate's settings and the repositories it follows, as text. Each
-setting has a note above it, and most are set in the dialogs. One that
+EUpdate's settings and the repositories it follows, as text: the
+options under `[OPTIONS]`, then a `[REPO]` part for each repository.
+Each setting has a note above it and an empty line below, and most are
+set in the dialogs. One that
 isn't: `APIBASE=`, GitHub's API address, for a GitHub Enterprise server
 (`https://HOST/api/v3`).
