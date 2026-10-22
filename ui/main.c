@@ -215,16 +215,30 @@ static void idle(void)
 		conn_stop = 1;
 }
 
+/* a step of the job in EUPDATE.LOG, written out at once: should TOS
+   go down, the log's last line says where EUpdate was */
+static void log_step(const char *msg)
+{
+	if (!opt.log)
+		return;
+	conn_log("EUPD", " -- ", msg, strlen(msg));
+	conn_log_flush();
+}
+
 /* what the job does (update.c), with how far a download has come */
 static void job_status(const char *msg)
 {
 	str_copy(job_msg, msg, sizeof(job_msg));
 	status(msg);
+	log_step(msg);
 }
 
 static void job_progress(long got, long total)
 {
 	char m[160], a[16], b[16];
+	static long logged;
+	if (got < logged)
+		logged = 0;		/* the next download */
 	if (pf_ms() - said_at < 250 || total < 16384)
 		return;
 	said_at = pf_ms();
@@ -232,6 +246,43 @@ static void job_progress(long got, long total)
 	size_str(total, b, sizeof(b));
 	snprintf(m, sizeof(m), "%.80s  %s of %s   (Esc stops)", job_msg, a, b);
 	status(m);
+	if (got - logged >= 256L * 1024) {
+		logged = got;
+		snprintf(m, sizeof(m), "%s of %s", a, b);
+		log_step(m);
+	}
+}
+
+/* TOS's version, from its header (_sysbase), and whether it is EmuTOS
+('ETOS' at $2C); supervisor mode */
+static unsigned short tos_ver, emutos;
+
+static void read_tos(void)
+{
+	const unsigned char *h;
+	__asm__("move.l 0x4F2.w,%0" : "=a"(h));
+	if (!h)
+		return;
+	tos_ver = *(const unsigned short *)(h + 2);
+	emutos = *(const unsigned long *)(h + 0x2C) == 0x45544F53UL;
+}
+
+/* the machine in EUPDATE.LOG at each job: what a crash on it is read with */
+static void log_machine(void)
+{
+	char m[200];
+	long st = (long)Mxalloc(-1L, 0), tt = (long)Mxalloc(-1L, 1);
+	if (!opt.log)
+		return;
+	if (!tos_ver)
+		Supexec(read_tos);
+	snprintf(m, sizeof(m), "EUpdate %s on %s %x.%02x, AES %x.%02x, %s; NVDI %s, _FRB %s, FPU %s; "
+		 "free: ST RAM %ld KB, TT RAM %ld KB", app_version, emutos ? "EmuTOS, header" : "TOS",
+		 tos_ver >> 8, tos_ver & 0xff,
+		 (unsigned short)aes_version() >> 8, aes_version() & 0xff, net_stack(),
+		 get_cookie(0x4E564449L) ? "yes" : "no", get_cookie(0x5F465242L) ? "yes" : "no",
+		 get_cookie(0x5F465055L) ? "yes" : "no", st > 0 ? st / 1024 : 0, tt > 0 ? tt / 1024 : 0);
+	log_step(m);
 }
 
 /* a job may start: the network is there, and the certificates TLS
@@ -262,6 +313,7 @@ static int job_begin(void)
 	menu_update();
 	icon_window(0);
 	conn_log_hold(1);
+	log_machine();
 	return 1;
 }
 

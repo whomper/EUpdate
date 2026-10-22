@@ -25,25 +25,47 @@ int pf_open(const char *path, int mode)
 	return (int)h;
 }
 
-long pf_read(int h, void *buf, long n) { return Fread((short)h, n, buf); }
-
-/* TT RAM to the disk: straight when the driver bounces DMA itself (the
-   _FRB cookie: HDDRIVER, TOS 3.06 and 4 with TT RAM), else through a
-   piece of ST RAM (the guidelines, 6.5) */
-long pf_write(int h, const void *buf, long n)
+/* TT RAM to and from the disk: straight when the driver bounces DMA
+   itself (the _FRB cookie: HDDRIVER, TOS 3.06 and 4 with TT RAM), else
+   through a piece of ST RAM (the guidelines, 6.5); 0: straight */
+static char *st_piece(const void *buf)
 {
 	static char *st;
-	const char *p = buf;
-	long done = 0;
 	if ((unsigned long)buf < 0x01000000UL || big_direct())
-		return Fwrite((short)h, n, buf);
+		return 0;
 	if (!st) {
 		st = (char *)Mxalloc(16384, 0);
-		if ((long)st <= 0) {
+		if ((long)st <= 0)
 			st = 0;
-			return Fwrite((short)h, n, buf);
-		}
 	}
+	return st;
+}
+
+long pf_read(int h, void *buf, long n)
+{
+	char *st = st_piece(buf), *p = buf;
+	long done = 0;
+	if (!st)
+		return Fread((short)h, n, buf);
+	while (done < n) {
+		long k = n - done > 16384 ? 16384 : n - done, r = Fread((short)h, k, st);
+		if (r < 0)
+			return done ? done : r;
+		memcpy(p + done, st, r);
+		done += r;
+		if (r < k)
+			break;			/* the end of the file */
+	}
+	return done;
+}
+
+long pf_write(int h, const void *buf, long n)
+{
+	char *st = st_piece(buf);
+	const char *p = buf;
+	long done = 0;
+	if (!st)
+		return Fwrite((short)h, n, buf);
 	while (done < n) {
 		long k = n - done > 16384 ? 16384 : n - done, r;
 		memcpy(st, p + done, k);
