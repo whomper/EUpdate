@@ -461,6 +461,11 @@ static void test_store(void)
 		text = load(path, &n);
 		CHECK(!strstr(text, "ghp_secret"));	/* encrypted */
 		CHECK(strstr(text, "REPO=whomper/ECal") != 0);
+		/* guidelines 6.1: an empty line after every setting, one before each [REPO] */
+		CHECK(strstr(text, "HAVEDATE=\r\n\r\n; the latest") != 0);
+		CHECK(strstr(text, "LATESTDATE=\r\n\r\n[REPO]\r\nREPO=whomper/ECal\r\n\r\n") != 0);
+		CHECK(strstr(text, "\r\n\r\n[OPTIONS]\r\n; check") != 0);
+		CHECK(!strstr(text, "\r\n\r\n\r\n") && !strstr(text, "\r\n[REPO]\r\n\r\n"));
 		free(text);
 	}
 	while (nrepos)
@@ -476,6 +481,26 @@ static void test_store(void)
 	CHECK(!strcmp(repos[0]->rule[1].folder, "C:\\") && !repos[0]->rule[2].names[0] && !repos[1]->rule[0].names[0]);
 	while (nrepos)
 		repo_delete(repos[0]);
+	{
+		/* an INF as 1.1 wrote it, with no empty lines, still reads */
+		static const char old11[] =
+			"; EUpdate settings\r\n\r\n[OPTIONS]\r\n; the hours between checks (1-168)\r\nHOURS=12\r\n"
+			"FETCH=0\r\n\r\n; one [REPO] part per repository followed, up to 64\r\n[REPO]\r\n"
+			"; owner/name on GitHub\r\nREPO=whomper/EMail\r\nFOLDER=C:\\NET\r\n"
+			"RULE=*.ACC;C:\\\r\nHAVE=v3.10\r\nHAVEDATE=2026-10-01\r\n"
+			"\r\n; one [REPO] part per repository followed, up to 64\r\n[REPO]\r\n"
+			"REPO=whomper/EWeb\r\nHAVE=v0.27\r\n";
+		char path[100];
+		snprintf(path, sizeof(path), "%s/EUPDATE.INF", dir);
+		CHECK(pf_save(path, old11, sizeof(old11) - 1) == 0);
+		store_init(dir);
+		CHECK(opt.hours == 12 && opt.fetch == 0 && nrepos == 2);
+		CHECK(!strcmp(repos[0]->full, "whomper/EMail") && !strcmp(repos[0]->folder, "C:\\NET"));
+		CHECK(!strcmp(repos[0]->rule[0].folder, "C:\\") && !strcmp(repos[0]->have_date, "2026-10-01"));
+		CHECK(!strcmp(repos[1]->full, "whomper/EWeb") && !strcmp(repos[1]->have, "v0.27"));
+		while (nrepos)
+			repo_delete(repos[0]);
+	}
 	rm_rf(dir);
 }
 

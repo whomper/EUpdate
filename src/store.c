@@ -215,12 +215,13 @@ int store_init(const char *workdir)
 
 /* ---------------- writing ----------------
  * EUPDATE.INF explains itself: every setting is a ';' line saying what
- * it is, then the setting in capitals. */
+ * it is, then the setting in capitals, then an empty line (guidelines
+ * 6.1), so each reads as its own paragraph. */
 static void put_str(SBUF *b, const char *note, const char *key, const char *val)
 {
 	if (note)
 		sb_printf(b, "; %s\r\n", note);
-	sb_printf(b, "%s=%s\r\n", key, val);
+	sb_printf(b, "%s=%s\r\n\r\n", key, val);
 }
 
 static void put_fmt(SBUF *b, const char *note, const char *key, const char *fmt, ...)
@@ -272,7 +273,9 @@ int store_save(void)
 	put_str(&b, "the folder chosen last", "FOLDER", opt.folder);
 	for (i = 0; i < nrepos; i++) {
 		REPO *p = repos[i];
-		sb_adds(&b, "\r\n; one [REPO] part per repository followed, up to 64\r\n[REPO]\r\n");
+		if (!i)
+			sb_adds(&b, "; one [REPO] part per repository followed, up to 64\r\n\r\n");
+		sb_adds(&b, "[REPO]\r\n");
 		put_str(&b, i ? 0 : "owner/name on GitHub", "REPO", p->full);
 		put_str(&b, i ? 0 : "where its files go", "FOLDER", p->folder);
 		put_str(&b, i ? 0 : "which files: empty = the .zip if there is one, else all; or names with "
