@@ -1,0 +1,473 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later
+ * Copyright (C) 2026 AERA | Erez Yaary */
+/*
+ * unit.c - EUpdate's core on this computer (make test): the JSON reader,
+ * HTTP against answers fuzz_net.c plays (chunked, gzip, redirects, a
+ * kept line, broken ones), GitHub's answers, zips, names on the disk,
+ * EUPDATE.INF. Run from the repository's top.
+ */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include "plat.h"
+#include "util.h"
+#include "json.h"
+#include "http.h"
+#include "gh.h"
+#include "store.h"
+#include "unzip.h"
+#include "update.h"
+#include "conn.h"
+#include "fuzz_net.h"
+
+static int fails, checks;
+
+#define CHECK(c) do { checks++; if (!(c)) { fails++; printf("FAIL %s:%d: %s\n", __FILE__, __LINE__, #c); } } while (0)
+
+static char *load(const char *path, long *n)
+{
+	char *b = pf_load(path, n);
+	if (!b) {
+		printf("can't read %s (run from the repository's top)\n", path);
+		exit(1);
+	}
+	return b;
+}
+
+/* ---------------- JSON ---------------- */
+
+static void test_json(void)
+{
+	static const char doc[] =
+		"{ \"tag_name\": \"v1.45\", \"n\": -42, \"big\": 99999999999, \"f\": 1.5e3,\n"
+		"  \"esc\": \"a\\\"b\\\\c\\u00e9\\ud83d\\ude00\\n\", \"heb\": \"\xd7\xa9\xd7\x9c\xd7\x95\xd7\x9d\",\n"
+		"  \"nested\": { \"a\": [1, [2, {\"x\": null}], \"s\"], \"b\": true }, \"empty\": {}, \"e2\": [],\n"
+		"  \"last\": false }";
+	JSON js;
+	char key[32], s[64];
+	int seen = 0;
+	json_init(&js, doc, (long)strlen(doc));
+	CHECK(json_object(&js));
+	while (json_key(&js, key, sizeof(key))) {
+		seen++;
+		if (!strcmp(key, "tag_name")) {
+			CHECK(json_string(&js, s, sizeof(s)) && !strcmp(s, "v1.45"));
+		} else if (!strcmp(key, "n")) {
+			CHECK(json_long(&js, 0) == -42);
+		} else if (!strcmp(key, "big")) {
+			CHECK(json_long(&js, 7) == 7);
+		} else if (!strcmp(key, "f")) {
+			CHECK(json_long(&js, 8) == 8);
+		} else if (!strcmp(key, "esc")) {
+			/* é is 0x82 in the Atari's character set; the emoji has none, and goes */
+			CHECK(json_string(&js, s, sizeof(s)) && !strcmp(s, "a\"b\\c\x82\n"));
+		} else if (!strcmp(key, "heb")) {
+			/* shin, lamed, vav, final mem: Atari 0xD6 0xCD 0xC7 0xDA */
+			CHECK(json_string(&js, s, sizeof(s)) && !strcmp(s, "\xD6\xCD\xC7\xDA"));
+		} else if (!strcmp(key, "nested")) {
+			CHECK(json_object(&js));
+			CHECK(json_key(&js, key, sizeof(key)) && !strcmp(key, "a"));
+			json_skip(&js);
+			CHECK(json_key(&js, key, sizeof(key)) && !strcmp(key, "b"));
+			CHECK(json_bool(&js) == 1);
+			CHECK(!json_key(&js, key, sizeof(key)));
+		} else if (!strcmp(key, "last")) {
+			CHECK(json_bool(&js) == 0);
+		} else {
+			json_skip(&js);
+		}
+	}
+	CHECK(seen == 10);
+	CHECK(!js.err && js.depth == 0);
+
+	/* cut short, wrong, too deep: an error, never a read past the end */
+	{
+		static const char *bad[] = { "{\"a\": \"abc", "{\"a\" 1}", "[1 2]", "{\"a\": tru}", "[\"\x01\"]",
+					     "{\"a\":\"\\uZZZZ\"}", "[" };
+		int i;
+		for (i = 0; i < (int)(sizeof(bad) / sizeof(bad[0])); i++) {
+			json_init(&js, bad[i], (long)strlen(bad[i]));
+			json_skip(&js);
+			CHECK(js.err);
+		}
+	}
+	{
+		char deep[200];
+		memset(deep, '[', sizeof(deep));
+		json_init(&js, deep, sizeof(deep));
+		json_skip(&js);
+		CHECK(js.err);
+	}
+	/* a string cut to its room */
+	json_init(&js, "\"abcdefgh\"", 10);
+	CHECK(json_string(&js, s, 4) && !strcmp(s, "abc"));
+}
+
+/* ---------------- HTTP ---------------- */
+
+static int get(const char *answer, const char *url, int flags, SBUF *b, HTTPRESP *rs, char *err)
+{
+	fuzz_net_set((const unsigned char *)answer, (long)strlen(answer));
+	sb_reset(b);
+	return http_get(url, flags, 0, 0, b, 1 << 20, rs, err, 200);
+}
+
+static void test_http(void)
+{
+	SBUF b;
+	HTTPRESP rs;
+	char err[200], *gz, ans[2000];
+	long gzn;
+	sb_init(&b);
+
+	CHECK(get("HTTP/1.1 200 OK\r\nContent-Length: 5\r\nX-RateLimit-Remaining: 59\r\n\r\nhello",
+		  "http://api.test/x", 0, &b, &rs, err));
+	CHECK(rs.status == 200 && b.len == 5 && !strcmp(b.s, "hello") && rs.rate_left == 59);
+	http_close_all();
+
+	CHECK(get("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n"
+		  "4\r\nWiki\r\n5;ext=1\r\npedia\r\n0\r\nTrailer: x\r\n\r\n", "http://api.test/", 0, &b, &rs, err));
+	CHECK(b.len == 9 && !strcmp(b.s, "Wikipedia"));
+	http_close_all();
+
+	/* a redirect, its own body dropped; then the answer, until the line closes */
+	CHECK(get("HTTP/1.1 302 Found\r\nLocation: https://cdn.test/file\r\nContent-Length: 3\r\n\r\nxyz"
+		  "HTTP/1.1 100 Continue\r\n\r\nHTTP/1.0 200 OK\r\nConnection: close\r\n\r\nthe file",
+		  "http://api.test/asset", HTTP_OCTET, &b, &rs, err) == 0);
+	/* (https needs TLS: the fuzz network can't do it; a plain one can) */
+	/* (each connection its part of the input: a line kept open with an
+	   answer already waiting on it is taken as closed, and dropped) */
+	CHECK(get("HTTP/1.1 302 Found\r\nLocation: /file\r\nContent-Length: 3\r\n\r\nxyz" FUZZ_NET_NEXT
+		  "HTTP/1.1 100 Continue\r\n\r\nHTTP/1.0 200 OK\r\nConnection: close\r\n\r\nthe file",
+		  "http://api.test/asset", HTTP_OCTET, &b, &rs, err));
+	CHECK(rs.status == 200 && !strcmp(b.s, "the file"));
+	http_close_all();
+
+	/* gzip */
+	gz = load("tests/data/hello.gz", &gzn);
+	snprintf(ans, sizeof(ans), "HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Length: %ld\r\n\r\n", gzn);
+	{
+		long h = (long)strlen(ans);
+		memcpy(ans + h, gz, gzn);
+		fuzz_net_set((const unsigned char *)ans, h + gzn);
+		sb_reset(&b);
+		CHECK(http_get("http://api.test/gz", HTTP_GZIP, 0, 0, &b, 1 << 20, &rs, err, sizeof(err)));
+		CHECK(b.len == 13 * 50 && !strncmp(b.s, "hello, Atari\n", 13));
+		http_close_all();
+		/* more than the caller takes */
+		fuzz_net_set((const unsigned char *)ans, h + gzn);
+		sb_reset(&b);
+		CHECK(!http_get("http://api.test/gz", HTTP_GZIP, 0, 0, &b, 100, &rs, err, sizeof(err)));
+		http_close_all();
+	}
+	free(gz);
+
+	/* broken answers */
+	CHECK(!get("HTTP/1.1 200 OK\r\nContent-Length: 99999999999\r\n\r\n", "http://a.test/", 0, &b, &rs, err));
+	http_close_all();
+	CHECK(!get("HTTP/1.1 200 OK\r\nContent-Length: 10\r\n\r\nshort", "http://a.test/", 0, &b, &rs, err));
+	http_close_all();
+	CHECK(!get("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\nfffffffff\r\n", "http://a.test/", 0, &b, &rs, err));
+	http_close_all();
+	CHECK(!get("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n3\r\nabcd\r\n0\r\n\r\n", "http://a.test/", 0, &b, &rs, err));
+	http_close_all();
+	CHECK(!get("SSH-2.0-OpenSSH\r\n", "http://a.test/", 0, &b, &rs, err));
+	http_close_all();
+	CHECK(!get("HTTP/1.1 301 Moved\r\nLocation: ftp://x/\r\nContent-Length: 0\r\n\r\n", "http://a.test/", 0, &b, &rs, err));
+	http_close_all();
+	CHECK(!get("", "http://user@a.test/", 0, &b, &rs, err));
+	CHECK(!get("", "gopher://a.test/", 0, &b, &rs, err));
+	CHECK(!get("", "http://a.test:99999/", 0, &b, &rs, err));
+	/* a line that never ends */
+	{
+		char *big = malloc(20000);
+		memcpy(big, "HTTP/1.1 200 OK\r\nX: ", 20);
+		memset(big + 20, 'a', 20000 - 21);
+		big[19999] = 0;
+		CHECK(!get(big, "http://a.test/", 0, &b, &rs, err));
+		http_close_all();
+		free(big);
+	}
+	sb_free(&b);
+}
+
+/* ---------------- GitHub's answers ---------------- */
+
+/* what the server says next */
+static void say(const char *answer)
+{
+	fuzz_net_set((const unsigned char *)answer, (long)strlen(answer));
+}
+
+static void test_gh(void)
+{
+	static const char rel[] =
+		"HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n%s";
+	static const char body[] =
+		"{\"url\":\"u\",\"tag_name\":\"v1.45\",\"name\":\"EFTP 1.45\",\"author\":{\"login\":\"whomper\"},"
+		"\"published_at\":\"2026-10-20T09:15:00Z\",\"assets\":["
+		"{\"id\":101,\"name\":\"EFTP.PRG\",\"size\":180000,\"uploader\":{\"id\":1}},"
+		"{\"id\":102,\"name\":\"EFTP-1.45.zip\",\"size\":400000},"
+		"{\"id\":103,\"name\":\"EFTP.HYP\",\"size\":30000}],\"body\":\"notes\"}";
+	static const char search[] =
+		"{\"total_count\":2,\"incomplete_results\":false,\"items\":["
+		"{\"full_name\":\"whomper/EFTP\",\"description\":\"FTP for the Atari\",\"stargazers_count\":7,"
+		"\"pushed_at\":\"2026-10-21T10:00:00Z\",\"fork\":false,\"archived\":false,\"owner\":{\"login\":\"whomper\"}},"
+		"{\"full_name\":\"bad/../name\",\"description\":null}]}";
+	char ans[3000], err[200];
+	GHREL r;
+	GHREPO repos[4];
+	GHUSER users[4];
+	REPO sub;
+	short which[GH_MAXASSET];
+	long total;
+	int n;
+
+	str_copy(gh_base, "http://api.test", sizeof(gh_base));
+	snprintf(ans, sizeof(ans), rel, (int)strlen(body), body);
+	fuzz_net_set((const unsigned char *)ans, (long)strlen(ans));
+	CHECK(gh_latest("whomper/EFTP", &r, err, sizeof(err)) == 1);
+	CHECK(!strcmp(r.tag, "v1.45") && !strcmp(r.date, "2026-10-20") && r.nasset == 3);
+	CHECK(r.asset[1].id == 102 && r.asset[1].size == 400000 && !strcmp(r.asset[2].name, "EFTP.HYP"));
+	http_close_all();
+
+	/* which files: the zip by itself, or what the patterns say */
+	memset(&sub, 0, sizeof(sub));
+	CHECK(up_chosen(&sub, &r, which) == 1 && which[0] == 1);
+	str_copy(sub.files, "*.prg, eftp.hy?", sizeof(sub.files));
+	CHECK(up_chosen(&sub, &r, which) == 2 && which[0] == 0 && which[1] == 2);
+	r.asset[1].name[0] = 'x';
+	r.asset[1].name[strlen(r.asset[1].name) - 1] = 'x';	/* no zip: every file */
+	sub.files[0] = 0;
+	CHECK(up_chosen(&sub, &r, which) == 3);
+
+	/* an edition and its ST twin, and accessories: the suggested rules */
+	{
+		static const char *const names[] = { "ECAL.ACC", "ECALST.ACC", "ECAL.PRG", "ECAL.HYP", "ECAL-2.21.zip" };
+		GHREL e;
+		int i;
+		memset(&e, 0, sizeof(e));
+		for (i = 0; i < 5; i++) {
+			e.asset[i].id = i + 1;
+			str_copy(e.asset[i].name, names[i], sizeof(e.asset[i].name));
+		}
+		e.nasset = 5;
+		memset(&sub, 0, sizeof(sub));
+		up_suggest(&sub, &e, 0);
+		CHECK(!strcmp(sub.rule[0].names, "ECALST.ACC") && !strcmp(sub.rule[0].folder, "-"));
+		CHECK(!strcmp(sub.rule[1].names, "*.ACC") && !strcmp(sub.rule[1].folder, "C:/"));
+		CHECK(up_rule(&sub, "ecalst.acc") == &sub.rule[0] && up_rule(&sub, "x/ECAL.ACC") == &sub.rule[1]);
+		CHECK(!up_rule(&sub, "ECAL.PRG"));
+		str_copy(sub.files, "*.ACC", sizeof(sub.files));
+		CHECK(up_chosen(&sub, &e, which) == 1 && which[0] == 0);	/* the twin isn't even fetched */
+		up_suggest(&sub, &e, 1);
+		CHECK(!strcmp(sub.rule[0].names, "ECAL.ACC"));
+	}
+
+	/* no release; then no repository */
+	say("HTTP/1.1 404 Not Found\r\nContent-Length: 2\r\n\r\n{}" FUZZ_NET_NEXT
+	    "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}");
+	n = gh_latest("whomper/EFTP", &r, err, sizeof(err));
+	CHECK(n == 0 && strstr(err, "no release"));
+	http_close_all();
+	say("HTTP/1.1 404 Not Found\r\nContent-Length: 2\r\n\r\n{}" FUZZ_NET_NEXT
+	    "HTTP/1.1 404 Not Found\r\nContent-Length: 2\r\n\r\n{}");
+	n = gh_latest("whomper/NONE", &r, err, sizeof(err));
+	CHECK(n == 0 && strstr(err, "no such"));
+	http_close_all();
+	/* the hour's limit */
+	{
+		const char *lim = "HTTP/1.1 403 Forbidden\r\nX-RateLimit-Remaining: 0\r\nContent-Length: 2\r\n\r\n{}";
+		fuzz_net_set((const unsigned char *)lim, (long)strlen(lim));
+		CHECK(gh_latest("whomper/EFTP", &r, err, sizeof(err)) == -1 && strstr(err, "limit"));
+		http_close_all();
+	}
+	/* names that never go into an address */
+	CHECK(gh_valid_full("whomper/EFTP_XL") && gh_valid_full("a-b/c.d"));
+	CHECK(!gh_valid_full("whomper") && !gh_valid_full("a/b/c") && !gh_valid_full("a/..") &&
+	      !gh_valid_full("/x") && !gh_valid_full("a b/c") && !gh_valid_full("a/b?c"));
+
+	snprintf(ans, sizeof(ans), rel, (int)strlen(search), search);
+	fuzz_net_set((const unsigned char *)ans, (long)strlen(ans));
+	n = gh_find_repos("eftp", repos, 4, &total, err, sizeof(err));
+	CHECK(n == 1 && total == 2 && !strcmp(repos[0].full, "whomper/EFTP") && repos[0].stars == 7);
+	CHECK(!strcmp(repos[0].pushed, "2026-10-21") && !strcmp(repos[0].desc, "FTP for the Atari"));
+	http_close_all();
+	{
+		static const char users_body[] = "{\"total_count\":1,\"items\":[{\"login\":\"whomper\",\"type\":\"User\"},"
+						 "{\"login\":\"atari\",\"type\":\"Organization\"}]}";
+		snprintf(ans, sizeof(ans), rel, (int)strlen(users_body), users_body);
+		fuzz_net_set((const unsigned char *)ans, (long)strlen(ans));
+		n = gh_find_owners("atari", users, 4, &total, err, sizeof(err));
+		CHECK(n == 2 && !users[0].org && users[1].org && !strcmp(users[1].login, "atari"));
+		http_close_all();
+	}
+	CHECK(gh_find_repos("", repos, 4, &total, err, sizeof(err)) == -1);
+	str_copy(gh_base, "https://api.github.com", sizeof(gh_base));
+}
+
+/* ---------------- zips and names ---------------- */
+
+typedef struct {
+	int n;
+	char names[8][64];
+	long sizes[8];
+} SEEN;
+
+static int seen_file(void *ud, const char *name, const unsigned char *data, long len)
+{
+	SEEN *s = ud;
+	if (s->n < 8) {
+		str_copy(s->names[s->n], name, 64);
+		s->sizes[s->n] = len;
+	}
+	s->n++;
+	return 0;
+}
+
+static void rm_rf(const char *dir)
+{
+	char cmd[300];
+	snprintf(cmd, sizeof(cmd), "rm -rf '%s'", dir);
+	if (system(cmd))
+		printf("can't remove %s\n", dir);
+}
+
+static void test_zip(void)
+{
+	long n;
+	char *z = load("tests/data/good.zip", &n), err[200], name[64], dir[] = "build/unit-zip";
+	SEEN s;
+	REPO r;
+	memset(&s, 0, sizeof(s));
+	CHECK(unzip((unsigned char *)z, n, seen_file, &s, err, sizeof(err)) == 2);
+	CHECK(s.n == 2 && !strcmp(s.names[0], "EUPDATE.PRG") && s.sizes[0] == 10240 &&
+	      !strcmp(s.names[1], "icons/README.TXT") && s.sizes[1] == 22 * 200);
+	CHECK(unzip((unsigned char *)z, n - 1, seen_file, &s, err, sizeof(err)) == -1);
+	CHECK(unzip((unsigned char *)z, 10, seen_file, &s, err, sizeof(err)) == -1);
+	free(z);
+	z = load("tests/data/bad.zip", &n);
+	memset(&s, 0, sizeof(s));
+	CHECK(unzip((unsigned char *)z, n, seen_file, &s, err, sizeof(err)) == -1 && strstr(err, "damaged"));
+	free(z);
+
+	CHECK(crc32((const unsigned char *)"123456789", 9) == 0xCBF43926UL);
+
+	opt.shorten = 1;
+	disk_name("EFTP-1.45.zip", name, sizeof(name));
+	CHECK(!strcmp(name, "EFTP-1_4.ZIP"));
+	disk_name("readme", name, sizeof(name));
+	CHECK(!strcmp(name, "README"));
+	disk_name(".hidden", name, sizeof(name));
+	CHECK(!strcmp(name, "_HIDDEN"));
+	disk_name("a b+c.tar.gz", name, sizeof(name));
+	CHECK(!strcmp(name, "A_B_C_TA.GZ"));
+	opt.shorten = 0;
+	disk_name("EFTP-1.45.zip", name, sizeof(name));
+	CHECK(!strcmp(name, "EFTP-1.45.zip"));
+	opt.shorten = 1;
+	CHECK(wild_match("*.PRG", "eftp.prg") && wild_match("E?TP*", "EFTP.HYP") && wild_match("*", "x"));
+	CHECK(!wild_match("*.PRG", "EFTP.PRG.zip") && !wild_match("A?", "A"));
+
+	/* a release written into a folder: unpacked, its folder made; and
+	   one whose names climb out of it, refused */
+	rm_rf(dir);
+	memset(&r, 0, sizeof(r));
+	str_copy(r.folder, dir, sizeof(r.folder));
+	r.unzip = 1;
+	pf_mkdir(dir);
+	z = load("tests/data/good.zip", &n);
+	CHECK(up_put(&r, "EUpdate-1.0.zip", (unsigned char *)z, n, err, sizeof(err)));
+	CHECK(pf_size("build/unit-zip/EUPDATE.PRG") == 10240 && pf_size("build/unit-zip/ICONS/README.TXT") == 4400);
+	r.unzip = 0;
+	CHECK(up_put(&r, "EUpdate-1.0.zip", (unsigned char *)z, n, err, sizeof(err)));
+	CHECK(pf_size("build/unit-zip/EUPDATE-.ZIP") == n);
+	free(z);
+	r.unzip = 1;
+	z = load("tests/data/evil.zip", &n);
+	CHECK(!up_put(&r, "evil.zip", (unsigned char *)z, n, err, sizeof(err)) && strstr(err, "won't write"));
+	CHECK(pf_size("build/EVIL.PRG") < 0);
+	free(z);
+	CHECK(!up_put(&r, "..", (unsigned char *)"x", 1, err, sizeof(err)));
+
+	/* rules: a file elsewhere by its name alone, one left out */
+	rm_rf(dir);
+	pf_mkdir(dir);
+	str_copy(r.rule[0].names, "readme.txt", sizeof(r.rule[0].names));
+	str_copy(r.rule[0].folder, "-", sizeof(r.rule[0].folder));
+	str_copy(r.rule[1].names, "*.PRG", sizeof(r.rule[1].names));
+	str_copy(r.rule[1].folder, "build/unit-zip/A/ROOT", sizeof(r.rule[1].folder));	/* made, both */
+	z = load("tests/data/good.zip", &n);
+	CHECK(up_put(&r, "EUpdate-1.0.zip", (unsigned char *)z, n, err, sizeof(err)));
+	CHECK(pf_size("build/unit-zip/A/ROOT/EUPDATE.PRG") == 10240 && pf_size("build/unit-zip/EUPDATE.PRG") < 0);
+	CHECK(pf_size("build/unit-zip/ICONS/README.TXT") < 0);
+	free(z);
+	rm_rf(dir);
+}
+
+/* ---------------- EUPDATE.INF ---------------- */
+
+static void test_store(void)
+{
+	char dir[] = "build/unit-store";
+	REPO *r;
+	rm_rf(dir);
+	pf_mkdir(dir);
+	store_init(dir);
+	CHECK(nrepos == 0 && opt.check == CHECK_START && opt.shorten == 1);
+	r = repo_add("whomper/EFTP");
+	CHECK(r && !repo_add("WHOMPER/eftp"));
+	str_copy(r->folder, "C:\\NET\\EFTP", sizeof(r->folder));
+	str_copy(r->have, "v1.44", sizeof(r->have));
+	str_copy(r->latest, "v1.45", sizeof(r->latest));
+	str_copy(r->files, "*.PRG,*.HYP", sizeof(r->files));
+	str_copy(r->rule[0].names, "EFTPST.PRG", sizeof(r->rule[0].names));
+	str_copy(r->rule[0].folder, "-", sizeof(r->rule[0].folder));
+	str_copy(r->rule[1].names, "*.ACC", sizeof(r->rule[1].names));
+	str_copy(r->rule[1].folder, "C:\\", sizeof(r->rule[1].folder));
+	CHECK(!repo_current(r));
+	r = repo_add("whomper/ECal");
+	str_copy(r->have, "v2.21", sizeof(r->have));
+	str_copy(r->latest, "v2.21", sizeof(r->latest));
+	CHECK(repo_current(r));
+	opt.check = CHECK_EVERY;
+	opt.hours = 6;
+	str_copy(opt.token, "ghp_secret;with stuff", sizeof(opt.token));
+	CHECK(store_save() == 0);
+	{
+		long n;
+		char path[100], *text;
+		snprintf(path, sizeof(path), "%s/EUPDATE.INF", dir);
+		text = load(path, &n);
+		CHECK(!strstr(text, "ghp_secret"));	/* encrypted */
+		CHECK(strstr(text, "REPO=whomper/ECal") != 0);
+		free(text);
+	}
+	while (nrepos)
+		repo_delete(repos[0]);
+	opt.check = 0;
+	opt.token[0] = 0;
+	store_init(dir);
+	CHECK(nrepos == 2 && opt.check == CHECK_EVERY && opt.hours == 6);
+	CHECK(!strcmp(opt.token, "ghp_secret;with stuff"));
+	CHECK(!strcmp(repos[0]->folder, "C:\\NET\\EFTP") && !strcmp(repos[0]->files, "*.PRG,*.HYP"));
+	CHECK(repos[0]->unzip == 1 && !strcmp(repos[1]->have, "v2.21"));
+	CHECK(!strcmp(repos[0]->rule[0].names, "EFTPST.PRG") && !strcmp(repos[0]->rule[0].folder, "-"));
+	CHECK(!strcmp(repos[0]->rule[1].folder, "C:\\") && !repos[0]->rule[2].names[0] && !repos[1]->rule[0].names[0]);
+	while (nrepos)
+		repo_delete(repos[0]);
+	rm_rf(dir);
+}
+
+int main(void)
+{
+	pf_init();
+	test_json();
+	test_http();
+	test_gh();
+	test_zip();
+	test_store();
+	printf("%d checks, %d failed\n", checks, fails);
+	return fails != 0;
+}

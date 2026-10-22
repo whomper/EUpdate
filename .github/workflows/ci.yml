@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Unit tests, fuzz inputs, integration
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: make test
+        run: make test
+      - name: make itest (a GitHub of the tests' own, over HTTP and TLS)
+        run: make itest
+
+  atari:
+    name: Atari build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: The m68k cross compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-m68k-linux-gnu
+      - name: Build the programs
+        run: make
+      - name: The build changed no tracked file
+        run: |
+          git status --porcelain
+          test -z "$(git status --porcelain)"
+      # no artifact: only formal releases leave the build machine
+
+  # Hatari rigs: enable once the repo's rigs run headless (see EHypView's ci.yml)
+  # hatari:
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - run: sudo apt-get update && sudo apt-get install -y gcc-m68k-linux-gnu hatari xvfb
+  #     - run: make hatari-test

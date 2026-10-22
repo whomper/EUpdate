@@ -1,0 +1,11 @@
+HTTP/1.1 404 Not Found
+Content-Length: 2
+
+{}HTTP/1.1 404 Not Found
+Content-Length: 2
+
+{}HTTP/1.1 403 Forbidden
+X-RateLimit-Remaining: 0
+Content-Length: 27
+
+{"message":"rate limited"}

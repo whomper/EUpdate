@@ -1,0 +1,203 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later
+ * Copyright (C) 2026 AERA | Erez Yaary */
+/*
+ * font.c - the font for the text in EUpdate's window (EFTP's, from EMail) (Options > Font).
+ *
+ * The Font dialog is the family's (common/ui/fontsel.c, the guidelines
+ * 5.3): the system font and the fixed-width GDOS fonts with letters,
+ * each measured once and the answer kept in EUPDATE.FNT. What is EUpdate's
+ * is here: the font set and its cells, where its Hebrew comes from, and
+ * what OK does.
+ *
+ * Where the system and bitmap fonts keep their Hebrew letters is
+ * EUPDATE.INF's HEBFONT=: the Atari character set (TOS, EmuTOS) or the
+ * ISO-8859-8 or DOS places, as Israeli system fonts and many GDOS fonts
+ * have them (the dialog no longer asks: Erez, 20 Oct 2026). A vector
+ * font (Speedo, TrueType, Type 1) is asked through NVDI for its Hebrew
+ * letters by Unicode; when it has none, they are drawn in the system
+ * font in the same cells.
+ */
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "ui.h"
+#include "../src/plat.h"
+#include "fontsel.h"
+
+static short gdos_fonts = -1;	/* loaded on vdi_h: vst_load_fonts' count */
+
+short heb_mode;			/* HM_*: how this font gets its Hebrew */
+static short heb_why;		/* HM_SYSTEM: why */
+#define HW_NONE     0
+#define HW_NOHEB    1		/* the font has no Hebrew letters */
+#define HW_NOLOOKUP 2		/* the VDI can't look letters up (no NVDI 5) */
+unsigned short heb_idx[27];	/* HM_UNICODE: the font's index of each letter */
+static short cur_id = 1, cur_pt, probed_id = -1;
+
+/* Unicode of the Hebrew letters in the Atari order (0xC2-0xDC), less 0x5D0 */
+static const unsigned char heb_uni[27] = {
+	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 14, 16,
+	17, 18, 20, 22, 23, 24, 25, 26, 15, 10, 13, 19, 21
+};
+
+static short format_of(short id);
+
+/* a vector font: its Hebrew letters by Unicode through NVDI, else the
+   system font draws them */
+static void probe_hebrew(short id)
+{
+	static short probed_mode, probed_why;
+	short k, fmt;
+	if (id == 1) {
+		heb_mode = HM_MAP;
+		return;
+	}
+	if (id == probed_id) {
+		heb_mode = probed_mode;
+		heb_why = probed_why;
+		return;
+	}
+	probed_id = id;
+	heb_mode = HM_MAP;
+	heb_why = HW_NONE;
+	fmt = format_of(id);
+	/* a bitmap font draws the Atari codes itself; a vector font (or one
+	   whose kind the VDI doesn't say) is asked for its Hebrew letters */
+	if (fmt != 1) {
+		long a = vqt_char_index(vdi_h, 'A', 1, 0);
+		if (a > 0) {
+			for (k = 0; k < 27; k++) {
+				long i = vqt_char_index(vdi_h, (unsigned short)(0x5D0 + heb_uni[k]), 2, 0);
+				if (i <= 0)
+					break;
+				heb_idx[k] = (unsigned short)i;
+			}
+			if (k == 27) {
+				heb_mode = HM_UNICODE;
+			} else {
+				heb_mode = HM_SYSTEM;
+				heb_why = HW_NOHEB;
+			}
+		} else if (fmt) {
+			heb_mode = HM_SYSTEM;	/* a vector font, and no NVDI 5 to ask */
+			heb_why = HW_NOLOOKUP;
+		}
+	}
+	probed_mode = heb_mode;
+	probed_why = heb_why;
+}
+
+/* set the font; cw/ch become its cell size. 0 if it isn't there */
+static int set_font(short id, short pt)
+{
+	short w, h;
+	if (id == 1) {
+		vst_font(vdi_h, 1);
+		vst_height(vdi_h, pt == 8 ? 6 : pt == 16 ? 13 : (gl_hchar >= 16 ? 13 : 6), &w, &h);
+	} else {
+		if (vst_font(vdi_h, id) != id)
+			return 0;
+		vst_point(vdi_h, pt, &w, &h);
+	}
+	if (w < 4 || h < 6)
+		return 0;
+	cw = w;
+	ch = h;
+	vst_alignment(vdi_h, 0, 5);
+	cur_id = id;
+	cur_pt = pt;
+	probe_hebrew(id);
+	return 1;
+}
+
+/* back to the text font after drawing in another */
+void font_reselect(void)
+{
+	short keep_cw = cw, keep_ch = ch;
+	set_font(cur_id, cur_pt);
+	cw = keep_cw;
+	ch = keep_ch;
+}
+
+void font_apply(void)
+{
+	if (opt.font_id != 1 && gdos_fonts < 0 && vq_gdos())
+		gdos_fonts = vst_load_fonts(vdi_h, 0);
+	if (!set_font(opt.font_id, opt.font_pt)) {
+		opt.font_id = 1;
+		opt.font_pt = 0;
+		set_font(1, 0);
+	}
+}
+
+/* the system font at the AES's size, for the dialog's own text */
+static void use_sys(void)
+{
+	set_font(1, gl_hchar >= 16 ? 16 : 8);
+	cw = gl_wchar;
+	ch = gl_hchar;
+}
+
+/* dialogs, popups and the About box keep the system font (gemui.h, for
+   the shared popup and About box); the chosen one is for the window */
+static short sys_depth;
+
+void font_sys_push(void)
+{
+	if (!sys_depth++)
+		use_sys();
+}
+
+void font_sys_pop(void)
+{
+	if (sys_depth && !--sys_depth)
+		font_apply();
+}
+
+/* ---------------- the fonts ---------------- */
+
+/* the format of the font with this id (1 bitmap, 2 Speedo, 4 TrueType,
+   8 Type 1), from the VDI */
+static short format_of(short id)
+{
+	static short known_id = -1, known_format;
+	short i, n = gdos_fonts > 0 ? gdos_fonts : 0;
+	char name[34];
+	if (id == known_id)
+		return known_format;
+	for (i = 2; i <= n + 1; i++)
+		if (vqt_name(vdi_h, i, name) == id) {
+			known_id = id;
+			return known_format = vqt_font_format(vdi_h, i);
+		}
+	return 1;
+}
+
+/* ---------------- the dialog (common/ui/fontsel.c) ---------------- */
+
+/* OK: the font for the windows, kept in EUPDATE.INF (FONT=id,pt) */
+static void take(fontsel *s)
+{
+	opt.font_id = s->id;
+	opt.font_pt = s->pt;
+	font_apply();
+	store_save();
+	win_relayout();
+}
+
+void font_menu(void)
+{
+	static fontsel fs;
+	static char fnt[220];
+	path_join(fnt, sizeof(fnt), opt.workdir, "EUPDATE.FNT");
+	memset(&fs, 0, sizeof(fs));
+	fs.app = "EUpdate";
+	fs.fnt = fnt;
+	fs.id = opt.font_id;
+	fs.pt = opt.font_pt;
+	fs.gdos = gdos_fonts < 0 ? FS_UNLOADED : gdos_fonts;
+	fs.apply = take;
+	fontsel_run(&fs);
+	if (fs.gdos >= 0)
+		gdos_fonts = fs.gdos;
+}

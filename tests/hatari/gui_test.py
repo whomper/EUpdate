@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 AERA | Erez Yaary
+"""EUPDATE.PRG in Hatari, on the family's Falcon (common/tools/machines.py),
+against tests/server.py (a GitHub of the tests' own, over HTTP: TLS is
+make itest's) through FAKESTNG: the check at the start, Find, an owner's
+repositories, Follow with its rules, the download into the folders, Get
+info, Settings and the About box. Screenshots in WORK/shots.
+
+    gui_test.py WORK [MACHINE]     (Xvfb, xdotool; MACHINE: Falcon:16)
+"""
+import os
+import shutil
+import socket
+import subprocess
+import sys
+import time
+
+import rig
+from rig import K
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+TOP = os.path.normpath(os.path.join(HERE, "..", ".."))
+work = os.path.abspath(sys.argv[1])
+spec = sys.argv[2] if len(sys.argv) > 2 else "Falcon:16"
+PORT = 18741
+fails = 0
+
+
+def check(cond, what):
+    global fails
+    print(("ok   " if cond else "FAIL ") + what, flush=True)
+    fails += not cond
+
+
+def drive_c():
+    hd = os.path.join(work, "hd")
+    os.makedirs(hd, exist_ok=True)
+    for f in ("EUPDATE.PRG", "CACERT.PEM", "ROOTS.DAT"):
+        shutil.copy(os.path.join(TOP, "binary", f), hd)
+    with open(os.path.join(hd, "EUPDATE.INF"), "w", newline="") as f:
+        f.write("[OPTIONS]\r\nCHECK=1\r\nLOG=1\r\nAPIBASE=http://127.0.0.1:%d\r\nFOLDER=C:\\NET\r\n"
+                "[REPO]\r\nREPO=whomper/EUpdate\r\nFOLDER=C:\\NET\\EUPDATE\r\nUNZIP=1\r\nHAVE=v1.0\r\n"
+                "HAVEDATE=2026-10-01\r\nRULE=README.TXT;-\r\n"
+                "[REPO]\r\nREPO=whomper/EDOS\r\nFOLDER=C:\\XL\\EDOS\r\n" % PORT)
+    return hd
+
+
+def wait_port(port):
+    for _ in range(50):
+        try:
+            socket.create_connection(("127.0.0.1", port), 0.2).close()
+            return
+        except OSError:
+            time.sleep(0.1)
+
+
+def main():
+    shutil.rmtree(work, ignore_errors=True)
+    os.makedirs(work)
+    hd = drive_c()
+    srv = subprocess.Popen([sys.executable, os.path.join(TOP, "tests", "server.py"), str(PORT)],
+                           stdout=subprocess.DEVNULL)
+    wait_port(PORT)
+    m = rig.machine(spec, work)
+    print("on", m.describe(), flush=True)
+    r = rig.Rig(work, m, extra=m.network())
+    try:
+        time.sleep(float(os.environ.get("BOOT", "45")))
+        r.shot("start")
+        inf = open(os.path.join(hd, "EUPDATE.INF"), errors="replace").read()
+        check("LATEST=v1.1" in inf, "the check at the start: v1.1 is the latest")
+        r.ctrl("f")
+        time.sleep(1.5)
+        r.type("eftp")
+        r.shot("find")
+        r.key(K["RETURN"])
+        time.sleep(12)
+        r.shot("found")
+        r.move(600, 450)
+        # the owners, then one's repositories, then back
+        r.ctrl("f")
+        time.sleep(1.5)
+        r.key(K["DOWN"])                       # the Owners choice: through the ticks' words
+        r.click(200, 255)
+        r.key(K["RETURN"])
+        time.sleep(10)
+        r.shot("owners")
+        r.click(60, 331, double=True)          # whomper
+        time.sleep(12)
+        r.shot("owner_repos")
+        r.click(60, 331, double=True)          # whomper/R0: Follow, its latest release asked first
+        time.sleep(12)
+        r.shot("follow")
+        r.key(K["ESC"])                        # Esc cancels
+        time.sleep(1.5)
+        r.key(K["BACKSPACE"])
+        time.sleep(1.5)
+        r.shot("back")
+        # Update the one with a new release: unpacked, README.TXT left out (its rule)
+        r.click(60, 129)
+        r.ctrl("u")
+        time.sleep(25)
+        r.shot("updated")
+        check(os.path.exists(os.path.join(hd, "NET", "EUPDATE", "EUPDATE.PRG")) and
+              os.path.getsize(os.path.join(hd, "NET", "EUPDATE", "EUPDATE.PRG")) == 10240,
+              "Update: the zip unpacked into its folder")
+        check(not os.path.exists(os.path.join(hd, "NET", "EUPDATE", "ICONS", "README.TXT")),
+              "its rule left README.TXT out")
+        inf = open(os.path.join(hd, "EUPDATE.INF"), errors="replace").read()
+        check("HAVE=v1.1" in inf, "it has v1.1 now, in EUPDATE.INF")
+        r.ctrl("i")
+        time.sleep(2)
+        r.shot("info")
+        r.key(K["ESC"])
+        time.sleep(1)
+        r.key(0x33, ctrl=True)                 # ^,
+        time.sleep(2)
+        r.shot("settings")
+        for page, y in (("github", 241), ("advanced", 321)):
+            r.click(140, y)
+            time.sleep(1)
+            r.shot("settings_" + page)
+        r.key(K["ESC"])
+        time.sleep(1)
+        r.click(40, 9)                         # the Desk menu: About
+        time.sleep(1)
+        r.click(60, 27)
+        time.sleep(2)
+        r.shot("about")
+        r.key(K["RETURN"])
+        time.sleep(1)
+    finally:
+        if fails and os.path.exists(os.path.join(hd, "EUPDATE.LOG")):
+            print(open(os.path.join(hd, "EUPDATE.LOG"), errors="replace").read()[-3000:])
+        r.stop()
+        m.stop()
+        srv.kill()
+    print("%d failed" % fails)
+    sys.exit(fails != 0)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,9 @@
+{
+ "name": "EUpdate",
+ "banner": "EUPDATE",
+ "address": "github.com/whomper/EUpdate",
+ "welcome": ["Welcome to **EUpdate**, which brings the latest releases of GitHub repositories straight to your Falcon or TT. Find repositories and owners on GitHub, follow the ones you want into folders of your choice, see at a glance which are current, and update them with a click or on a schedule."],
+ "window": {"title": "The window", "picture": "docs/help/WINDOW.IMG", "intro": "One window, two lists:", "items": ["The toolbar: Check, Update, Find, and how many are new.", "Following: what you have, what GitHub has, current or not.", "Find: repositories, or owners and theirs."], "more": "More in [[The window]], [[Where the files go]] and [[Keys]]."},
+ "diagram": {"title": "How EUpdate reaches GitHub", "boxes": [["Your Atari", "EUpdate"], ["GitHub", "its API"], ["Your folders", "the files"]], "arrows": ["TLS", "releases"], "round": "The Falcon's DSP does TLS's sums", "after": ["EUpdate asks GitHub's API itself, over TLS on the Atari: no gateway is needed. See [[Your GitHub token]] for how often GitHub answers."]},
+ "contents": [["Getting started", ["What you need", "Installing", "Finding repositories", "Following a repository", "Settings"]], ["Every day", ["The window", "Checking and updating", "On a schedule", "Keys"]], ["The details", ["Where the files go", "Your GitHub token", "From other programs"]], ["When things go wrong", ["When something goes wrong", "EUPDATE.INF"]]]
+}
