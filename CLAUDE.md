@@ -87,6 +87,14 @@ information, your assessment and what he should do, nothing more.
   WORK` (Falcon:16; TT and Falcon:256 too for drawing) and look at its screenshots; when the
   window changes, `tests/hatari/screenshots.py WORK` for `docs/` and `helpfront.py thumb` for
   `docs/help/WINDOW.IMG`.
+- **The rigs mimic Erez's machine as closely as they can** (Erez, 22 Oct 2026): before a release,
+  `tests/hatari/family_test.py WORK` updates the AERA family from their real latest releases
+  (`tests/github/fetch_family.py` into `~/.cache/aera/releases`, served by `tests/family_server.py`
+  as GitHub serves them: TLS with a chain like GitHub's, the files from a second host at signed
+  addresses of 900 characters and more, idle connections closed), at a NetUSBee's pace, with ECal,
+  EContact and EHypView loaded as accessories and the suggested rules on; under Erez's TOS 4.04
+  and NVDI where this machine has them. What it can't mimic (STinG with a NetUSBee, GitHub itself,
+  the accessories syncing) is said in the report.
 - **The tests' GitHub** is `tests/server.py` (its repository is `tests/github/repo.json`, a real
   one as the API gave it): `APIBASE=` points EUpdate at it, as at a GitHub Enterprise server.
   GitHub's real API isn't asked by any test.
