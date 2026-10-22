@@ -126,7 +126,7 @@ static void draw_button(int i)
 	fill(&r, 0);
 	frame(&r, on ? 1 : (colour ? pen[P_DIM] : 1));
 	if ((i == B_STOP || (i == B_UPDATE && found_new_count())) && on && colour)
-		text_pen_at(pen[i == B_STOP ? P_ERR : P_NEW], tx, r.y + 1, l, n, n, TX_LTR | TX_BOLD);
+		text_pen_at(pen[i == B_STOP ? P_ERR : P_NEW], tx, r.y + 1, l, n, n, TX_LTR);
 	else
 		text_at(tx, r.y + 1, l, n, n, TX_LTR | (on ? 0 : TX_LIGHT));
 }
@@ -142,16 +142,18 @@ static void draw_toolbar(GRECT *clip)
 	fill(&r, 0);
 	for (i = 0; i < NBUT; i++)
 		draw_button(i);
-	/* how many have a newer release: orange, the one thing that matters */
+	/* how many have a newer release: orange, the one thing that matters;
+	   the colour says it, not bold (Erez, 22 Oct 2026). Without colours
+	   it is in plain letters, the rest light */
 	if (k)
 		snprintf(t, sizeof(t), "%d new release%s", k, k > 1 ? "s" : "");
 	else
 		snprintf(t, sizeof(t), nrepos ? "Following %d" : "Find a repository to follow", nrepos);
 	n = (short)strlen(t);
 	if (k && colour)
-		text_pen_at(pen[P_NEW], r_note.x, r_note.y, t, n, cols, TX_LTR | TX_BOLD);
+		text_pen_at(pen[P_NEW], r_note.x, r_note.y, t, n, cols, TX_LTR);
 	else
-		text_at(r_note.x, r_note.y, t, n, cols, TX_LTR | (k ? TX_BOLD : TX_LIGHT));
+		text_at(r_note.x, r_note.y, t, n, cols, TX_LTR | (k ? 0 : TX_LIGHT));
 	hline(mwork.x, mwork.x + mwork.w - 1, mwork.y + r_tool.h - 1);
 }
 

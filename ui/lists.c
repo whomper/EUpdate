@@ -133,7 +133,7 @@ static void repos_draw(WIN *w, GRECT *clip)
 		cell(r.x + x[0] * cw, y, p->full, cn, P_TEXT, sel, TX_LTR);
 		cell(r.x + x[1] * cw, y, p->have[0] ? p->have : "-", C_HAVE - 1, P_TEXT, sel, TX_LTR);
 		cell(r.x + x[2] * cw, y, p->latest[0] ? p->latest : "-", C_LATEST - 1, P_TEXT, sel, TX_LTR);
-		cell(r.x + x[3] * cw, y, st, C_STATE - 1, sp, sel, TX_LTR | (sp == P_NEW ? TX_BOLD : 0));
+		cell(r.x + x[3] * cw, y, st, C_STATE - 1, sp, sel, TX_LTR);	/* its colour says it */
 		if (cols - x[4] >= 12)
 			cell(r.x + x[4] * cw, y, p->folder, cols - x[4] - 1, P_DIM, sel, TX_LTR);
 	}
