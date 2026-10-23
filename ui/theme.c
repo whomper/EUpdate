@@ -28,33 +28,6 @@ static const short shade[NPEN][3] = {
    the loud full ones */
 static const short stock[NPEN] = { 1, 9, 9, 8, 1, 12, 14, 13, 2 };
 
-/* TOS's own 16 colours on a TT or Falcon (VDI's 0-1000), as stock[] was
-   chosen in */
-static const short tos_pal[16][3] = {
-	{ 1000, 1000, 1000 }, { 0, 0, 0 }, { 1000, 0, 0 }, { 0, 1000, 0 },
-	{ 0, 0, 1000 }, { 0, 1000, 1000 }, { 1000, 1000, 0 }, { 1000, 0, 1000 },
-	{ 733, 733, 733 }, { 533, 533, 533 }, { 667, 0, 0 }, { 0, 667, 0 },
-	{ 0, 0, 667 }, { 0, 667, 667 }, { 667, 667, 0 }, { 667, 0, 667 },
-};
-
-/* the pen among the screen's 16 (have[], the colours they show) nearest
-   to TOS's colour c: NVDI's 16 aren't TOS's, and a palette loaded at boot
-   (COLORVDI) isn't either (guidelines 5.2) */
-static short tos_pen(short (*have)[3], short c)
-{
-	short i, pick = c;
-	long best = 0x7fffffffL;
-	for (i = 0; i < 16; i++) {
-		long dr = have[i][0] - tos_pal[c][0], dg = have[i][1] - tos_pal[c][1],
-		     db = have[i][2] - tos_pal[c][2], dist = dr * dr * 3 + dg * dg * 4 + db * db * 2;
-		if (dist < best) {
-			best = dist;
-			pick = i;
-		}
-	}
-	return pick;
-}
-
 static short saved[NPEN][3];
 static int set_rgb;
 
@@ -70,8 +43,7 @@ void theme_init(void)
 	if (planes >= 8) {
 		for (i = 0; i < NPEN; i++) {
 			short rgb[3];
-			/* what the screen shows, put back on quitting */
-			vq_color_seen(vdi_h, planes, FIRST_PEN + i, saved[i]);
+			vq_color(vdi_h, FIRST_PEN + i, saved[i]);
 			rgb[0] = shade[i][0];
 			rgb[1] = shade[i][1];
 			rgb[2] = shade[i][2];
@@ -80,11 +52,8 @@ void theme_init(void)
 		}
 		set_rgb = 1;
 	} else {
-		short have[16][3];
-		for (i = 0; i < 16; i++)
-			vq_color_seen(vdi_h, planes, i, have[i]);
 		for (i = 0; i < NPEN; i++)
-			pen[i] = tos_pen(have, stock[i]);
+			pen[i] = stock[i];
 	}
 }
 
