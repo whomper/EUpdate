@@ -40,7 +40,7 @@ file by file or all together in the zip:
 | `EUPDATE.PRG` | the program, for a Falcon or TT (68030; a 68020 or better) |
 | `CACERT.PEM`, `ROOTS.DAT` | the root certificates GitHub's are checked against |
 | `EUPDATE.HYP` | the user guide, for EHypView or ST-Guide; the Help key opens it |
-| `EUPDATE.RSC`, `EUPDATE.ICN`, `EUPDMK.ICN` | the desktop icon (in the zip's `icons/` folder) |
+| `EUPDATE.RSC`, `EUPD16.RSC`, `EUPDATE.ICN`, `EUPDMK.ICN` | the desktop icon (in the zip's `icons/` folder): `EUPDATE.RSC` under TOS, EmuTOS, or NVDI with TOS's palette loaded (COLORVDI); `EUPD16.RSC`, renamed `EUPDATE.RSC`, under NVDI with its own palette, where the 256-colour icon comes out in wrong colours |
 | `EUPDATE-x.y.zip` | all of these together |
 
 1. Copy `EUPDATE.PRG`, `CACERT.PEM`, `ROOTS.DAT` and `EUPDATE.HYP` into a folder of their own.
