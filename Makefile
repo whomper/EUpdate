@@ -87,8 +87,8 @@ $(OBJDIR)/version.o: $(OBJDIR)/version.c
 # the desktop icon, the About box's and the README's, from the family's
 # drawing (common/icons/EUPDATE.txt, the guidelines 5.5): committed
 icons:
-	python3 common/tools/appicon.py EUPDATE --rsc icons/EUPDATE.RSC --icn icons/EUPDATE.ICN \
-		--mask icons/EUPDMK.ICN --headers ui --docs docs
+	python3 common/tools/appicon.py EUPDATE --rsc icons/EUPDATE.RSC --rscnv icons/EUPDNV.RSC \
+		--icn icons/EUPDATE.ICN --mask icons/EUPDMK.ICN --headers ui --docs docs
 
 $(OBJDIR)/eupdate.elf: $(OBJS) $(OBJDIR)/version.o $(OBJDIR)/libbearssl.a common/atari/link.ld
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(OBJDIR)/version.o $(OBJDIR)/libbearssl.a -lgcc
@@ -217,7 +217,7 @@ itest: $(OBJDIR)/eupd-cli
 # a release's files: each one in dist/, and all of them in
 # dist/EUPDATE-x.y.zip (the icons in icons/), for the release workflow
 DIST    := binary/EUPDATE.PRG binary/CACERT.PEM binary/ROOTS.DAT binary/EUPDATE.HYP
-ICONS   := icons/EUPDATE.RSC icons/EUPDATE.ICN icons/EUPDMK.ICN
+ICONS   := icons/EUPDATE.RSC icons/EUPDNV.RSC icons/EUPDATE.ICN icons/EUPDMK.ICN
 dist: all help
 	rm -rf dist
 	mkdir -p dist/zip/icons
