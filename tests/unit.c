@@ -543,7 +543,7 @@ static void test_store(void)
 	rm_rf(dir);
 	pf_mkdir(dir);
 	store_init(dir);
-	CHECK(nrepos == 0 && opt.check == CHECK_START && opt.shorten == 1);
+	CHECK(nrepos == 0 && opt.check == CHECK_START && opt.shorten == 1 && opt.dialogs3d == 1);
 	r = repo_add("whomper/EFTP");
 	CHECK(r && !repo_add("WHOMPER/eftp"));
 	str_copy(r->folder, "C:\\NET\\EFTP", sizeof(r->folder));
@@ -561,6 +561,7 @@ static void test_store(void)
 	CHECK(repo_current(r));
 	opt.check = CHECK_EVERY;
 	opt.hours = 6;
+	opt.dialogs3d = 0;
 	str_copy(opt.token, "ghp_secret;with stuff", sizeof(opt.token));
 	CHECK(store_save() == 0);
 	{
@@ -575,6 +576,8 @@ static void test_store(void)
 		CHECK(strstr(text, "LATESTDATE=\r\n\r\n[REPO]\r\nREPO=whomper/ECal\r\n\r\n") != 0);
 		CHECK(strstr(text, "\r\n\r\n[OPTIONS]\r\n; check") != 0);
 		CHECK(!strstr(text, "\r\n\r\n\r\n") && !strstr(text, "\r\n[REPO]\r\n\r\n"));
+		/* guidelines 5.6: the 3D look's setting, its note above */
+		CHECK(strstr(text, "0 = flat\r\nDIALOGS3D=0\r\n\r\n") != 0);
 		free(text);
 	}
 	while (nrepos)
@@ -582,7 +585,7 @@ static void test_store(void)
 	opt.check = 0;
 	opt.token[0] = 0;
 	store_init(dir);
-	CHECK(nrepos == 2 && opt.check == CHECK_EVERY && opt.hours == 6);
+	CHECK(nrepos == 2 && opt.check == CHECK_EVERY && opt.hours == 6 && opt.dialogs3d == 0);
 	CHECK(!strcmp(opt.token, "ghp_secret;with stuff"));
 	CHECK(!strcmp(repos[0]->folder, "C:\\NET\\EFTP") && !strcmp(repos[0]->files, "*.PRG,*.HYP"));
 	CHECK(repos[0]->unzip == 1 && !strcmp(repos[1]->have, "v2.21"));

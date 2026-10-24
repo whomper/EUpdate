@@ -14,6 +14,7 @@
 #include "util.h"
 #include "clip.h"
 #include "field.h"
+#include "dialog.h"
 #include "theme.h"
 
 #define DMAX 80
@@ -129,6 +130,7 @@ static void d_end(void)
 	tree[nobj - 1].ob_flags |= LASTOB;
 	for (i = 0; i < nobj; i++)
 		rsrc_obfix(tree, i);
+	dlg_3d(tree);			/* the AES's 3D look, where it has one (5.6) */
 }
 
 /* ---------------- password fields ----------------
@@ -391,7 +393,7 @@ static short d_do(short edit)
  * words), framed fields and choice buttons that open a list. */
 
 enum {
-	T_FETCH, T_SHORTEN, T_COLOUR, T_HEB, T_LOG, T_DSP, T_UNZIP, T_NOW,
+	T_FETCH, T_SHORTEN, T_COLOUR, T_HEB, T_3D, T_LOG, T_DSP, T_UNZIP, T_NOW,
 	/* choices, one of a group: when to check; what Find looks for */
 	T_NEVER, T_START, T_EVERY, T_REPOS, T_OWNERS, NT
 };
@@ -552,6 +554,8 @@ static int tick_hit(short r)
 	if (k == nticks)
 		return 0;
 	tree[r].ob_state &= ~SELECTED;
+	if (tree[r].ob_state & DISABLED)
+		return 1;		/* greyed: it stays as it is */
 	if (group_of(tick_var[k])) {
 		for (j = 0; j < nticks; j++)
 			if (group_of(tick_var[j]) == group_of(tick_var[k]) && s_on[tick_var[j]] != (j == k)) {
@@ -794,11 +798,16 @@ static void part_github(short x, short y)
 
 static void part_look(short x, short y)
 {
+	short k;
 	rows_at(y);
 	d_tick(x, ROW(0), "Use colours", T_COLOUR);
 	d_add(G_STRING, 0, 0, (long)"on screens with 16 colours or more:", x + 3, ROW(1), 35, 1);
 	d_add(G_STRING, 0, 0, (long)"new in orange, current in teal", x + 3, ROW(2), 30, 1);
 	d_tick(x, ROW(3), "Start with the Hebrew keyboard", T_HEB);
+	k = d_tick(x, ROW(4), "3D dialogs", T_3D);
+	d_add(G_STRING, 0, 0, (long)"where the AES draws them: TOS 4, MagiC", x + 3, ROW(5), 38, 1);
+	if (!dlg_3d_ok())		/* this AES has no 3D look */
+		tree[tick_box[k]].ob_state = tree[tick_lbl[k]].ob_state = tree[nobj - 1].ob_state = DISABLED;
 }
 
 static void part_advanced(short x, short y)
@@ -826,6 +835,7 @@ int dlg_settings(void)
 	s_on[T_SHORTEN] = opt.shorten;
 	s_on[T_COLOUR] = opt.colour;
 	s_on[T_HEB] = opt.hebrew;
+	s_on[T_3D] = opt.dialogs3d;
 	s_on[T_LOG] = opt.log;
 	s_on[T_DSP] = opt.dsp;
 	d_begin(SX + 42, 16);
@@ -893,6 +903,7 @@ int dlg_settings(void)
 	opt.shorten = s_on[T_SHORTEN];
 	opt.colour = s_on[T_COLOUR];
 	opt.hebrew = s_on[T_HEB];
+	opt.dialogs3d = s_on[T_3D];
 	opt.log = s_on[T_LOG];
 	opt.dsp = s_on[T_DSP];
 	str_copy(opt.token, str_trim(s_token), sizeof(opt.token));

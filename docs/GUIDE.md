@@ -255,7 +255,9 @@ window.
   MiNT or MagiC with long names.
 - **GitHub**: your token (see [Your GitHub token](#your-github-token)).
 - **Look**: colours (new releases in orange, current ones in teal, on
-  screens with 16 colours or more), and the Hebrew keyboard at start.
+  screens with 16 colours or more), the Hebrew keyboard at start, and
+  **3D dialogs**: the dialogs and alerts in the AES's 3D look, where it
+  has one (TOS 4, MagiC, XaAES; greyed under older TOS and EmuTOS).
 - **Advanced**: whether the Falcon's DSP checks GitHub's certificates
   and does the key exchange (else the 68030 does it all), and the
   protocol log, `EUPDATE.LOG`.
