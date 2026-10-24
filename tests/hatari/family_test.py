@@ -68,6 +68,13 @@ def main():
     shutil.copy(os.path.join(TOP, "binary", "EUPDATE.PRG"), hd)
     shutil.copy(os.path.join(work, "root.pem"), os.path.join(hd, "CACERT.PEM"))
     tags = {r: open(os.path.join(CACHE, r, "TAG")).read().strip() for r, _ in FOLLOW}
+    # an ST edition copied by hand beside its program (the guidelines 7.4):
+    # replaced once the release has TLS.OVL and no ST edition
+    os.makedirs(os.path.join(hd, "NET", "EFTP"))
+    with open(os.path.join(hd, "NET", "EFTP", "EFTPST.PRG"), "wb") as f:
+        f.write(b"by hand")
+    eftp = os.listdir(os.path.join(CACHE, "EFTP", tags["EFTP"]))
+    one_for_all = "TLS.OVL" in eftp and "EFTPST.PRG" not in eftp
     with open(os.path.join(hd, "EUPDATE.INF"), "w", newline="") as f:
         f.write("[OPTIONS]\r\nCHECK=1\r\nFETCH=1\r\nLOG=1\r\nAPIBASE=https://127.0.0.1:%d\r\n" % PORT)
         for repo, have in FOLLOW:
@@ -105,6 +112,17 @@ def main():
               os.path.getsize(os.path.join(hd, "EHYPVIEW.ACC")) ==
               os.path.getsize(os.path.join(CACHE, "EHypView", tags["EHypView"], "EHYPVIEW.ACC")),
               "EHYPVIEW.ACC into C:\\, over the one running")
+        st = os.path.exists(os.path.join(hd, "NET", "EFTP", "EFTPST.PRG"))
+        if one_for_all:
+            check(os.path.exists(os.path.join(hd, "NET", "EFTP", "TLS.OVL")) and
+                  os.path.getsize(os.path.join(hd, "NET", "EFTP", "TLS.OVL")) ==
+                  os.path.getsize(os.path.join(CACHE, "EFTP", tags["EFTP"], "TLS.OVL")),
+                  "EFTP %s: TLS.OVL beside EFTP.PRG" % tags["EFTP"])
+            check(not st, "EFTP %s: the hand-copied EFTPST.PRG replaced" % tags["EFTP"])
+            log = open(os.path.join(hd, "EUPDATE.LOG"), errors="replace").read()
+            check("EFTPST.PRG replaced by EFTP.PRG" in log, "and the log says so")
+        else:
+            check(st, "EFTP %s still has its ST edition: the hand-copied one kept" % tags["EFTP"])
     finally:
         r.stop()
         m.stop()

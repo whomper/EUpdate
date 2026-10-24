@@ -33,7 +33,7 @@ NAMES = {
             "NEWS.HTM NEWS.CSS PICBENCH.TTP PICBENCH.TXT PHOTO.JPG EWEB-VER.zip",
     "EUpdate": "EUPDATE.PRG EUPDATE.HYP EUPDATE.RSC EUPDATE.ICN EUPDMK.ICN EUPDATE-VER.zip",
 }
-COMMON = "CACERT.PEM ROOTS.DAT"
+COMMON = "CACERT.PEM ROOTS.DAT TLS.OVL"   # TLS.OVL from each app's first release with it (7.4)
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
