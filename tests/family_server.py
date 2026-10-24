@@ -78,7 +78,15 @@ def main():
                 self.send_header("Content-Encoding", "gzip")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
-            self.wfile.write(body)
+            # a slow reader is waited for, as GitHub waits: only an idle
+            # connection is closed (4 s for every write cut EWeb 0.33's
+            # 4.4 MB at a NetUSBee's pace)
+            self.connection.settimeout(None)
+            try:
+                self.wfile.write(body)
+                self.wfile.flush()
+            finally:
+                self.connection.settimeout(self.timeout)
 
         def do_GET(self):
             path, _, query = self.path.partition("?")
