@@ -263,7 +263,7 @@ int store_save(void)
 		opt.log);
 	put_fmt(&b, "1 = colours on screens with 16 or more", "COLOUR", "%d", opt.colour);
 	put_fmt(&b, "1 = start with the Hebrew keyboard (F10 switches)", "HEBREW", "%d", opt.hebrew);
-	put_fmt(&b, "1 = dialogs in the 3D look where the AES has one (TOS 4, MagiC, XaAES); 0 = flat",
+	put_fmt(&b, "1 = dialogs in the 3D look where the AES has one (TOS 4, MagiC, XaAES, EmuTOS in colour); 0 = flat",
 		"DIALOGS3D", "%d", opt.dialogs3d);
 	put_fmt(&b, "1 = the DSP does the sums of the secure connections; 0 = the 68030 does", "DSP", "%d",
 		opt.dsp);
