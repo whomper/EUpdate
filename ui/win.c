@@ -31,11 +31,13 @@ static GRECT r_tool;			/* the toolbar */
 static WIN *focus = &w_repos;
 static char main_info[120];
 static short sbw;			/* a pane bar's width: the AES's slider column */
+static WIN *aes_pane = &w_repos;	/* the pane the window's own sliders scroll */
 #define DIV 4				/* divider thickness */
 
-/* the AES's sizer, never a corner of our own (the guidelines, 5.1); each
-   pane has a bar of AES objects (common's panebar.c) */
-#define MAINKIND (NAME | CLOSER | FULLER | MOVER | SIZER | INFO)
+/* the AES's sizer, never a corner of our own, and its slider column for
+   the larger pane; the other has a bar of AES objects (common's
+   panebar.c): the guidelines, 5.1 */
+#define MAINKIND (NAME | CLOSER | FULLER | MOVER | SIZER | INFO | UPARROW | DNARROW | VSLIDE)
 
 static int intersect(GRECT *a, GRECT *b)
 {
@@ -215,11 +217,32 @@ static void set_pane(WIN *w, short x, short y, short wd, short ht)
 	w->box.h = ht;
 	w->work.x = x;
 	w->work.y = y + header_h();
-	w->work.w = wd - sbw;
+	w->work.w = wd - (w == aes_pane ? 0 : sbw);
 	w->work.h = ht - header_h();
 	if (w->work.h < 0)
 		w->work.h = 0;
 	w->head_h = ch;		/* the column titles */
+}
+
+/* the window's own sliders, from the pane they scroll (0-1000); what
+   the AES has, so it isn't set again (-1: unknown, a new window) */
+static short last_pos = -1, last_size = -1;
+
+static void set_sliders(void)
+{
+	long rows = win_rows(aes_pane), max = aes_pane->total - rows;
+	short pos = max > 0 ? (short)(aes_pane->top * 1000 / max) : 0;
+	short size = aes_pane->total > rows ? (short)(rows * 1000 / aes_pane->total) : 1000;
+	if (main_h <= 0 || main_iconified)
+		return;
+	if (size < 1)
+		size = 1;
+	if (size != last_size)
+		wind_set(main_h, WF_VSLSIZE, size, 0, 0, 0);
+	if (pos != last_pos)
+		wind_set(main_h, WF_VSLIDE, pos, 0, 0, 0);
+	last_size = size;
+	last_pos = pos;
 }
 
 /* the panes in the window, from opt.pane_h */
@@ -236,6 +259,7 @@ static void layout(void)
 	if (rh < minh)
 		rh = minh;
 	opt.pane_h = rh;
+	aes_pane = rh >= avail - rh - DIV ? &w_repos : &w_found;	/* the larger */
 	set_pane(&w_repos, mwork.x, top, mwork.w, rh);
 	set_pane(&w_found, mwork.x, top + rh + DIV, mwork.w, avail - rh - DIV);
 	for (i = 0; i < NPANE; i++) {
@@ -244,6 +268,7 @@ static void layout(void)
 		if (w->top > max)
 			w->top = max > 0 ? max : 0;
 	}
+	set_sliders();
 }
 
 static GRECT div_h(void)
@@ -263,7 +288,7 @@ static GRECT sb_rect(WIN *w)
 	GRECT r;
 	r.x = w->box.x + w->box.w - sbw;
 	r.y = w->work.y;
-	r.w = sbw;
+	r.w = w == aes_pane ? 0 : sbw;		/* the AES's, beside the window */
 	r.h = w->work.h;
 	return r;
 }
@@ -420,7 +445,9 @@ void win_lines_changed(WIN *w)
 	if (w->top > max)
 		w->top = max > 0 ? max : 0;
 	win_redraw(w, 0);
-	{
+	if (w == aes_pane) {
+		set_sliders();
+	} else {
 		GRECT s = sb_rect(w);
 		main_redraw(&s);
 	}
@@ -509,6 +536,7 @@ void main_open(void)
 	wind_set_str(main_h, WF_NAME, " EUpdate ");
 	wind_set_str(main_h, WF_INFO, main_info);
 	wind_open(main_h, x, y, wd, ht);
+	last_pos = last_size = -1;
 	get_main_work();
 	save_main_place();
 	layout();
@@ -571,13 +599,18 @@ void win_scroll_to(WIN *w, long top)
 		top = 0;
 	if (top == w->top)
 		return;
-	{
+	if (w == aes_pane) {
+		w->top = top;
+		set_sliders();
+		s.w = 0;
+	} else {
 		PANEBAR b = bar_of(w);
 		long old = w->top;
 		b.top = w->top = top;
 		s = pb_moved(&b, old);
 	}
-	main_redraw(&s);
+	if (s.w > 0)
+		main_redraw(&s);
 	a = w->work;
 	a.y += w->head_h;
 	a.h -= w->head_h;
@@ -790,6 +823,7 @@ void win_message(short *msg)
 			break;
 		wind_set(main_h, WF_UNICONIFY, msg[4], msg[5], msg[6], msg[7]);
 		main_iconified = 0;
+		last_pos = last_size = -1;
 		get_main_work();
 		layout();
 		main_redraw(0);
@@ -808,6 +842,22 @@ void win_message(short *msg)
 	case WM_CLOSED:
 		if (!running)
 			main_closed();
+		break;
+	case WM_ARROWED:		/* the window's own sliders: the larger pane */
+		if (!main_iconified) {
+			long page = win_rows(aes_pane) - 1;
+			if (page < 1)
+				page = 1;
+			if (msg[4] >= WA_UPPAGE && msg[4] <= WA_DNLINE)
+				win_scroll_to(aes_pane, aes_pane->top + (msg[4] == WA_UPPAGE ? -page :
+					      msg[4] == WA_DNPAGE ? page : msg[4] == WA_UPLINE ? -1 : 1));
+		}
+		break;
+	case WM_VSLID:
+		if (!main_iconified) {
+			long max = aes_pane->total - win_rows(aes_pane);
+			win_scroll_to(aes_pane, max > 0 ? (msg[4] * max + 500) / 1000 : 0);
+		}
 		break;
 	case WM_BOTTOMED:
 		wind_set(main_h, WF_BOTTOM, 0, 0, 0, 0);
