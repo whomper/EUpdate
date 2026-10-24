@@ -272,6 +272,7 @@ static GRECT sb_rect(WIN *w)
 static PANEBAR bar_of(WIN *w)
 {
 	PANEBAR b;
+	memset(&b, 0, sizeof(b));	/* a bar down the pane's side */
 	b.r = sb_rect(w);
 	b.total = w->total;
 	b.shown = win_rows(w);
