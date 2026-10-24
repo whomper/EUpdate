@@ -425,6 +425,115 @@ static void test_zip(void)
 	rm_rf(dir);
 }
 
+/* ---------------- TLS.OVL and the ST editions (the guidelines 7.4) ---------------- */
+
+static char replaced_old[16], replaced_now[16];
+static void note_replaced(const REPO *r, const char *old, const char *now)
+{
+	str_copy(replaced_old, old, sizeof(replaced_old));
+	str_copy(replaced_now, now, sizeof(replaced_now));
+}
+
+static GHREL release_of(const char *const *names, int n)
+{
+	GHREL e;
+	int i;
+	memset(&e, 0, sizeof(e));
+	for (i = 0; i < n; i++) {
+		e.asset[i].id = i + 1;
+		e.asset[i].size = 4;
+		str_copy(e.asset[i].name, names[i], sizeof(e.asset[i].name));
+	}
+	e.nasset = n;
+	str_copy(e.tag, "v3.0", sizeof(e.tag));
+	return e;
+}
+
+static void test_tlsovl(void)
+{
+	static const char *const now[] = { "ECAL.ACC", "ECAL.HYP", "TLS.OVL", "ECAL-3.0.zip" };
+	static const char *const then[] = { "ECAL.ACC", "ECALST.ACC", "TLS.OVL" };
+	static const char *const two = "HTTP/1.1 200 OK\r\nContent-Length: 4\r\n\r\nACC!"
+				       FUZZ_NET_NEXT "HTTP/1.1 200 OK\r\nContent-Length: 4\r\n\r\nOVL!";
+	char dir[] = "build/unit-st";
+	short which[GH_MAXASSET];
+	GHREL e = release_of(now, 4);
+	REPO r;
+
+	/* TLS.OVL goes with a program whatever the patterns say; not with
+	   files that aren't one, nor against a rule's "-" */
+	memset(&r, 0, sizeof(r));
+	CHECK(up_chosen(&r, &e, which) == 1 && which[0] == 3);		/* the zip: it's in there */
+	str_copy(r.files, "*.ACC", sizeof(r.files));
+	CHECK(up_chosen(&r, &e, which) == 2 && which[0] == 0 && which[1] == 2);
+	str_copy(r.files, "*.HYP", sizeof(r.files));
+	CHECK(up_chosen(&r, &e, which) == 1 && which[0] == 1);
+	str_copy(r.files, "*.ACC", sizeof(r.files));
+	str_copy(r.rule[0].names, "TLS.OVL", sizeof(r.rule[0].names));
+	str_copy(r.rule[0].folder, "-", sizeof(r.rule[0].folder));
+	CHECK(up_chosen(&r, &e, which) == 1 && which[0] == 0);
+
+	/* an ST edition by hand beside the accessory: replaced once the
+	   release has no ST edition; switched off (.ACX), left; the program
+	   and TLS.OVL in their places */
+	rm_rf(dir);
+	pf_mkdir(dir);
+	pf_mkdir("build/unit-st/ROOT");
+	CHECK(pf_save("build/unit-st/ROOT/ECALST.ACC", "old", 3) == 0);
+	CHECK(pf_save("build/unit-st/ROOT/ECALST.ACX", "off", 3) == 0);
+	memset(&r, 0, sizeof(r));
+	str_copy(r.full, "whomper/ECal", sizeof(r.full));
+	str_copy(r.folder, "build/unit-st/ECAL", sizeof(r.folder));
+	str_copy(r.files, "*.ACC", sizeof(r.files));
+	str_copy(r.rule[0].names, "*.ACC", sizeof(r.rule[0].names));
+	str_copy(r.rule[0].folder, "build/unit-st/ROOT", sizeof(r.rule[0].folder));
+	str_copy(gh_base, "http://api.test", sizeof(gh_base));
+	up_replaced = note_replaced;
+	opt.shorten = 1;
+	say(two);
+	CHECK(up_install(&r, &e) && !strcmp(r.have, "v3.0"));
+	http_close_all();
+	CHECK(pf_size("build/unit-st/ROOT/ECAL.ACC") == 4 && pf_size("build/unit-st/ECAL/TLS.OVL") == 4);
+	CHECK(pf_size("build/unit-st/ROOT/ECALST.ACC") < 0 && pf_size("build/unit-st/ROOT/ECALST.ACX") == 3);
+	CHECK(!strcmp(replaced_old, "ECALST.ACC") && !strcmp(replaced_now, "ECAL.ACC"));
+
+	/* a release that still has its ST edition (left out here): kept */
+	CHECK(pf_save("build/unit-st/ROOT/ECALST.ACC", "old", 3) == 0);
+	replaced_old[0] = 0;
+	e = release_of(then, 3);
+	r.rule[1] = r.rule[0];		/* the suggested rules' order: "-" first */
+	str_copy(r.rule[0].names, "ECALST.ACC", sizeof(r.rule[0].names));
+	str_copy(r.rule[0].folder, "-", sizeof(r.rule[0].folder));
+	say(two);
+	CHECK(up_install(&r, &e));
+	http_close_all();
+	CHECK(pf_size("build/unit-st/ROOT/ECALST.ACC") == 3 && !replaced_old[0]);
+
+	/* as a release comes, in its zip (tests/data/onefor.zip: ECAL.ACC,
+	   TLS.OVL, ECAL.HYP, icons/ECAL.RSC), by the suggested rules */
+	{
+		static const char *const zipped[] = { "ECAL-3.0.zip" };
+		long n;
+		char *z = load("tests/data/onefor.zip", &n), *ans = malloc(n + 80);
+		int k = snprintf(ans, 80, "HTTP/1.1 200 OK\r\nContent-Length: %ld\r\n\r\n", n);
+		memcpy(ans + k, z, n);
+		e = release_of(zipped, 1);
+		e.asset[0].size = n;
+		r.files[0] = 0;
+		r.unzip = 1;
+		fuzz_net_set((unsigned char *)ans, k + n);
+		CHECK(up_install(&r, &e));
+		http_close_all();
+		CHECK(pf_size("build/unit-st/ROOT/ECAL.ACC") == 256 && pf_size("build/unit-st/ECAL/TLS.OVL") == 256);
+		CHECK(pf_size("build/unit-st/ROOT/ECALST.ACC") < 0 && !strcmp(replaced_old, "ECALST.ACC"));
+		free(ans);
+		free(z);
+	}
+	up_replaced = 0;
+	str_copy(gh_base, "https://api.github.com", sizeof(gh_base));
+	rm_rf(dir);
+}
+
 /* ---------------- EUPDATE.INF ---------------- */
 
 static void test_store(void)
@@ -511,6 +620,7 @@ int main(void)
 	test_http();
 	test_gh();
 	test_zip();
+	test_tlsovl();
 	test_store();
 	printf("%d checks, %d failed\n", checks, fails);
 	return fails != 0;

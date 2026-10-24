@@ -18,7 +18,8 @@ folders of your choice, shows which are current, and updates them with a click o
 - **Every file where it belongs:** a release's zip unpacked into the folder; rules for the files
   that go elsewhere (desk accessories to the boot drive's root) or nowhere (the ST edition, on a
   Falcon), suggested from what the release has; long names made 8+3 for TOS; every file written
-  safely, so a reset never leaves half a program.
+  safely, so a reset never leaves half a program. An AERA program's `TLS.OVL` always goes with it,
+  and a hand-copied ST edition (`ECALST.ACC`) gives way to the one program that replaces it.
 - **TLS on the Atari itself:** TLS 1.2 with BearSSL, the handshake's sums on the Falcon's DSP; no
   gateway. A GitHub token is optional, kept encrypted, and goes nowhere but GitHub's API.
 - **Modern but Atari:** one window with a toolbar and tooltips, right-click menus, the family's

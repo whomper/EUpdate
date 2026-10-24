@@ -161,6 +161,27 @@ release: when it has an edition and its ST twin (`ECAL.ACC` and
 TT; desk accessories go to the root of the boot drive. Change them as
 you like.
 
+### TLS.OVL and the end of the ST editions
+
+The AERA programs now carry their TLS in `TLS.OVL`, beside the program,
+and have one program for every Atari: `ECALST.ACC`, `ECONTST.ACC`,
+`EMAILST.PRG` and `EFTPST.PRG` end with each one's next release. EUpdate
+looks after both:
+
+- `TLS.OVL` goes into the repository's folder with the program, and is
+  written again whenever a release brings it. It comes even when
+  **Files** names only some of the release's files, as the program can't
+  connect without it; a rule with `-` still leaves it out.
+- If one of those ST editions is on your disk beside the program that
+  now takes its place (`ECALST.ACC` in `C:\` when `ECAL.ACC` is written
+  there), EUpdate removes it once the new program is safely written,
+  and says so. An accessory stays loaded until you restart the Atari;
+  after the restart the Desk menu shows the app as before. An ST
+  edition you switched off (`.ACX`, `.PRX`) is left as it is.
+
+EUpdate itself keeps its TLS built in: the program that fetches a good
+`TLS.OVL` mustn't depend on one.
+
 ## Checking and updating
 
 - **Repository > Check for releases** (^R, or **Check**): asks GitHub

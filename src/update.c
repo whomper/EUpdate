@@ -13,6 +13,7 @@
 #include "update.h"
 
 void (*up_status)(const char *msg);
+void (*up_replaced)(const REPO *r, const char *old, const char *now);
 int up_boot_drive = 2;		/* C: */
 
 static void say(const char *fmt, const char *a, const char *b)
@@ -107,16 +108,29 @@ static int left_out(const REPO *r, const char *name)
 	return u && !strcmp(u->folder, "-");
 }
 
+static int is_program(const char *name)
+{
+	return wild_match("*.PRG", name) || wild_match("*.ACC", name);
+}
+
 int up_chosen(const REPO *r, const GHREL *rel, short *which)
 {
-	short i, n = 0, zips = 0;
+	short i, n = 0, zips = 0, ovl = -1, prog = 0;
 	for (i = 0; i < rel->nasset; i++)
 		zips += is_zip(rel->asset[i].name);
 	for (i = 0; i < rel->nasset; i++) {
 		const char *name = rel->asset[i].name;
-		if ((r->files[0] ? listed(r->files, name) : !zips || is_zip(name)) && !left_out(r, name))
+		if ((r->files[0] ? listed(r->files, name) : !zips || is_zip(name)) && !left_out(r, name)) {
 			which[n++] = i;
+			prog |= is_program(name);
+		} else if (!strcasecmp(name, "TLS.OVL") && !left_out(r, name)) {
+			ovl = i;
+		}
 	}
+	/* an AERA program's TLS (the guidelines 7.4) goes with it, whatever
+	   the patterns say: without it the program can't connect */
+	if (prog && ovl >= 0)
+		which[n++] = ovl;
 	return n;
 }
 
@@ -214,6 +228,67 @@ typedef struct {
 	char err[120];
 } JOB;
 
+/* an install's programs written, and every name its release has (its
+   files and its zips' files, left out or not), for retire() */
+#define NPROG 8
+#define NSEEN 64
+static struct {
+	int on;
+	short nprog, nseen;
+	char prog[NPROG][260];
+	char seen[NSEEN][13];
+} inst;
+
+static const char *base_of(const char *path)
+{
+	const char *b = path + strlen(path);
+	while (b > path && b[-1] != '/' && b[-1] != '\\' && b[-1] != ':')
+		b--;
+	return b;
+}
+
+static void seen(const char *name)
+{
+	if (inst.on && inst.nseen < NSEEN)
+		str_copy(inst.seen[inst.nseen++], base_of(name), sizeof(inst.seen[0]));
+}
+
+/* the AERA ST editions that end with TLS.OVL (the guidelines 7.4), and
+   the program each one's machine takes now */
+static const char *const st_edition[][2] = {
+	{ "ECALST.ACC", "ECAL.ACC" },
+	{ "ECONTST.ACC", "ECONTACT.ACC" },
+	{ "EMAILST.PRG", "EMAIL.PRG" },
+	{ "EFTPST.PRG", "EFTP.PRG" },
+};
+
+/* an ST edition on the disk beside the program that now takes its place,
+   when the release no longer has it: removed, after the program is
+   safely written. Switched off (.ACX, .PRX), it is left as it is */
+static void retire(const REPO *r)
+{
+	short i, k, s;
+	for (i = 0; i < inst.nprog; i++) {
+		const char *now = base_of(inst.prog[i]);
+		for (k = 0; k < (short)(sizeof(st_edition) / sizeof(st_edition[0])); k++) {
+			char old[260];
+			if (strcasecmp(now, st_edition[k][1]))
+				continue;
+			for (s = 0; s < inst.nseen && strcasecmp(inst.seen[s], st_edition[k][0]); s++)
+				;
+			if (s < inst.nseen)
+				continue;	/* the release still has it */
+			snprintf(old, sizeof(old), "%.*s%s", (int)(now - inst.prog[i]), inst.prog[i],
+				 st_edition[k][0]);
+			if (pf_size(old) < 0 || pf_remove(old))
+				continue;
+			say("%s replaced by %s", st_edition[k][0], now);
+			if (up_replaced)
+				up_replaced(r, st_edition[k][0], now);
+		}
+	}
+}
+
 /* a file of the archive (or the release) to dir\a\b\NAME: every part of
    its name a proper one (no "..", no drive: nothing lands outside the
    folder), the folders made on the way */
@@ -225,6 +300,7 @@ static int put_file(void *ud, const char *name, const unsigned char *data, long 
 	const RULE *u = up_rule(j->r, name);
 	long n;
 	int depth = 0;
+	seen(name);
 	if (u && !strcmp(u->folder, "-"))
 		return 0;		/* left out */
 	str_copy(path, u ? u->folder : j->r->folder, sizeof(path));
@@ -271,6 +347,8 @@ static int put_file(void *ud, const char *name, const unsigned char *data, long 
 		snprintf(j->err, sizeof(j->err), "can't write %.60s: is the disk full or locked?", path);
 		return 1;
 	}
+	if (inst.on && inst.nprog < NPROG && is_program(path))
+		str_copy(inst.prog[inst.nprog++], path, sizeof(inst.prog[0]));
 	return 0;
 }
 
@@ -305,6 +383,10 @@ int up_install(REPO *r, const GHREL *rel)
 		snprintf(r->note, sizeof(r->note), "can't make its folder: %.60s", r->folder);
 		return 0;
 	}
+	memset(&inst, 0, sizeof(inst));
+	inst.on = 1;
+	for (i = 0; i < rel->nasset; i++)
+		seen(rel->asset[i].name);
 	for (i = 0; i < n; i++) {
 		const GHASSET *a = &rel->asset[which[i]];
 		SBUF b;
@@ -314,9 +396,13 @@ int up_install(REPO *r, const GHREL *rel)
 		ok = gh_download(r->full, a, &b, a->size, r->note, sizeof(r->note)) &&
 		     up_put(r, a->name, (const unsigned char *)b.s, b.len, r->note, sizeof(r->note));
 		sb_free(&b);
-		if (!ok)
+		if (!ok) {
+			inst.on = 0;
 			return 0;
+		}
 	}
+	retire(r);
+	inst.on = 0;
 	str_copy(r->have, rel->tag, sizeof(r->have));
 	pf_now(&t);
 	snprintf(r->have_date, sizeof(r->have_date), "%04d-%02d-%02d", t.year, t.mon, t.day);

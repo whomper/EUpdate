@@ -317,6 +317,26 @@ static int job_begin(void)
 	return 1;
 }
 
+/* an ST edition replaced by its app's one program (update.c): logged,
+   and an accessory's said at the job's end, as it is loaded until the
+   Atari restarts */
+#define NREPLACED 4
+static char replaced[NREPLACED][160];
+static short nreplaced;
+
+static void on_replaced(const REPO *r, const char *old, const char *now)
+{
+	const char *app = strchr(r->full, '/');
+	char m[120];
+	snprintf(m, sizeof(m), "%s replaced by %s", old, now);
+	log_step(m);
+	app = app ? app + 1 : r->full;
+	if (nreplaced < NREPLACED && wild_match("*.ACC", now))
+		snprintf(replaced[nreplaced++], sizeof(replaced[0]),
+			 "[1][%s's accessory is now %s (%s is gone). Restart the Atari to load it; "
+			 "the Desk menu still says %s.][ OK ]", app, now, old, app);
+}
+
 static void job_end(void)
 {
 	short msg[8], n = 0;
@@ -330,6 +350,9 @@ static void job_end(void)
 	toolbar_redraw();
 	menu_update();
 	icon_window(0);
+	for (n = 0; n < nreplaced; n++)
+		alert(1, "%s", replaced[n]);
+	nreplaced = 0;
 }
 
 /* the answer to a failed job: said, unless the user stopped it */
@@ -1010,6 +1033,7 @@ int main(void)
 	falcon_dsp_ec_init();
 	pf_idle = idle;
 	up_status = job_status;
+	up_replaced = on_replaced;
 	http_progress = job_progress;
 
 	lists_init();
