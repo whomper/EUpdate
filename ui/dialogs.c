@@ -810,9 +810,11 @@ static void part_look(short x, short y)
 	d_add(G_STRING, 0, 0, (long)"new in orange, current in teal", x + 3, ROW(2), 30, 1);
 	d_tick(x, ROW(3), "Start with the Hebrew keyboard", T_HEB);
 	k = d_tick(x, ROW(4), "3D dialogs", T_3D);
-	d_add(G_STRING, 0, 0, (long)"where the AES draws them: TOS 4, MagiC", x + 3, ROW(5), 38, 1);
+	d_add(G_STRING, 0, 0, (long)"where the AES draws them: TOS 4,", x + 3, ROW(5), 32, 1);
+	d_add(G_STRING, 0, 0, (long)"MagiC, XaAES, EmuTOS in colour", x + 3, ROW(6), 30, 1);
 	if (!dlg_3d_ok())		/* this AES has no 3D look */
-		tree[tick_box[k]].ob_state = tree[tick_lbl[k]].ob_state = tree[nobj - 1].ob_state = DISABLED;
+		tree[tick_box[k]].ob_state = tree[tick_lbl[k]].ob_state = tree[nobj - 2].ob_state =
+			tree[nobj - 1].ob_state = DISABLED;
 }
 
 static void part_advanced(short x, short y)
