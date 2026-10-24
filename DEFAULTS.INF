@@ -1,0 +1,77 @@
+; EUpdate's first settings: the AERA programs it follows when it starts
+; with no EUPDATE.INF yet (Copyright (C) 2026 AERA | Erez Yaary).
+; EUpdate writes EUPDATE.INF from it, and doesn't read this file again.
+
+; one [REPO] part per repository followed, up to 64
+
+[REPO]
+; owner/name on GitHub
+REPO=whomper/ECal
+
+; where its files go: "." = EUpdate's own folder
+FOLDER=C:\AERA\ECAL
+
+; 1 = its .zip is unpacked into the folder
+UNZIP=1
+
+; desk accessories load from the boot drive's root
+RULE=*.ACC;C:\
+
+[REPO]
+REPO=whomper/EContact
+
+FOLDER=C:\AERA\ECONTACT
+
+UNZIP=1
+
+RULE=*.ACC;C:\
+
+[REPO]
+REPO=whomper/EMail
+
+FOLDER=C:\AERA\EMAIL
+
+UNZIP=1
+
+[REPO]
+REPO=whomper/EFTP
+
+FOLDER=C:\AERA\EFTP
+
+UNZIP=1
+
+[REPO]
+REPO=whomper/EHypView
+
+FOLDER=C:\AERA\EHYPVIEW
+
+UNZIP=1
+
+RULE=*.ACC;C:\
+
+[REPO]
+REPO=whomper/ClaudeST
+
+FOLDER=C:\AERA\CLAUDEST
+
+UNZIP=1
+
+[REPO]
+REPO=whomper/EWeb
+
+FOLDER=C:\AERA\EWEB
+
+UNZIP=1
+
+; the ST edition is left out
+RULE=EWEBST.PRG;-
+
+[REPO]
+REPO=whomper/EUpdate
+
+FOLDER=.
+
+UNZIP=1
+
+; this EUpdate: the release it came from
+HAVE=v@VERSION@

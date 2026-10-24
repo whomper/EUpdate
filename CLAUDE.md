@@ -107,5 +107,8 @@ information, your assessment and what he should do, nothing more.
 - **The tests' GitHub** is `tests/server.py` (its repository is `tests/github/repo.json`, a real
   one as the API gave it): `APIBASE=` points EUpdate at it, as at a GitHub Enterprise server.
   GitHub's real API isn't asked by any test.
-- **A release** carries `EUPDATE.PRG`, `EUPDATE.HYP`, `CACERT.PEM`, `ROOTS.DAT` and the icon
-  (`icons/`, `make icons`), from `make dist`.
+- **A release** carries `EUPDATE.PRG`, `EUPDATE.HYP`, `CACERT.PEM`, `ROOTS.DAT`, `DEFAULTS.INF`
+  and the icon (`icons/`, `make icons`), from `make dist`. `DEFAULTS.INF` (Erez, 24 Oct 2026) is
+  what a first start follows, with no `EUPDATE.INF` yet: the AERA programs into `C:\AERA\NAME`,
+  accessories to `C:\`, EUpdate in its own folder (`.`) at the release's version
+  (`HAVE=v@VERSION@`, filled in by make). A new AERA program is added there.

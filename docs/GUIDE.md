@@ -38,6 +38,7 @@ drive:
 ```
 EUPDATE.PRG   the program
 EUPDATE.HYP   this guide, for EHypView or ST-Guide (the Help key opens it)
+DEFAULTS.INF  what EUpdate follows on its first start
 CACERT.PEM    the root certificates GitHub's are checked against
 ROOTS.DAT     the same, decoded ahead of time
 EUPDATE.INF   settings and the repositories followed (a note above each)
@@ -47,7 +48,19 @@ CRASH.LOG     what happened, if EUpdate ever crashes
 SEED.DAT      randomness kept for the next start
 ```
 
-You copy the first four; EUpdate makes the others when it needs them.
+You copy the first five; EUpdate makes the others when it needs them.
+
+### The first start
+
+With no `EUPDATE.INF` yet, EUpdate reads `DEFAULTS.INF` and follows the
+AERA programs: ECal, EContact, EMail, EFTP, EHypView, ClaudeST, EWeb,
+each into its own folder in `C:\AERA` (`C:\AERA\ECAL` and so on), and
+EUpdate itself in its own folder. The desk accessories go to `C:\`, where
+TOS loads them, and EWeb's ST edition is left out. Nothing is downloaded
+yet: **Check** shows their latest releases, and **Update** brings them
+in. Change a folder with **Get info**, or **Unfollow** what you don't
+want. From then on `EUPDATE.INF` holds it all, and `DEFAULTS.INF` isn't
+read again; with no `DEFAULTS.INF`, EUpdate starts following nothing.
 
 EUpdate can keep itself up to date: follow `whomper/EUpdate` into
 EUpdate's own folder. The program running is in memory, so its file

@@ -162,7 +162,7 @@ int store_init(const char *workdir)
 {
 	char *buf, *line, *next, kf[220];
 	REPO *cur = 0;
-	short in_opts = 0;
+	short in_opts = 0, first = 0, j;
 
 	defaults();
 	str_copy(opt.workdir, workdir, sizeof(opt.workdir));
@@ -175,8 +175,15 @@ int store_init(const char *workdir)
 	path_join(tls_roots_cache, sizeof(tls_roots_cache), workdir, "ROOTS.DAT");
 	path_join(tls_seed_path, sizeof(tls_seed_path), workdir, "SEED.DAT");
 	buf = pf_load(inf_path, 0);
-	if (!buf)
-		return 0;
+	if (!buf) {
+		/* a first start: the AERA programs to follow, from DEFAULTS.INF
+		   beside EUPDATE.PRG (EUpdate's own folder is ".") */
+		path_join(kf, sizeof(kf), workdir, "DEFAULTS.INF");
+		buf = pf_load(kf, 0);
+		first = 1;
+		if (!buf)
+			return 0;
+	}
 	for (line = buf; line && *line; line = next) {
 		char *eq, *k, *key, *val, *sc;
 		long i;
@@ -212,6 +219,17 @@ int store_init(const char *workdir)
 		}
 	}
 	free(buf);
+	for (j = 0; first && j < nrepos; j++)
+		if (!strcmp(repos[j]->folder, ".")) {
+			char *f = repos[j]->folder;
+			long n;
+			str_copy(f, workdir, sizeof(repos[j]->folder));
+			n = (long)strlen(f);
+			if (n > 3 && f[n - 1] == PF_SEP)
+				f[n - 1] = 0;	/* C:\EUPDATE\ -> C:\EUPDATE */
+			else if (n == 2 && f[1] == ':')
+				path_join(f, sizeof(repos[j]->folder), workdir, "");	/* C: -> C:\ */
+		}
 	return nrepos;
 }
 

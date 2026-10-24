@@ -216,9 +216,9 @@ itest: $(OBJDIR)/eupd-cli
 
 # a release's files: each one in dist/, and all of them in
 # dist/EUPDATE-x.y.zip (the icons in icons/), for the release workflow
-DIST    := binary/EUPDATE.PRG binary/CACERT.PEM binary/ROOTS.DAT binary/EUPDATE.HYP
+DIST    := binary/EUPDATE.PRG binary/CACERT.PEM binary/ROOTS.DAT binary/EUPDATE.HYP binary/DEFAULTS.INF
 ICONS   := icons/EUPDATE.RSC icons/EUPDNV.RSC icons/EUPDATE.ICN icons/EUPDMK.ICN
-dist: all help
+dist: all help binary/DEFAULTS.INF
 	rm -rf dist
 	mkdir -p dist/zip/icons
 	cp $(DIST) $(ICONS) dist/
@@ -226,6 +226,10 @@ dist: all help
 	cp $(ICONS) dist/zip/icons/
 	cd dist/zip && zip -q -9 -r ../EUPDATE-$(VERSION_STR).zip .
 	rm -rf dist/zip
+
+# what a first start follows (the AERA programs), EUpdate itself at this version
+binary/DEFAULTS.INF: DEFAULTS.INF VERSION | binary
+	sed 's/@VERSION@/$(VERSION_STR)/' DEFAULTS.INF > $@
 
 clean:
 	rm -rf $(OBJDIR) binary dist

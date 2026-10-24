@@ -8,6 +8,9 @@ folders of your choice, shows which are current, and updates them with a click o
 
 **Highlights**
 
+- **The AERA programs, ready to follow:** on its first start EUpdate follows ECal, EContact,
+  EMail, EFTP, EHypView, ClaudeST, EWeb and itself (`DEFAULTS.INF`), each into `C:\AERA\`, the
+  desk accessories to `C:\`; a Check shows what is new, and Update brings them in.
 - **Find on GitHub:** repositories by name, the most starred first; or owners, people and
   organisations, and then their repositories.
 - **Follow** a repository into a folder: what you have, the latest release GitHub has, and
@@ -41,15 +44,18 @@ file by file or all together in the zip:
 | `EUPDATE.PRG` | the program, for a Falcon or TT (68030; a 68020 or better) |
 | `CACERT.PEM`, `ROOTS.DAT` | the root certificates GitHub's are checked against |
 | `EUPDATE.HYP` | the user guide, for EHypView or ST-Guide; the Help key opens it |
+| `DEFAULTS.INF` | what EUpdate follows on its first start: the AERA programs |
 | `EUPDATE.RSC`, `EUPDNV.RSC`, `EUPDATE.ICN`, `EUPDMK.ICN` | the desktop icon (in the zip's `icons/` folder): `EUPDATE.RSC` under TOS, EmuTOS, or NVDI with TOS's palette loaded (COLORVDI); `EUPDNV.RSC`, renamed `EUPDATE.RSC`, under NVDI with its own palette |
 | `EUPDATE-x.y.zip` | all of these together |
 
-1. Copy `EUPDATE.PRG`, `CACERT.PEM`, `ROOTS.DAT` and `EUPDATE.HYP` into a folder of their own.
+1. Copy `EUPDATE.PRG`, `CACERT.PEM`, `ROOTS.DAT`, `EUPDATE.HYP` and `DEFAULTS.INF` into a folder of their own.
    EUpdate keeps its settings and the repositories it follows (`EUPDATE.INF`, `EUPDATE.KEY`) in
    the folder it is started from.
 2. Load STinG (or run MiNT with MiNTnet).
-3. Start EUpdate, choose **File > Find on GitHub** (^F), and double-click a repository to follow
-   it. Press **Help** for the guide.
+3. Start EUpdate: it follows the AERA programs (`DEFAULTS.INF`). **Check** (^R) shows their
+   releases and **Update** (^U) downloads them; **Get info** (^I) changes where one goes, and
+   **Unfollow** (Del) drops the ones you don't want. To follow more, choose **File > Find on
+   GitHub** (^F) and double-click a repository. Press **Help** for the guide.
 
 EUpdate can keep itself up to date: follow `whomper/EUpdate` into its own folder.
 
