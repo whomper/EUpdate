@@ -498,8 +498,11 @@ static void show_page(short p, int draw)
 			tree[i].ob_flags &= ~EDITABLE;
 		}
 	}
+	/* the chosen part in a black bar, as the title band: not SELECTED,
+	   which an AES drawing 3D shows by inverting its grey (dark green
+	   with 256 colours) */
 	for (i = 1; i <= npages; i++)
-		tree[page_tab[i]].ob_state = i == p ? SELECTED : 0;
+		((TEDINFO *)tree[page_tab[i]].ob_spec)->te_color = i == p ? 0x1071 : 0x1180;
 	if (draw) {
 		short x, y, k;
 		for (k = 1; k <= npages; k++) {
@@ -686,6 +689,8 @@ int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 		d_band(64, is_new ? band : band + 1);
 	}
 	rows_at(2);
+	if (dlg_3d_ok() && dlg_3d_on)
+		row_gap = (short)(gl_hchar / 2);	/* raised buttons, one under another */
 	d_text(2, ROW(0), fl_l1);
 	d_text(2, ROW(1), fl_l2);
 	y = 2;
