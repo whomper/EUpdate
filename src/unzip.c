@@ -111,6 +111,11 @@ int unzip(const unsigned char *z, long n, UNZIP_FILE cb, void *ud, char *err, in
 			if (csize != usize)
 				goto damaged;
 		} else if (method == 8) {
+			/* a bigger file than the last: the old room given back
+			   first, not grown (realloc holds both at once: EWeb's
+			   2.8 MB font beside its 4.5 MB zip on a TT with 8 MB) */
+			if ((unsigned long)out.cap < usize + 1)
+				sb_free(&out);
 			if (usize > 0x3FFFFFFFUL || !sb_reserve(&out, (long)usize)) {
 				sb_free(&out);
 				return bad(err, errlen, "not enough memory to unpack the zip archive");
