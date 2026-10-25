@@ -5,7 +5,9 @@
 tests/server.py, once over HTTP and once over TLS with a certificate
 authority of the test's own: finding repositories and owners, an
 owner's list, the latest release, no release, no repository, the hour's
-limit, a wrong token, and a download unpacked into a folder."""
+limit, a wrong token, and a download unpacked into a folder; and over
+TLS, servers it must refuse before anything is sent (a certificate of
+an authority it doesn't know, one for another name)."""
 import os
 import shutil
 import subprocess
@@ -42,6 +44,25 @@ def certs():
     open("ext.cnf", "w").write("subjectAltName=DNS:localhost\nbasicConstraints=CA:FALSE\n")
     ossl("x509", "-req", "-in", "srv.csr", "-CA", "ca.pem", "-CAkey", "ca.key", "-CAcreateserial",
          "-days", "2", "-out", "srv.pem", "-extfile", "ext.cnf")
+    # an authority EUpdate isn't given
+    ossl("req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "2", "-subj", "/CN=Someone else's CA",
+         "-keyout", "other.key", "-out", "other.pem", "-addext", "basicConstraints=critical,CA:TRUE",
+         "-addext", "keyUsage=critical,keyCertSign,cRLSign")
+
+
+def refused():
+    """a server EUpdate must not trust: the connection ends after the
+    handshake, before the request, so the token never reaches it (the
+    chain is checked after the handshake, tls.c)"""
+    auth = os.path.join(W, "auth.log")
+    rc, out, err = cli("https://localhost:18732", os.path.join(W, "other.pem"), "latest", "whomper/EUpdate",
+                       token="good-token")
+    check(rc == 1 and "certificate" in err.lower(), "an authority it doesn't know: refused (%s)" % err.strip().splitlines()[-1])
+    rc, out, err = cli("https://127.0.0.1:18732", os.path.join(W, "ca.pem"), "latest", "whomper/EUpdate",
+                       token="good-token")
+    check(rc == 1 and "server name" in err.lower(), "a certificate for another name: refused (%s)" % err.strip().splitlines()[-1])
+    sent = open(auth).read() if os.path.exists(auth) else ""
+    check("good-token" not in sent, "and the token reached neither")
 
 
 def run(base, ca):
@@ -82,11 +103,13 @@ def main():
     certs()
     plain = subprocess.Popen([sys.executable, os.path.join(H, "server.py"), "18731"], stdout=subprocess.PIPE)
     tls = subprocess.Popen([sys.executable, os.path.join(H, "server.py"), "18732", "srv.pem", "srv.key"],
-                           stdout=subprocess.PIPE)
+                           stdout=subprocess.PIPE, env=dict(os.environ, AUTH_LOG=os.path.join(W, "auth.log")))
     try:
         plain.stdout.readline()
         tls.stdout.readline()
         run("http://127.0.0.1:18731", os.path.join(W, "ca.pem"))
+        os.remove(os.path.join(W, "auth.log")) if os.path.exists(os.path.join(W, "auth.log")) else None
+        refused()
         run("https://localhost:18732", os.path.join(W, "ca.pem"))
         log = open(os.path.join(W, "EUPDATE.LOG"), errors="replace").read()
         check("good-token" not in log, "the token is not in the log")
