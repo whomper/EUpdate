@@ -46,6 +46,7 @@ EUPDATE.KEY   the key your GitHub token is encrypted with
 EUPDATE.LOG   protocol log, when switched on
 CRASH.LOG     what happened, if EUpdate ever crashes
 SEED.DAT      randomness kept for the next start
+SIGS.DAT      certificates' signatures already checked (quicker next time)
 ```
 
 You copy the first five; EUpdate makes the others when it needs them.

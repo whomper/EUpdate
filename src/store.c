@@ -174,6 +174,9 @@ int store_init(const char *workdir)
 	path_join(conn_cacert, sizeof(conn_cacert), workdir, "CACERT.PEM");
 	path_join(tls_roots_cache, sizeof(tls_roots_cache), workdir, "ROOTS.DAT");
 	path_join(tls_seed_path, sizeof(tls_seed_path), workdir, "SEED.DAT");
+	/* the certificates' signatures already checked (RSA and ECDSA): the
+	   next start doesn't check GitHub's chain again */
+	path_join(tls_sigs_path, sizeof(tls_sigs_path), workdir, "SIGS.DAT");
 	buf = pf_load(inf_path, 0);
 	if (!buf) {
 		/* a first start: the AERA programs to follow, from DEFAULTS.INF
