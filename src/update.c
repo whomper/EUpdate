@@ -392,10 +392,15 @@ int up_install(REPO *r, const GHREL *rel)
 		SBUF b;
 		int ok;
 		say("Downloading %s from %s...", a->name, r->full);
-		sb_init(&b);
+		/* in a piece of its own, given back after (unzip.h) */
+		if (!sb_big(&b, a->size)) {
+			str_copy(r->note, "not enough memory for the file", sizeof(r->note));
+			inst.on = 0;
+			return 0;
+		}
 		ok = gh_download(r->full, a, &b, a->size, r->note, sizeof(r->note)) &&
 		     up_put(r, a->name, (const unsigned char *)b.s, b.len, r->note, sizeof(r->note));
-		sb_free(&b);
+		sb_big_free(&b);
 		if (!ok) {
 			inst.on = 0;
 			return 0;

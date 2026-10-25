@@ -41,6 +41,20 @@ static char *st_piece(const void *buf)
 	return st;
 }
 
+void *pf_big_alloc(long n)
+{
+	void *p = Mxalloc(n, 3);	/* TT RAM if it has room, else ST RAM */
+	if ((long)p == -32)
+		p = Malloc(n);		/* TOS 1.x */
+	return (long)p > 0 ? p : 0;
+}
+
+void pf_big_free(void *p)
+{
+	if (p)
+		Mfree(p);
+}
+
 long pf_read(int h, void *buf, long n)
 {
 	char *st = st_piece(buf), *p = buf;

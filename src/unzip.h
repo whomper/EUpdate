@@ -21,4 +21,11 @@ int unzip(const unsigned char *zip, long n, UNZIP_FILE cb, void *ud, char *err, 
 
 unsigned long crc32(const unsigned char *p, long n);
 
+/* b made a buffer of n bytes (and the NUL) from pf_big_alloc, empty; 0
+   when there is no room. What goes in must stay within n: it never grows.
+   sb_big_free gives it back and empties b */
+#include "util.h"
+int sb_big(SBUF *b, long n);
+void sb_big_free(SBUF *b);
+
 #endif

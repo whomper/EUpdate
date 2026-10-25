@@ -80,6 +80,16 @@ void pf_now(PFTIME *t)
 	t->sec = tm.tm_sec;
 }
 
+void *pf_big_alloc(long n)
+{
+	return malloc(n);
+}
+
+void pf_big_free(void *p)
+{
+	free(p);
+}
+
 void pf_entropy(unsigned char *buf, int n)
 {
 	int fd = open("/dev/urandom", O_RDONLY), got = 0;

@@ -40,6 +40,13 @@ extern long (*pf_size_open)(int h);
 
 /* whole-file helpers (common/src/futil.c): pf_load returns a malloc'ed
    NUL-terminated copy; pf_save writes NAME.IN$ and renames it over */
+/* a big buffer straight from the system, given back whole when done (a
+   release's zip, a file unpacked from it): kept out of the heap, which
+   never gives its memory back and grows in ever bigger blocks; 0 when
+   there is no room for n bytes in one piece */
+void *pf_big_alloc(long n);
+void  pf_big_free(void *p);
+
 char *pf_load(const char *path, long *len);
 int   pf_save(const char *path, const void *data, long len);
 

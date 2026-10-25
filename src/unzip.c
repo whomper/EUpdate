@@ -8,6 +8,24 @@
 #include "util.h"
 #include "inflate.h"
 #include "unzip.h"
+#include "plat.h"
+
+int sb_big(SBUF *b, long n)
+{
+	sb_init(b);
+	b->s = pf_big_alloc(n + 1);
+	if (!b->s)
+		return 0;
+	b->s[0] = 0;
+	b->cap = n + 1;
+	return 1;
+}
+
+void sb_big_free(SBUF *b)
+{
+	pf_big_free(b->s);
+	sb_init(b);
+}
 
 static unsigned long crc_tab[256];
 
@@ -88,11 +106,11 @@ int unzip(const unsigned char *z, long n, UNZIP_FILE cb, void *ud, char *err, in
 		if (name[nlen - 1] == '/')
 			continue;		/* a folder: made with its files */
 		if (flags & 1) {
-			sb_free(&out);
+			sb_big_free(&out);
 			return bad(err, errlen, "the zip archive is encrypted");
 		}
 		if (csize == 0xFFFFFFFFUL || usize == 0xFFFFFFFFUL || off == 0xFFFFFFFFUL) {
-			sb_free(&out);
+			sb_big_free(&out);
 			return bad(err, errlen, "the zip archive is too big (ZIP64)");
 		}
 		/* the local header, then the data */
@@ -106,38 +124,37 @@ int unzip(const unsigned char *z, long n, UNZIP_FILE cb, void *ud, char *err, in
 		data = l + 30 + le16(l + 26) + le16(l + 28);
 		if (csize > (unsigned long)(z + e - data))
 			goto damaged;
-		sb_reset(&out);
+		sb_big_free(&out);		/* the last file's room given back */
 		if (method == 0) {
 			if (csize != usize)
 				goto damaged;
 		} else if (method == 8) {
-			/* a bigger file than the last: the old room given back
-			   first, not grown (realloc holds both at once: EWeb's
-			   2.8 MB font beside its 4.5 MB zip on a TT with 8 MB) */
-			if ((unsigned long)out.cap < usize + 1)
-				sb_free(&out);
-			if (usize > 0x3FFFFFFFUL || !sb_reserve(&out, (long)usize)) {
-				sb_free(&out);
+			/* each file in a piece of its own from the system, given
+			   back before the next: the heap kept what it took and
+			   grew in ever bigger blocks, and on a TT with 8 MB
+			   EWeb's 2.8 MB font found no room beside its 4.5 MB zip */
+			if (usize > 0x3FFFFFFFUL || !sb_big(&out, (long)usize)) {
+				sb_big_free(&out);
 				return bad(err, errlen, "not enough memory to unpack the zip archive");
 			}
 			if (inflate_raw(data, (long)csize, &out, (long)usize) != 1 || out.len != (long)usize)
 				goto damaged;
 			data = (const unsigned char *)out.s;
 		} else {
-			sb_free(&out);
+			sb_big_free(&out);
 			return bad(err, errlen, "the zip archive is packed in a way EUpdate doesn't know");
 		}
 		if (crc32(data, (long)usize) != crc)
 			goto damaged;
 		if (cb(ud, name, data, (long)usize)) {
-			sb_free(&out);
+			sb_big_free(&out);
 			return -1;
 		}
 		files++;
 	}
-	sb_free(&out);
+	sb_big_free(&out);
 	return (int)files;
 damaged:
-	sb_free(&out);
+	sb_big_free(&out);
 	return bad(err, errlen, "the zip archive is damaged");
 }
