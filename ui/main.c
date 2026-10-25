@@ -1076,7 +1076,9 @@ int main(void)
 	if (opt.check != CHECK_NEVER && nrepos && strcmp(net_stack(), "none"))
 		check_repos(J_ALL, opt.fetch);
 	{
-		const char *cmd = av_command();	/* opened with a repository's address */
+		/* opened with a repository's address: the basepage's line, or
+		   MiNT's and MagiC's ARGV (the guidelines, 4.3) */
+		const char *cmd = cmd_line();
 		if (*cmd)
 			av_start(cmd);
 	}
