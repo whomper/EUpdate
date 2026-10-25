@@ -108,6 +108,7 @@ def main():
         for repo, _ in FOLLOW:
             check(have.get("whomper/" + repo) == tags[repo], "%s %s downloaded" % (repo, tags[repo]))
         check(not os.path.exists(os.path.join(hd, "NET", "EMAIL", "EMAILST.PRG")), "the ST editions left out")
+        check(os.path.exists(os.path.join(hd, "SIGS.DAT")), "the checked signatures kept in SIGS.DAT")
         check(os.path.exists(os.path.join(hd, "EHYPVIEW.ACC")) and
               os.path.getsize(os.path.join(hd, "EHYPVIEW.ACC")) ==
               os.path.getsize(os.path.join(CACHE, "EHypView", tags["EHypView"], "EHYPVIEW.ACC")),
