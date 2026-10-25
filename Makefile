@@ -36,7 +36,7 @@ INC     := -Isrc -Icommon/src -Iatari -Icommon/atari -Iui -Icommon/ui -Icommon/t
 CFLAGS  := -m68030 -O2 -fomit-frame-pointer -ffreestanding -fno-builtin -fno-pic -fno-pie \
            -fno-tree-loop-distribute-patterns -fno-asynchronous-unwind-tables \
            -ffunction-sections -fdata-sections -Wall -Wno-pointer-sign \
-           -DEU_TOS -nostdinc -isystem $(GCCINC) -Icommon/atari/include $(INC)
+           -DEU_TOS -DTLS_030 -nostdinc -isystem $(GCCINC) -Icommon/atari/include $(INC)
 # EUpdate's own files: no warning passes
 OWNWARN := -Wextra -Wno-unused-parameter -Werror
 LDFLAGS := -m68030 -nostdlib -static -no-pie -Wl,--emit-relocs -Wl,-T,common/atari/link.ld \
@@ -51,19 +51,25 @@ BSSLCF  := -m68030 -O2 -fomit-frame-pointer -ffreestanding -fno-builtin -fno-pic
            -fno-tree-loop-distribute-patterns -fno-asynchronous-unwind-tables -ffunction-sections \
            -fdata-sections -w -nostdinc -isystem $(GCCINC) -Icommon/atari/include -I$(BSSL)/inc \
            -I$(BSSL)/src $(BSSLDEF)
-BSSLOBJ  = $(patsubst $(BSSL)/src/%.c,$(OBJDIR)/bssl/%.o,$(BSSLSRC))
+# on the Atari, BearSSL's br_i31_montymul is common/tlsovl's, its loop in
+# 68030 assembly (as TLS.OVL's: RSA, the prime curves, ECDSA, X25519),
+# and RSA on the 68030 is rsa030.c with mont030.S (TLS_030; AERA-Atari
+# d6a764d: a TT's chain check from 16.6 s to under 2 s)
+ABSSLSRC := $(filter-out $(BSSL)/src/int/i31_montmul.c,$(BSSLSRC))
+BSSLOBJ  = $(patsubst $(BSSL)/src/%.c,$(OBJDIR)/bssl/%.o,$(ABSSLSRC)) $(OBJDIR)/bssl/i31_montmul_030.o \
+           $(OBJDIR)/bssl/mont31_030.o
 HBSSLOBJ = $(patsubst $(BSSL)/src/%.c,$(OBJDIR)/hbssl/%.o,$(BSSLSRC))
 
 # EUpdate's core (src/), and what it takes from common/src
 OWN     := http json gh store unzip update
-CORE    := conn tls util futil inflate secret charset ctime bidi ecdsp
+CORE    := conn tls util futil inflate secret charset ctime bidi ecdsp rsa030
 ATARI   := libc tos plat_tos net_tos sting gem dsprsa dspec crash bigbuf
 UI      := main win draw lists dialogs font about theme \
            dsp dsp_ec fontsel help av alert dialog field mbar aboutbox iconify clip clipedit dd popup \
            panebar
 
 OBJDIR  := build
-OBJS    := $(OBJDIR)/crt0.o $(OBJDIR)/sting_s.o $(OBJDIR)/nf.o $(OBJDIR)/crash_s.o \
+OBJS    := $(OBJDIR)/crt0.o $(OBJDIR)/sting_s.o $(OBJDIR)/nf.o $(OBJDIR)/crash_s.o $(OBJDIR)/mont030.o \
            $(addprefix $(OBJDIR)/,$(addsuffix .o,$(OWN) $(CORE) $(ATARI) $(UI)))
 HDRS    := $(wildcard src/*.h atari/*.h ui/*.h common/src/*.h common/atari/*.h \
            common/atari/include/*.h common/ui/*.h common/dsp/*.h)
@@ -98,6 +104,13 @@ $(OBJDIR)/bssl/%.o: $(BSSL)/src/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(BSSLCF) -c -o $@ $<
 
+$(OBJDIR)/bssl/i31_montmul_030.o: common/tlsovl/i31_montmul_030.c
+	@mkdir -p $(dir $@)
+	$(CC) $(BSSLCF) -c -o $@ $<
+$(OBJDIR)/bssl/mont31_030.o: common/tlsovl/mont31_030.S
+	@mkdir -p $(dir $@)
+	$(CC) -m68030 -c -o $@ $<
+
 $(OBJDIR)/libbearssl.a: $(BSSLOBJ)
 	rm -f $@
 	$(CROSS)ar rcs $@ $^
@@ -122,6 +135,8 @@ $(OBJDIR)/sting_s.o: common/atari/sting.S | $(OBJDIR)
 $(OBJDIR)/crash_s.o: common/atari/crash.S | $(OBJDIR)
 	$(CC) -m68030 -c -o $@ $<
 $(OBJDIR)/nf.o: common/atari/nf.S | $(OBJDIR)
+	$(CC) -m68030 -c -o $@ $<
+$(OBJDIR)/mont030.o: common/atari/mont030.S | $(OBJDIR)
 	$(CC) -m68030 -c -o $@ $<
 
 $(OBJDIR) binary:
