@@ -255,9 +255,7 @@ static short d_pass(short x, short y, char *real, short show, short cap)
 
 static void draw_obj(short obj)
 {
-	short x, y;
-	objc_offset(tree, obj, &x, &y);
-	objc_draw(tree, obj, 0, x - 2, y - 2, tree[obj].ob_width + 4, tree[obj].ob_height + 4);
+	dlg_draw(tree, obj);		/* where the dialog is now: it may have moved */
 }
 
 static short first_editable(void)
@@ -313,7 +311,9 @@ static short form_loop(short start)
 			field_enter(edit, &idx);
 		}
 		lf = edit ? lf_of(tree, edit) : 0;
-		evnt_multi_(MU_KEYBD | MU_BUTTON, 2, 1, 1, 0, m, &e);
+		/* in a window (MiNT, MagiC) the AES's messages for it are taken
+		   there, the closer comes back as Esc (the guidelines, 3.5) */
+		dlg_evnt(MU_KEYBD | MU_BUTTON, 2, 1, 1, 0, m, &e);
 		if (e.which & MU_KEYBD) {
 			short scan = KEY_SCAN(e.kreturn);
 			short nav = scan == 0x1c || scan == 0x72 || scan == 0x0f || scan == 0x48 || scan == 0x50;
@@ -367,18 +367,13 @@ static short form_loop(short start)
 	return next;
 }
 
-static short d_do(short edit)
+static short d_do(const char *name, short edit)
 {
 	short x, y, w, h, r;
-	form_center(tree, &x, &y, &w, &h);
-	wind_update(BEG_UPDATE);
-	wind_update(3);			/* BEG_MCTRL: the dialog owns the mouse */
-	form_dial(FMD_START, x, y, w, h);
-	objc_draw(tree, 0, 8, x, y, w, h);
+	dlg_name(name);
+	dlg_open(tree, &x, &y, &w, &h);	/* over the screen, or in a window (3.5) */
 	r = form_loop(edit) & 0x7fff;
-	form_dial(FMD_FINISH, x, y, w, h);
-	wind_update(2);
-	wind_update(END_UPDATE);
+	dlg_close();
 	tree[r].ob_state &= ~SELECTED;
 	npw = 0;
 	return r;
@@ -407,7 +402,7 @@ static int group_of(short var)
 #define NTICK 12
 static short tick_box[NTICK], tick_lbl[NTICK], tick_var[NTICK], nticks;
 static short page_of[DMAX], npages, cur_page, page_tab[6];
-static GRECT page_area;
+static short page_box;		/* the parts' area, drawn again for another part */
 
 static TEDINFO *d_ted(const char *text, short just, short color)
 {
@@ -443,11 +438,8 @@ static short d_tick(short x, short y, const char *label, short var)
 
 static void tick_draw(short k)
 {
-	OBJECT *o = &tree[tick_box[k]];
-	short x, y;
-	o->ob_spec = (long)(s_on[tick_var[k]] ? &tick_on_blk : &tick_off_blk);
-	objc_offset(tree, tick_box[k], &x, &y);
-	objc_draw(tree, 0, 8, x, y, o->ob_width, o->ob_height);
+	tree[tick_box[k]].ob_spec = (long)(s_on[tick_var[k]] ? &tick_on_blk : &tick_off_blk);
+	dlg_draw(tree, tick_box[k]);
 }
 
 /* a field in a thin frame */
@@ -504,14 +496,12 @@ static void show_page(short p, int draw)
 	for (i = 1; i <= npages; i++)
 		((TEDINFO *)tree[page_tab[i]].ob_spec)->te_color = i == p ? 0x1071 : 0x1180;
 	if (draw) {
-		short x, y, k;
-		for (k = 1; k <= npages; k++) {
-			objc_offset(tree, page_tab[k], &x, &y);
-			objc_draw(tree, 0, 8, x - 2, y - 2, tree[page_tab[k]].ob_width + 4,
-				  tree[page_tab[k]].ob_height + 4);
-		}
-		/* a framed field's frame lies a pixel or two outside it */
-		objc_draw(tree, 0, 8, page_area.x - 2, page_area.y - 2, page_area.w + 4, page_area.h + 4);
+		short k;
+		for (k = 1; k <= npages; k++)
+			dlg_draw(tree, page_tab[k]);
+		/* with a margin: a framed field's frame lies a pixel or two
+		   outside it */
+		dlg_draw(tree, page_box);
 	}
 }
 
@@ -525,23 +515,20 @@ static short first_edit(void)
 }
 
 /* a dialog that stays open while its own buttons act (ticks, pages, a
-   folder chosen): drawn once, then form_loop again and again */
-static GRECT open_at;
-
-static void open_box(void)
+   folder chosen): drawn once, then form_loop again and again. Over the
+   screen on TOS; where the AES runs several programs at once, in a
+   window of its own with the dialog's name, movable (the guidelines,
+   3.5), so what is drawn again goes through dlg_draw */
+static void open_box(const char *name)
 {
-	form_center(tree, &open_at.x, &open_at.y, &open_at.w, &open_at.h);
-	wind_update(BEG_UPDATE);
-	wind_update(3);			/* BEG_MCTRL: the dialog owns the mouse */
-	form_dial(FMD_START, open_at.x, open_at.y, open_at.w, open_at.h);
-	objc_draw(tree, 0, 8, open_at.x, open_at.y, open_at.w, open_at.h);
+	short x, y, w, h;
+	dlg_name(name);
+	dlg_open(tree, &x, &y, &w, &h);
 }
 
 static void close_box(short r)
 {
-	form_dial(FMD_FINISH, open_at.x, open_at.y, open_at.w, open_at.h);
-	wind_update(2);
-	wind_update(END_UPDATE);
+	dlg_close();
 	tree[r].ob_state &= ~SELECTED;
 	npw = 0;
 }
@@ -590,7 +577,7 @@ int dlg_ask(const char *title, const char *label, char *buf, short len)
 	d_button(w - 24, 6, 10, "Cancel", EXIT);
 	ok = d_button(w - 12, 6, 10, "OK", EXIT | DEFAULT);
 	d_end();
-	if (d_do(f) != ok || !str_trim(field)[0])
+	if (d_do(title + strspn(title, " "), f) != ok || !str_trim(field)[0])
 		return 0;
 	str_copy(buf, field, len + 1);
 	return 1;
@@ -617,7 +604,7 @@ int dlg_find(char *text, int size, int *owners)
 	d_button(24, 8, 10, "Cancel", EXIT);
 	ok = d_button(36, 8, 10, "Find", EXIT | DEFAULT);
 	d_end();
-	open_box();
+	open_box("Find on GitHub");
 	for (;;) {
 		short r = form_loop(f) & 0x7fff;
 		if (tick_hit(r))
@@ -721,7 +708,7 @@ int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 	d_button(40, 19, 10, "Cancel", EXIT);
 	ok = d_button(52, 19, 10, is_new ? "Follow" : "OK", EXIT | DEFAULT);
 	d_end();
-	open_box();
+	open_box(is_new ? "Follow" : "Get info");
 	for (;;) {
 		short r2 = form_loop(f_folder) & 0x7fff;
 		if (tick_hit(r2))
@@ -739,7 +726,7 @@ int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 				if (lf)
 					lf_end(lf);	/* the folder chosen, shown */
 			}
-			objc_draw(tree, 0, 8, open_at.x, open_at.y, open_at.w, open_at.h);
+			dlg_draw(tree, 0);
 			continue;
 		}
 		close_box(r2);
@@ -832,7 +819,7 @@ static void part_advanced(short x, short y)
 int dlg_settings(void)
 {
 	static const char *names[] = { "  Checks", "  Files", "  GitHub", "  Look", "  Advanced" };
-	short k, box, from, gap = (short)(gl_hchar / 2), ok, r;
+	short k, from, gap = (short)(gl_hchar / 2), ok, r;
 	snprintf(s_hours, sizeof(s_hours), "%d", opt.hours);
 	str_copy(s_token, opt.token, sizeof(s_token));
 	s_on[T_NEVER] = opt.check == CHECK_NEVER;
@@ -860,7 +847,7 @@ int dlg_settings(void)
 					 (short)(0 | (2 << 8)), (short)((2 + k * 2) | ((k * gap) << 8)),
 					 (short)((SW - 1) | (6 << 8)), 1);
 	}
-	box = d_add(G_IBOX, 0, 0, 0, SX - 1, 2, 42, 12);
+	page_box = d_add(G_IBOX, 0, 0, 0, SX - 1, 2, 42, 12);
 	for (k = 1; k <= 5; k++) {
 		from = nobj;
 		adding_page = k;
@@ -880,10 +867,7 @@ int dlg_settings(void)
 	ok = d_button(SX + 30, 14, 10, "OK", EXIT | DEFAULT);
 	d_end();
 	show_page(1, 0);
-	open_box();
-	objc_offset(tree, box, &page_area.x, &page_area.y);
-	page_area.w = tree[box].ob_width;
-	page_area.h = tree[box].ob_height;
+	open_box("Settings");
 	for (;;) {
 		r = form_loop(first_edit()) & 0x7fff;
 		if (tick_hit(r))
@@ -942,5 +926,5 @@ void dlg_keys(void)
 		d_text(3, 3 + i, lines[i]);
 	d_button(44, n + 4, 10, "OK", EXIT | DEFAULT);
 	d_end();
-	d_do(0);
+	d_do("Keys", 0);
 }

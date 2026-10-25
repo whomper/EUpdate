@@ -325,6 +325,14 @@ static int job_begin(void)
 static char replaced[NREPLACED][160];
 static short nreplaced;
 
+/* EUpdate's window drawn again while a dialog window is open over it */
+static void dialog_redraw(const short *msg)
+{
+	short m[8];
+	memcpy(m, msg, sizeof(m));
+	win_message(m);
+}
+
 static void on_replaced(const REPO *r, const char *old, const char *now)
 {
 	const char *app = strchr(r->full, '/');
@@ -975,6 +983,11 @@ int main(void)
 	ap_id = appl_init();
 	if (ap_id < 0)
 		return 1;
+	/* where the AES runs several programs at once, dialogs are windows
+	   with EUpdate's name, and EUpdate's window is drawn while one is
+	   open (the guidelines, 3.5) */
+	dlg_title = "EUpdate";
+	dlg_redraw_hook = dialog_redraw;
 	/* TLS needs a 68020 or better: built for the 68030, EUpdate runs on a Falcon or TT */
 	if (get_cookie(0x5F435055L) < 20) {	/* _CPU */
 		form_alert(1, "[3][EUpdate needs a 68020 or|better: a Falcon or a TT.][ Quit ]");
