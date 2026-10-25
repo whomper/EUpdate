@@ -26,6 +26,7 @@ static short npw;
 static TEDINFO ted[TMAX];
 static char tmpl[TMAX][64], valid[TMAX][64];
 static short nobj, nted, last_child;
+static short band_obj;			/* the title band, 0 for none */
 /* the fields that hold more than they show (field.c, the guidelines 5.4):
    the Follow dialog has ten */
 #define NLF 12
@@ -43,6 +44,7 @@ static void d_begin(short w, short h)
 	}
 	npw = 0;
 	nlf = 0;
+	band_obj = 0;
 	lf_forget(tree);
 	memset(tree, 0, sizeof(tree));
 	nobj = 1;
@@ -371,6 +373,8 @@ static short d_do(const char *name, short edit)
 {
 	short x, y, w, h, r;
 	dlg_name(name);
+	if (band_obj)
+		dlg_band(band_obj);	/* in a window its title bar names it */
 	dlg_open(tree, &x, &y, &w, &h);	/* over the screen, or in a window (3.5) */
 	r = form_loop(edit) & 0x7fff;
 	dlg_close();
@@ -422,7 +426,7 @@ static TEDINFO *d_ted(const char *text, short just, short color)
 /* black band across the top, white title */
 static void d_band(short w, const char *title)
 {
-	d_add(G_BOXTEXT, 0, 0, (long)d_ted(title, 0, 0x1071), 0, 0, w, 1);
+	band_obj = d_add(G_BOXTEXT, 0, 0, (long)d_ted(title, 0, 0x1071), 0, 0, w, 1);
 }
 
 static short d_tick(short x, short y, const char *label, short var)
@@ -523,6 +527,8 @@ static void open_box(const char *name)
 {
 	short x, y, w, h;
 	dlg_name(name);
+	if (band_obj)
+		dlg_band(band_obj);	/* in a window its title bar names it */
 	dlg_open(tree, &x, &y, &w, &h);
 }
 
