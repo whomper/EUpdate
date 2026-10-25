@@ -473,6 +473,16 @@ static void summary(const char *done, int n, int news, int got, int failed)
 	status(m);
 }
 
+/* why one failed, in EUPDATE.LOG too (the row's tip says it on the
+   screen): a report of a failed update can then say why */
+static int failed_one(const REPO *r)
+{
+	char m[200];
+	snprintf(m, sizeof(m), "%s failed: %s", r->full, r->note[0] ? r->note : "?");
+	log_step(m);
+	return 1;
+}
+
 /* asks GitHub for each one's latest release; fetch: and downloads what
    is new */
 void check_repos(int which, int fetch)
@@ -486,14 +496,14 @@ void check_repos(int which, int fetch)
 		REPO *r = list[i];
 		int k = up_check(r, &rel);
 		if (k < 0)
-			failed++;
+			failed += failed_one(r);
 		if (k > 0) {
 			news++;
 			if (fetch) {
 				if (up_install(r, &rel))
 					got++;
 				else
-					failed++;
+					failed += failed_one(r);
 			}
 		}
 		repo_redraw(r);
@@ -522,12 +532,13 @@ void update_repos(int which, int again)
 		REPO *r = list[i];
 		int k = up_check(r, &rel);
 		if (k < 0 || (!k && !rel.tag[0])) {
-			failed += k < 0;
+			if (k < 0)
+				failed += failed_one(r);
 		} else if (k > 0 || again) {
 			if (up_install(r, &rel))
 				got++;
 			else
-				failed++;
+				failed += failed_one(r);
 		}
 		store_save();		/* what was written is known at once */
 		repo_redraw(r);
