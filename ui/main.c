@@ -1122,13 +1122,12 @@ int main(void)
 		   clicks counted up to two */
 		which = evnt_multi_(MU_MESAG | MU_KEYBD | MU_BUTTON | MU_TIMER | MU_M1, 0x102, 3, 0,
 				    wait, msg, &ev);
-#ifdef AES_PROFILE
-		/* what the next stretch is (the speed rig, tests/hatari/speed.py) */
+		/* what the next stretch is: EUPDATE.LOG's slowest at quit, the
+		   speed rig's AESGAP lines (tests/hatari/speed.py) */
 		aes_profile_tag(which & MU_KEYBD ? "key" : which & MU_BUTTON ? "click" :
 				!(which & MU_MESAG) ? "timer" : msg[0] == WM_REDRAW ? "redraw" :
 				msg[0] == WM_ARROWED ? "arrowed" : msg[0] == WM_VSLID ? "vslid" :
 				msg[0] == MN_SELECTED ? "menu" : "message");
-#endif
 		if (which & (MU_M1 | MU_KEYBD | MU_BUTTON | MU_MESAG)) {
 			short k;
 			if ((which & MU_M1) && !main_iconified) {
@@ -1192,6 +1191,16 @@ int main(void)
 
 	graf_mouse(BUSYBEE, 0);
 	http_close_all();
+	{
+		/* where this machine kept the user waiting longest (the
+		   guidelines' Speed): in the log, for Erez's reports */
+		const char *slow = aes_slowest();
+		char m[200];
+		if (*slow) {
+			snprintf(m, sizeof(m), "the longest waits: %s", slow);
+			log_step(m);
+		}
+	}
 	conn_log_flush();
 	main_close();
 	store_save();

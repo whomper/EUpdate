@@ -99,6 +99,7 @@ def each(con, what, limit, do, times, pace=0.6):
 
 
 def main():
+    global fails
     shutil.rmtree(work, ignore_errors=True)
     os.makedirs(work)
     drive_c()
@@ -150,6 +151,13 @@ def main():
         measure(con, "a row's tip shown", 150, 2.5)
         r.move(*REST)
         r.shot("end")
+        r.ctrl("q")                            # quit: the longest waits in EUPDATE.LOG
+        time.sleep(4)
+        log = open(os.path.join(work, "hd", "EUPDATE.LOG"), errors="replace").read()
+        line = [l for l in log.split("\n") if "the longest waits:" in l]
+        print("%s EUPDATE.LOG at quit: %s" % ("ok  " if line else "FAIL", line[-1].split(" -- ")[-1] if line
+                                              else "no line of the longest waits"), flush=True)
+        fails += not line
     finally:
         r.stop()
         m.stop()
