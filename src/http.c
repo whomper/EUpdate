@@ -89,16 +89,18 @@ static int url_parse(const char *u, URLP *p)
 	return 1;
 }
 
-/* where a redirect leads, from the address it came from */
-static int url_follow(URLP *p, const char *loc)
+#define MAXURL (MAXPATH + MAXHOST + 16)
+
+/* where a redirect leads, from the address it came from; abs: MAXURL
+   bytes to build it in */
+static int url_follow(URLP *p, const char *loc, char *abs)
 {
-	char abs[MAXPATH + MAXHOST + 16];
 	if (loc[0] == '/' && loc[1] == '/')
-		snprintf(abs, sizeof(abs), "%s:%s", p->tls ? "https" : "http", loc);
+		snprintf(abs, MAXURL, "%s:%s", p->tls ? "https" : "http", loc);
 	else if (loc[0] == '/')
-		snprintf(abs, sizeof(abs), "%s://%s:%u%s", p->tls ? "https" : "http", p->host, p->port, loc);
+		snprintf(abs, MAXURL, "%s://%s:%u%s", p->tls ? "https" : "http", p->host, p->port, loc);
 	else
-		str_copy(abs, loc, sizeof(abs));
+		str_copy(abs, loc, MAXURL);
 	return url_parse(abs, p);
 }
 
@@ -336,7 +338,7 @@ static int body_chunked(CONN *c, SBUF *out, long max, SBUF *line)
 typedef struct {
 	long length;		/* Content-Length, -1 none */
 	int chunked, gzip, close;
-	char location[MAXPATH + MAXHOST + 16];
+	char location[MAXURL];
 } HEAD;
 
 static int headers(CONN *c, SBUF *line, HEAD *h, HTTPRESP *rs)
@@ -488,27 +490,34 @@ out:
 	return ok;
 }
 
-int http_get(const char *url, int flags, const char *auth, const char *auth_host,
-	     SBUF *body, long max, HTTPRESP *rs, char *err, int errlen)
-{
+/* what a GET works in: 12 KB for the addresses, in the heap, not on
+   the stack, which is part of the program's own memory and so taken
+   before the VDI opens its workstation (NVDI and accessories in 4 MB) */
+typedef struct {
 	URLP p;
 	HEAD h;
+	char abs[MAXURL];
+} GETW;
+
+static int get(GETW *w, const char *url, int flags, const char *auth, const char *auth_host,
+	       SBUF *body, long max, HTTPRESP *rs, char *err, int errlen)
+{
+	URLP *p = &w->p;
+	HEAD *h = &w->h;
 	int hops;
-	memset(rs, 0, sizeof(*rs));
-	rs->rate_left = -1;
-	if (!url_parse(url, &p)) {
+	if (!url_parse(url, p)) {
 		str_copy(err, "not an address EUpdate can fetch", errlen);
 		return 0;
 	}
 	for (hops = 0;; hops++) {
 		int k, reused, again, tries;
 		/* the token: to its host, and never on where a redirect leads */
-		const char *a = !hops && auth && auth_host && !strcmp(p.host, auth_host) ? auth : 0;
+		const char *a = !hops && auth && auth_host && !strcmp(p->host, auth_host) ? auth : 0;
 		for (tries = 0; tries < 2; tries++) {
-			k = take(&p, &reused, err, errlen);
+			k = take(p, &reused, err, errlen);
 			if (k < 0)
 				return 0;
-			if (exchange(k, &p, flags, a, body, max, rs, &h, reused, &again, err, errlen))
+			if (exchange(k, p, flags, a, body, max, rs, h, reused, &again, err, errlen))
 				break;
 			if (!again)
 				return 0;
@@ -517,15 +526,31 @@ int http_get(const char *url, int flags, const char *auth, const char *auth_host
 			str_copy(err, "the server closed the connection", errlen);
 			return 0;
 		}
-		if (!is_redirect(rs->status) || !h.location[0])
+		if (!is_redirect(rs->status) || !h->location[0])
 			return 1;
 		if (hops >= REDIRECTS) {
 			str_copy(err, "too many redirects", errlen);
 			return 0;
 		}
-		if (!url_follow(&p, h.location)) {
+		if (!url_follow(p, h->location, w->abs)) {
 			str_copy(err, "a redirect to an address EUpdate can't fetch", errlen);
 			return 0;
 		}
 	}
+}
+
+int http_get(const char *url, int flags, const char *auth, const char *auth_host,
+	     SBUF *body, long max, HTTPRESP *rs, char *err, int errlen)
+{
+	GETW *w = malloc(sizeof(*w));
+	int ok;
+	memset(rs, 0, sizeof(*rs));
+	rs->rate_left = -1;
+	if (!w) {
+		str_copy(err, "not enough memory", errlen);
+		return 0;
+	}
+	ok = get(w, url, flags, auth, auth_host, body, max, rs, err, errlen);
+	free(w);
+	return ok;
 }
