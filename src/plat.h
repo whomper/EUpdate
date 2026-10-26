@@ -52,6 +52,12 @@ int   pf_save(const char *path, const void *data, long len);
 /* set: pf_save writes 32 KB at a time and calls it between (a program's
    turn for GEM; never an accessory's, which may not keep a file open) */
 extern void (*pf_save_turn)(void);
+/* pf_save a piece at a time: pf_wopen writes NAME.IN$ (never NAME),
+   pf_wwrite takes pf_save_turn every 32 KB, pf_wclose renames it over
+   NAME (keep) or removes it */
+int  pf_wopen(const char *path);
+long pf_wwrite(int h, const void *data, long len);
+int  pf_wclose(int h, const char *path, int keep);
 
 /* ---- time ---- */
 typedef struct {

@@ -127,19 +127,11 @@ static short d_button(short x, short y, short w, const char *s, short flags)
 
 static void d_end(void)
 {
-	short i;
 	tree[last_child].ob_next = 0;
 	tree[nobj - 1].ob_flags |= LASTOB;
-	/* rsrc_obfix's sum, done here: an AES call for each of Settings'
-	   hundred objects took 45 ms on a stock Falcon (the guidelines'
-	   Speed). Characters, then the pixels in the high byte, signed */
-	for (i = 0; i < nobj; i++) {
-		short *v = &tree[i].ob_x, k;
-		for (k = 0; k < 4; k++) {
-			short px = (v[k] >> 8) & 0xff;
-			v[k] = (v[k] & 0xff) * (k & 1 ? gl_hchar : gl_wchar) + (px > 128 ? px - 256 : px);
-		}
-	}
+	/* rsrc_obfix's sum without an AES call for each object (Settings'
+	   hundred took 45 ms on a stock Falcon: the guidelines' Speed) */
+	rsrc_obfix_all(tree, nobj);
 	dlg_3d(tree);			/* the AES's 3D look, where it has one (5.6) */
 }
 

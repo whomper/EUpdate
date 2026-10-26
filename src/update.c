@@ -226,8 +226,8 @@ static int make_dirs(const char *dir)
 typedef struct {
 	REPO *r;
 	char err[120];
-	int fh;				/* the file being written, or -1 */
-	char path[260], tmp[260];	/* where it goes, and where it is written first */
+	int fh;				/* the file being written (as NAME.IN$), or -1 */
+	char path[260];			/* where it goes */
 	long size, got;
 } JOB;
 
@@ -290,19 +290,6 @@ static void retire(const REPO *r)
 				up_replaced(r, st_edition[k][0], now);
 		}
 	}
-}
-
-/* where a file is written first: NAME.EX$ ('~' when the extension
-   ends in '$'), NAME.$$$ without one; renamed over NAME once whole (a
-   reset or a full disk leaves the old one as it was: the guidelines 2.3) */
-static void tmp_of(const char *path, char *out, int size)
-{
-	const char *b = base_of(path), *dot = strrchr(b, '.');
-	str_copy(out, path, size);
-	if (!dot || !dot[1])
-		snprintf(out + (b - path), size - (int)(b - path), "%.8s.$$$", b);
-	else
-		out[strlen(out) - 1] = out[strlen(out) - 1] == '$' ? '~' : '$';
 }
 
 /* a file of the archive (or the release) to dir\a\b\NAME: every part of
@@ -381,8 +368,7 @@ static int file_begin(void *ud, const char *name, long size)
 	if (r)
 		return r;
 	say("Writing %s...%s", j->path, "");
-	tmp_of(j->path, j->tmp, sizeof(j->tmp));
-	j->fh = pf_open(j->tmp, PF_WRITE);
+	j->fh = pf_wopen(j->path);
 	j->size = size;
 	j->got = 0;
 	if (j->fh < 0) {
@@ -395,13 +381,11 @@ static int file_begin(void *ud, const char *name, long size)
 static int file_put(void *ud, const unsigned char *p, long n)
 {
 	JOB *j = ud;
-	if (pf_write(j->fh, p, n) != n) {
+	if (pf_wwrite(j->fh, p, n) != n) {	/* a turn every 32 KB (pf_save_turn) */
 		cant_write(j);
 		return 1;
 	}
 	j->got += n;
-	if (pf_idle)
-		pf_idle();
 	return 0;
 }
 
@@ -409,15 +393,11 @@ static int file_put(void *ud, const unsigned char *p, long n)
 static int file_end(void *ud, int whole)
 {
 	JOB *j = ud;
-	pf_close(j->fh);
+	int keep = whole && j->got == j->size, r = pf_wclose(j->fh, j->path, keep);
 	j->fh = -1;
-	if (!whole || j->got != j->size) {
-		pf_remove(j->tmp);
+	if (!keep)
 		return 0;
-	}
-	pf_remove(j->path);		/* TOS doesn't rename over a file */
-	if (pf_rename(j->tmp, j->path)) {
-		pf_remove(j->tmp);
+	if (r) {
 		cant_write(j);
 		return 1;
 	}
