@@ -85,7 +85,7 @@ static int get(SRC *s, long off, void *buf, long n)
 }
 
 #define PIECE 32768L		/* what a file is handed on in */
-#define STEP  2048L		/* what is unpacked between two turns */
+#define STEP  1024L		/* what is unpacked between two turns */
 
 /* a deflated file's packed bytes for the inflate, no more than it has */
 typedef struct {
