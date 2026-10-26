@@ -18,6 +18,12 @@ These come from AERA-Atari's repo template and are the same in every app's CLAUD
 
   When a change touches one of these, do it the guideline's way, even if the old code here did it
   differently.
+- **Speed is set by the stock machines** (Erez, 26 Oct 2026; the guidelines' "Speed"): an 8 MHz ST
+  and a stock Falcon (`ST`, `ST-1`, `Falcon-4`), not the DFB1. Design and code for them: draw only
+  what changed, keep the 68000's slow operations out of inner loops, do work once. A change to
+  drawing, a loop over the data or the start gives its `AESGAP` stretches on `ST` and `Falcon-4`,
+  before and after, in its commit message. A GEM release passes the speed rig within the
+  guidelines' times.
 - **Shared code lives in [AERA-Atari](https://github.com/whomper/AERA-Atari).** Files under `common/` come from it. Change them
   there, not here, and pull them in with `tools/sync-common.sh`. A fix made only in this repo will drift
   again.
@@ -96,6 +102,11 @@ information, your assessment and what he should do, nothing more.
   WORK` (Falcon:16; TT and Falcon:256 too for drawing) and look at its screenshots; when the
   window changes, `tests/hatari/screenshots.py WORK` for `docs/` and `helpfront.py thumb` for
   `docs/help/WINDOW.IMG`.
+- **Speed:** EUpdate runs only on a TT or Falcon, so its slow machine is `Falcon-4:16`, with and
+  without NVDI. `make prof && tests/hatari/speed.py WORK` times what the user does (the window
+  drawn, rows, scrolling, the dialogs); `PRG=build/prof/EUPDATE.PRG tests/hatari/family_test.py
+  WORK Falcon-4:16` times the check, the downloads and the unzip (the `AESGAP` lines in
+  `WORK/hatari.log`).
 - **The rigs mimic Erez's machine as closely as they can** (Erez, 22 Oct 2026): before a release,
   `tests/hatari/family_test.py WORK` updates the AERA family from their real latest releases
   (`tests/github/fetch_family.py` into `~/.cache/aera/releases`, served by `tests/family_server.py`

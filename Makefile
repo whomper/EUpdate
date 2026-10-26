@@ -142,6 +142,17 @@ $(OBJDIR)/mont030.o: common/atari/mont030.S | $(OBJDIR)
 $(OBJDIR) binary:
 	mkdir -p $@
 
+# the speed rig's build (tests/hatari/speed.py): each stretch between
+# event calls of 20 ms or more on the emulator's console (-DAES_PROFILE,
+# common/atari/gem.c), in build/prof/EUPDATE.PRG
+ifdef PROF
+CFLAGS += -DAES_PROFILE=$(PROF)
+endif
+prof:
+	$(MAKE) OBJDIR=build/prof PROF=20 build/prof/EUPDATE.PRG
+build/prof/EUPDATE.PRG: build/prof/eupdate.elf common/tools/elf2tos.py
+	PRGFLAGS=7 python3 common/tools/elf2tos.py $< $@
+
 # ---- this computer: the same core, for the tests and eupd-cli ----
 HOSTCC     ?= cc
 HOSTCFLAGS := -O1 -g -std=gnu99 -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare \
@@ -250,4 +261,4 @@ binary/DEFAULTS.INF: DEFAULTS.INF VERSION | binary
 clean:
 	rm -rf $(OBJDIR) binary dist
 
-.PHONY: all help icons dist test itest clean fuzz FORCE
+.PHONY: all help icons dist test itest clean fuzz prof FORCE

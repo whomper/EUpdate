@@ -230,6 +230,7 @@ static void log_step(const char *msg)
 static void job_status(const char *msg)
 {
 	str_copy(job_msg, msg, sizeof(job_msg));
+	aes_profile_tag(job_msg);
 	status(msg);
 	log_step(msg);
 }
@@ -940,6 +941,11 @@ static void tip_show(void)
 /* EUpdate crashed and CRASH.LOG is written (common/atari/crash.c): say so
    and leave GEM tidy. Only the AES and VDI: the heap may be what went
    wrong */
+#ifdef AES_PROFILE
+static unsigned long prof_t0;		/* the start, for the speed rig */
+static short prof_redraw;
+#endif
+
 static void crash_quit(const char *what)
 {
 	char a[200];
@@ -994,6 +1000,9 @@ int main(void)
 	ap_id = appl_init();
 	if (ap_id < 0)
 		return 1;
+#ifdef AES_PROFILE
+	prof_t0 = pf_ms();
+#endif
 	/* where the AES runs several programs at once, dialogs are windows
 	   with EUpdate's name, and EUpdate's window is drawn while one is
 	   open (the guidelines, 3.5) */
@@ -1107,6 +1116,14 @@ int main(void)
 		   clicks counted up to two */
 		which = evnt_multi_(MU_MESAG | MU_KEYBD | MU_BUTTON | MU_TIMER | MU_M1, 0x102, 3, 0,
 				    wait, msg, &ev);
+#ifdef AES_PROFILE
+		/* what the next stretch is (the speed rig, tests/hatari/speed.py) */
+		aes_profile_tag(which & MU_KEYBD ? "key" : which & MU_BUTTON ? "click" :
+				!(which & MU_MESAG) ? "timer" : msg[0] == WM_REDRAW ? "redraw" :
+				msg[0] == WM_ARROWED ? "arrowed" : msg[0] == WM_VSLID ? "vslid" :
+				msg[0] == MN_SELECTED ? "menu" : "message");
+		prof_redraw = (which & MU_MESAG) && msg[0] == WM_REDRAW;
+#endif
 		if (which & (MU_M1 | MU_KEYBD | MU_BUTTON | MU_MESAG)) {
 			short k;
 			if ((which & MU_M1) && !main_iconified) {
@@ -1161,6 +1178,14 @@ int main(void)
 				menu_update();
 			wait_release();
 		}
+#ifdef AES_PROFILE
+		if (prof_t0 && prof_redraw) {	/* the start: until the window is drawn */
+			char b[40];
+			snprintf(b, sizeof(b), "AESSTART %lu ms\n", pf_ms() - prof_t0);
+			nf_debug(b);
+			prof_t0 = 0;
+		}
+#endif
 		/* the schedule, once a minute; no disk while idle (6.5) */
 		if (pf_ms() - sched_at >= 60000UL) {
 			sched_at = pf_ms();
