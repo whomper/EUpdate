@@ -85,6 +85,7 @@ static int get(SRC *s, long off, void *buf, long n)
 }
 
 #define PIECE 32768L		/* what a file is handed on in */
+#define STEP  2048L		/* what is unpacked between two turns */
 
 /* a deflated file's packed bytes for the inflate, no more than it has */
 typedef struct {
@@ -141,20 +142,26 @@ static int member(SRC *s, long data, unsigned long csize, unsigned long usize, u
 		z = inflate_open(feed, &f);
 		if (!z)
 			return -1;
-		while ((k = inflate_read(z, piece, PIECE)) > 0) {
-			total += k;
-			if (total > usize) {
+		do {
+			/* a piece filled STEP at a time, with a turn for GEM between:
+			   a stock Falcon unpacks 32 KB in about a second */
+			long have = 0;
+			while (have < PIECE && (k = inflate_read(z, piece + have, STEP)) > 0) {
+				have += k;
+				if (pf_idle)
+					pf_idle();
+			}
+			if (k < 0)
 				r = 0;
-				break;
+			total += have;
+			if (r == 1 && total > usize)
+				r = 0;
+			if (r == 1 && have) {
+				c = crc32_more(c, piece, have);
+				if (to->put(ud, piece, have))
+					r = -2;
 			}
-			c = crc32_more(c, piece, k);
-			if (to->put(ud, piece, k)) {
-				r = -2;
-				break;
-			}
-		}
-		if (k < 0)
-			r = 0;
+		} while (r == 1 && k > 0);
 		inflate_close(z);
 		if (r == 1 && total != usize)
 			r = 0;
