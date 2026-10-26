@@ -101,7 +101,7 @@ static void tool_layout(void)
 	short x, i, bw;
 	r_tool = mwork;
 	r_tool.h = ch + 8;
-	x = mwork.x + 4;
+	x = mwork.x + cw;		/* the labels on the 8-pixel grid with the work area */
 	for (i = B_CHECK; i <= B_FIND; i++) {
 		bw = ((short)strlen(label(i)) + 2) * cw;
 		but[i].x = x;
@@ -350,7 +350,7 @@ static void draw_header(WIN *w)
 		tl = cols - 2;
 	if (il > cols - tl - 2)
 		il = cols - tl - 2;
-	text_at(h.x + cw / 2, h.y + 2, w->title, tl, cols, TX_BOLD | TX_LTR | (dark ? TX_INVERSE : 0));
+	text_at(h.x + cw, h.y + 2, w->title, tl, cols, TX_BOLD | TX_LTR | (dark ? TX_INVERSE : 0));
 	if (il > 0) {
 		if (dark || !colour)
 			text_at(h.x + w->box.w - (il + 1) * cw, h.y + 2, w->info, il, il,
@@ -617,6 +617,17 @@ static void save_main_place(void)
 	wind_get(main_h, WF_CURRXYWH, &opt.main_x, &opt.main_y, &opt.main_w, &opt.main_h);
 }
 
+/* x moved so the work area starts on a multiple of 8 across (the
+   guidelines' Speed: text on a byte, Erez 26 Oct 2026), and the width
+   taken in by as much where the window would go past the screen's right */
+static void on_x8(short *x, short y, short *w, short h)
+{
+	short nx = wind_x8(icon_kind(MAINKIND), *x, y, *w, h);
+	if (nx + *w > desk_x + desk_w && *x + *w <= desk_x + desk_w)
+		*w -= nx - *x;
+	*x = nx;
+}
+
 void main_open(void)
 {
 	short x = opt.main_x, y = opt.main_y, wd = opt.main_w, ht = opt.main_h;
@@ -632,6 +643,7 @@ void main_open(void)
 		wd = desk_w;
 		ht = desk_h;
 	}
+	on_x8(&x, y, &wd, ht);
 	main_h = wind_create(icon_kind(MAINKIND), desk_x, desk_y, desk_w, desk_h);
 	main_iconified = 0;
 	if (main_h < 0) {
@@ -1029,8 +1041,10 @@ void win_message(short *msg)
 			break;
 		wind_get(main_h, WF_CURRXYWH, &c.x, &c.y, &c.w, &c.h);
 		wind_get(main_h, WF_FULLXYWH, &f.x, &f.y, &f.w, &f.h);
+		on_x8(&f.x, f.y, &f.w, f.h);	/* full, as it is put there */
 		if (c.x == f.x && c.y == f.y && c.w == f.w && c.h == f.h) {
 			wind_get(main_h, WF_PREVXYWH, &p.x, &p.y, &p.w, &p.h);
+			on_x8(&p.x, p.y, &p.w, p.h);
 			wind_set(main_h, WF_CURRXYWH, p.x, p.y, p.w, p.h);
 		} else {
 			wind_set(main_h, WF_CURRXYWH, f.x, f.y, f.w, f.h);
@@ -1051,6 +1065,7 @@ void win_message(short *msg)
 			msg[6] = 50 * cw;
 		if (msg[7] < 16 * ch)
 			msg[7] = 16 * ch;
+		on_x8(&msg[4], msg[5], &msg[6], msg[7]);
 		wind_set(main_h, WF_CURRXYWH, msg[4], msg[5], msg[6], msg[7]);
 		get_main_work();
 		save_main_place();

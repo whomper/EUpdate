@@ -850,8 +850,8 @@ int dlg_settings(void)
 	for (k = 0; k < 5; k++) {
 		npages++;
 		page_tab[npages] = d_add(G_BOXTEXT, TOUCHEXIT, 0, (long)d_ted(names[k], 0, 0x1180),
-					 (short)(0 | (2 << 8)), (short)((2 + k * 2) | ((k * gap) << 8)),
-					 (short)((SW - 1) | (6 << 8)), 1);
+					 0, (short)((2 + k * 2) | ((k * gap) << 8)),
+					 (short)(SW | (0 << 8)), 1);
 	}
 	page_box = d_add(G_IBOX, 0, 0, 0, SX - 1, 2, 42, 12);
 	for (k = 1; k <= 5; k++) {

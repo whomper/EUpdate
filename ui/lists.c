@@ -97,9 +97,10 @@ static void cell(short x, short y, const char *s, short width, short p, short se
 {
 	if (!sel)
 		flags |= TX_ON_WHITE;
+	/* never bold or light in a row, not even without colours: either
+	   costs a stock Falcon 4 times plain text (the guidelines' Speed) */
 	if (sel || !colour || p == P_TEXT)
-		text_at(x, y, s, (long)strlen(s), width, flags | (sel ? TX_INVERSE : 0) |
-			(!colour && p == P_DIM && !sel ? TX_LIGHT : 0));
+		text_at(x, y, s, (long)strlen(s), width, flags | (sel ? TX_INVERSE : 0));
 	else
 		text_pen_at(pen[p], x, y, s, (long)strlen(s), width, flags);
 }
