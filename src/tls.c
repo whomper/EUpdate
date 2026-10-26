@@ -680,7 +680,7 @@ static void cache_stamp(int ver, long size, unsigned long sum, unsigned long sta
 #endif
 }
 
-int tls_load_anchors(const char *path, char *err, int errlen)
+static int load_anchors(const char *path, char *err, int errlen)
 {
 	br_pem_decoder_context pc;
 	GROW der;
@@ -985,6 +985,22 @@ static void sigs_save(void)
 	if (sigs_changed && tls_sigs_path[0])
 		put_file(tls_sigs_path, sig_file, SIGS_LEN);
 	sigs_changed = 0;
+}
+
+/* everything TLS reads from the disk once a session, together: the root
+   certificates, SIGS.DAT and the seed (its first use reads and writes
+   it: 2.9 s on a DFB1's disk). conn.c calls it before it opens a
+   connection, so that no server waits for a hello meanwhile */
+int tls_load_anchors(const char *path, char *err, int errlen)
+{
+	unsigned char seed[48];
+	int n = load_anchors(path, err, errlen);
+	if (n && !seed_have) {
+		sigs_load();
+		get_seed(seed);
+		memset(seed, 0, sizeof(seed));
+	}
+	return n;
 }
 
 /* a certificate's RSA signature (x509_minimal's): looked up, or checked
