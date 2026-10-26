@@ -229,6 +229,15 @@ checks each action's longest stretch against the guidelines' time (`speed.LINE`,
 80 ms). On `ST` (TOS 1.04) and `Falcon-4` (TOS 4.04) each is read back to the millisecond, and only
 the 200 ms one is over its time.
 
+Every build keeps its four longest stretches with what started each (a key, WM_REDRAW, or the
+app's `aes_profile_tag`): `aes_slowest()` gives them as one line for the app's log, so a real
+machine says where it waits. `tests/speed/vdt.py WORK MACHINE [--nvdi]` runs `VDT.PRG`, which
+times the VDI: text on and off a byte, fills, screen copies, and under NVDI a GDOS font (FreeMono)
+as runs and a letter at a time. On TOS a dialog, a popup and the About box keep the screen under
+them and put it back (`dialog.c`'s `dlg_under`), so nothing under them is drawn again.
+`tests/mem` checks `libc.c`'s `memcpy`, `memmove`, `memset` and `memchr` (68000 loops by hand)
+against plain C under qemu-m68k, as 68000 and 68030 code.
+
 ## People from EContact (17 Oct 2026)
 
 EMail and ECal show people by name and let the user pick them in EContact by asking EContact, with
