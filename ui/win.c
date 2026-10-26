@@ -742,6 +742,7 @@ static int scroll_moved(WIN *w, long old)
 		pxy[7] = a.y + a.h - 1;
 	}
 	hold();
+	clip_on(&a);	/* TOS's VDI and NVDI clip the copy to the last clip set */
 	vro_cpyfm(vdi_h, 3, pxy, &scr, &scr);
 	let_go();
 	/* what came in: at the bottom with the row cut short there before,
