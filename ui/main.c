@@ -519,9 +519,11 @@ void check_repos(int which, int fetch)
 					got++;
 				else
 					failed += failed_one(r);
+				idle();		/* a turn between its files and the next one */
 			}
 		}
 		repo_redraw(r);
+		idle();
 	}
 	if (which == J_ALL && !conn_stop)
 		opt.last_check = store_now();
@@ -554,9 +556,11 @@ void update_repos(int which, int again)
 				got++;
 			else
 				failed += failed_one(r);
+			idle();
 		}
 		store_save();		/* what was written is known at once */
 		repo_redraw(r);
+		idle();
 	}
 	job_end();
 	repos_changed();
