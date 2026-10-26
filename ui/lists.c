@@ -104,6 +104,14 @@ static void cell(short x, short y, const char *s, short width, short p, short se
 		text_pen_at(pen[p], x, y, s, (long)strlen(s), width, flags);
 }
 
+/* a row cut off by the pane's bottom with fewer than 3 pixels showing
+   gets no text: nobody reads a letter's top two lines, and text cut by
+   the clip is EmuTOS's slow way (10-25 ms a scroll on a stock Falcon) */
+static int sliver(WIN *w, short y)
+{
+	return w->work.y + w->work.h - y < 3;
+}
+
 /* the rows a redraw's rectangle touches, first to end: only they are
    drawn (the guidelines' Speed: a row changed is a row drawn) */
 static void rows_in(WIN *w, GRECT *clip, long *first, long *end)
@@ -145,6 +153,8 @@ static void repos_draw(WIN *w, GRECT *clip)
 		p = repos[row];
 		sel = p->sel;
 		fill(&r, sel ? (colour ? pen[P_SEL] : 1) : 0);
+		if (sliver(w, y))
+			continue;
 		st = state_of(p, &sp);
 		cell(r.x + x[0] * cw, y, p->full, cn, P_TEXT, sel, TX_LTR);
 		cell(r.x + x[1] * cw, y, p->have[0] ? p->have : "-", C_HAVE - 1, P_TEXT, sel, TX_LTR);
@@ -434,7 +444,7 @@ static void found_draw(WIN *w, GRECT *clip)
 		r.w = w->work.w;
 		r.h = ch;
 		fill(&r, row < w->total && sel ? (colour ? pen[P_SEL] : 1) : 0);
-		if (row >= w->total)
+		if (row >= w->total || sliver(w, y))
 			continue;
 		if (showing_owners) {
 			const GHUSER *u = &f_owners[row];
