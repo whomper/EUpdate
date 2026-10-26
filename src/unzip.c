@@ -245,6 +245,11 @@ static int unzip_src(SRC *s, const UNZIP_TO *to, void *ud, char *err, int errlen
 		data = (long)off + 30 + le16(l + 26) + le16(l + 28);
 		if (csize > (unsigned long)(e - data))
 			goto damaged;
+		/* the sizes believable before anything is taken for them: a
+		   stored file's the same, a deflated one at most 1032 times its
+		   packed size (deflate's limit) */
+		if (method == 0 ? usize != csize : usize > 0x3FFFFFFFUL || usize / 1032 > csize)
+			goto damaged;
 		switch (to->begin(ud, name, (long)usize)) {
 		case 0: break;
 		case 2: continue;		/* left out */
