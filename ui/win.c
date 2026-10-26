@@ -258,6 +258,24 @@ static void set_sliders(void)
 	last_pos = pos;
 }
 
+/* a scroll's slider is the AES's to draw again, 10-15 ms on a stock
+   Falcon: owed until the event call after the scroll, which returns at
+   once (the guidelines' Speed: the rows come first, the slider just after) */
+static short sliders_owed;
+
+int win_sliders_owed(void)
+{
+	return sliders_owed;
+}
+
+void win_sliders(void)
+{
+	if (sliders_owed) {
+		sliders_owed = 0;
+		set_sliders();
+	}
+}
+
 /* the panes in the window, from opt.pane_h */
 static void layout(void)
 {
@@ -743,7 +761,7 @@ void win_scroll_to(WIN *w, long top)
 		return;
 	if (w == aes_pane) {
 		w->top = top;
-		set_sliders();
+		sliders_owed = 1;	/* set by win_sliders, after the next event call */
 		s.w = 0;
 	} else {
 		PANEBAR b = bar_of(w);

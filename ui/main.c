@@ -230,6 +230,7 @@ static void idle(void)
 	}
 	if ((which & MU_BUTTON) && toolbar_stop_hit(ev.mx, ev.my))
 		conn_stop = 1;
+	win_sliders();
 }
 
 /* a step of the job in EUPDATE.LOG, written out at once: should TOS
@@ -1116,12 +1117,16 @@ int main(void)
 		hovering = !tip_tried && hover_x >= 0 && !main_iconified;
 		if (hovering)
 			wait = 100;
+		if (win_sliders_owed())
+			wait = 0;		/* a scroll's slider, in a stretch of its own */
 		/* 0x102/3/0: wake on any button press, left or right, the
 		   clicks counted up to two */
 		which = evnt_multi_(MU_MESAG | MU_KEYBD | MU_BUTTON | MU_TIMER | MU_M1, 0x102, 3, 0,
 				    wait, msg, &ev);
 		/* what the next stretch is: EUPDATE.LOG's slowest at quit, the
 		   speed rig's AESGAP lines (tests/hatari/speed.py) */
+		if (!(which & (MU_KEYBD | MU_BUTTON | MU_MESAG)))
+			win_sliders();
 		aes_profile_tag(which & MU_KEYBD ? "key" : which & MU_BUTTON ? "click" :
 				!(which & MU_MESAG) ? "timer" : msg[0] == WM_REDRAW ? "redraw" :
 				msg[0] == WM_ARROWED ? "arrowed" : msg[0] == WM_VSLID ? "vslid" :

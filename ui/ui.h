@@ -51,6 +51,8 @@ void win_title(WIN *w, const char *title);
 void win_redraw(WIN *w, GRECT *area);	/* area NULL = its lines */
 void win_redraw_lines(WIN *w, long first, long n);
 void win_redraw_all(void);
+int  win_sliders_owed(void);		/* a scroll's slider not set yet */
+void win_sliders(void);			/* set it now */
 void win_batch(int on);			/* on: redraws kept, those touching joined; off: drawn */
 void win_redraw_area(GRECT *area);	/* any part of the window, on the screen */
 void win_scroll_to(WIN *w, long top);
