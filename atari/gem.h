@@ -71,6 +71,7 @@ typedef struct {
 #define WM_UNICONIFY   35
 #define WM_ALLICONIFY  36
 #define AP_TERM     50
+#define COLORS_CHANGED 84	/* AES 4.1 and others: the system palette was set again (theme again, redraw) */
 #define AC_OPEN     40
 #define AC_CLOSE    41
 #define WM_HSLID    25
