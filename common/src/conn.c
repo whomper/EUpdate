@@ -97,9 +97,13 @@ static int handshake(CONN *c, const char *host, char *err, int errlen)
 /* the handshake's lines stay in the log's buffer until it ends: written
    out one at a time, they cost about half a second each on an Atari disk,
    and the times in them would be the disk's */
+static void conn_turn(void);
+
 static int start_tls(CONN *c, const char *host, char *err, int errlen)
 {
 	int ok;
+	conn_turn();	/* the connect and the handshake's start were one
+			   stretch (EUpdate, 26 Oct 2026) */
 	log_hold = 1;
 	tls_log = log_tls_step;
 	ok = handshake(c, host, err, errlen);

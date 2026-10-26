@@ -1616,6 +1616,10 @@ TLS *tls_start(int sock, const char *host, int flags, int *retry, char *err, int
 	t0 = pf_ms();
 	get_seed(seed);
 	step("random seed ready in %lu ms", pf_ms() - t0);
+	/* a new connection's start had no turn from the connect to the first
+	   wait for the server: 200 ms on a stock Falcon (EUpdate, 26 Oct
+	   2026), the seed and the hello's making each a part of it */
+	record_turn();
 	br_ssl_engine_inject_entropy(&t->cc.eng, seed, sizeof(seed));
 	memset(seed, 0, sizeof(seed));
 	{
@@ -1631,6 +1635,7 @@ TLS *tls_start(int sock, const char *host, int flags, int *retry, char *err, int
 		free(t);
 		return 0;
 	}
+	record_turn();
 	sigs_known = sigs_checked = rsa_known = rsa_checked = 0;
 	t->hs = 1;
 	t->sent = t0 = pf_ms();
