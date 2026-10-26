@@ -223,6 +223,35 @@ static void progress(long got, long total)
 		http_progress(got, total);
 }
 
+/* a download to the disk (http_sink): a 2xx answer's body to the sink as
+   it comes, 16 KB at a time, in place of body, which only holds what has
+   yet to go */
+#define SINK_PIECE 16384L
+static int (*sink_fn)(void *u, const char *p, long n);
+static void *sink_u;
+static SBUF *sink_to;		/* the body being sent on, while it comes */
+static long sink_done;		/* what the sink has had of it */
+
+void http_sink(int (*fn)(void *u, const char *p, long n), void *u)
+{
+	sink_fn = fn;
+	sink_u = u;
+}
+
+static int drain(char *err, int errlen, SBUF *out)
+{
+	if (!out->len)
+		return 1;
+	if (sink_fn(sink_u, out->s, out->len)) {
+		str_copy(err, "the download can't be written: is the disk full?", errlen);
+		return 0;
+	}
+	sink_done += out->len;
+	out->len = 0;
+	out->s[0] = 0;
+	return 1;
+}
+
 /* n bytes of the body (n < 0: until the server closes the line) into
    out, which may hold max; *closed when it did */
 static int body_bytes(CONN *c, SBUF *out, long n, long max, long total, int *closed)
@@ -256,7 +285,9 @@ static int body_bytes(CONN *c, SBUF *out, long n, long max, long total, int *clo
 		out->s[out->len] = 0;
 		if (n > 0)
 			n -= r;
-		progress(out->len, total);
+		if (out == sink_to && out->len >= SINK_PIECE && !drain(c->err, sizeof(c->err), out))
+			return 0;
+		progress(out->len + (out == sink_to ? sink_done : 0), total);
 	}
 	return 1;
 }
@@ -424,6 +455,9 @@ static int exchange(int k, const URLP *p, int flags, const char *auth, SBUF *bod
 		SBUF *to = skip || h->gzip ? &packed : body;
 		long lim = skip ? SKIPBODY : max;
 		long before = to->len;
+		int sinking = sink_fn && !skip && status / 100 == 2;
+		sink_to = sinking && to == body ? body : 0;
+		sink_done = 0;
 		if (h->chunked)
 			ok = body_chunked(c, to, before + lim, &line);
 		else if (h->length >= 0)
@@ -439,6 +473,9 @@ static int exchange(int k, const URLP *p, int flags, const char *auth, SBUF *bod
 				ok = 0;
 			}
 		}
+		if (ok && sinking)		/* what is left, or all of a packed one */
+			ok = drain(c->err, sizeof(c->err), body);
+		sink_to = 0;
 	}
 out:
 	if (!ok && !*again)

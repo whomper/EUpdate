@@ -29,6 +29,8 @@ int up_chosen(const REPO *r, const GHREL *rel, short *which);
 /* one file downloaded, into r's folder: a zip unpacked when r says so.
    0 with err when it can't be written */
 int up_put(REPO *r, const char *name, const unsigned char *data, long len, char *err, int errlen);
+/* the same from a file (a download), never held whole */
+int up_put_file(REPO *r, const char *name, const char *src, char *err, int errlen);
 /* downloads and writes them; then r has rel. 1, or 0 with r->note. An
    AERA ST edition the release no longer has, beside the program that
    takes its place, is removed then (up_replaced) */

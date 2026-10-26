@@ -226,6 +226,9 @@ static int make_dirs(const char *dir)
 typedef struct {
 	REPO *r;
 	char err[120];
+	int fh;				/* the file being written, or -1 */
+	char path[260], tmp[260];	/* where it goes, and where it is written first */
+	long size, got;
 } JOB;
 
 /* an install's programs written, and every name its release has (its
@@ -289,26 +292,33 @@ static void retire(const REPO *r)
 	}
 }
 
+/* where a file is written first: NAME.EX$ ('~' when the extension
+   ends in '$'), NAME.$$$ without one; renamed over NAME once whole (a
+   reset or a full disk leaves the old one as it was: the guidelines 2.3) */
+static void tmp_of(const char *path, char *out, int size)
+{
+	const char *b = base_of(path), *dot = strrchr(b, '.');
+	str_copy(out, path, size);
+	if (!dot || !dot[1])
+		snprintf(out + (b - path), size - (int)(b - path), "%.8s.$$$", b);
+	else
+		out[strlen(out) - 1] = out[strlen(out) - 1] == '$' ? '~' : '$';
+}
+
 /* a file of the archive (or the release) to dir\a\b\NAME: every part of
    its name a proper one (no "..", no drive: nothing lands outside the
-   folder), the folders made on the way */
-static int put_file(void *ud, const char *name, const unsigned char *data, long len)
+   folder), the folders made on the way. 0 to write it, 2 left out (its
+   rule), 1 with j->err */
+static int out_path(JOB *j, const char *name)
 {
-	JOB *j = ud;
-	char path[260], part[64];
+	char *path = j->path, part[64];
 	const char *s = name;
 	const RULE *u = up_rule(j->r, name);
 	long n;
 	int depth = 0;
-	/* a turn for GEM between the files (the guidelines' Speed: an
-	   archive unpacked in one go held a stock Falcon 7 s). Esc stops
-	   the job after the archive, never half of it written */
-	if (pf_idle)
-		pf_idle();
-	seen(name);
 	if (u && !strcmp(u->folder, "-"))
-		return 0;		/* left out */
-	str_copy(path, u ? u->folder : j->r->folder, sizeof(path));
+		return 2;		/* left out */
+	str_copy(path, u ? u->folder : j->r->folder, sizeof(j->path));
 	if (u) {
 		/* a rule's folder takes the file by its name alone */
 		const char *b = name + strlen(name);
@@ -331,13 +341,13 @@ static int put_file(void *ud, const char *name, const unsigned char *data, long 
 		memcpy(part, s, k);
 		part[k] = 0;
 		n = (long)strlen(path);
-		if (n + 16 + (opt.shorten ? 12 : k) >= (long)sizeof(path)) {
+		if (n + 16 + (opt.shorten ? 12 : k) >= (long)sizeof(j->path)) {
 			snprintf(j->err, sizeof(j->err), "the path is too long: %.40s", name);
 			return 1;
 		}
 		if (n && path[n - 1] != PF_SEP)
 			path[n++] = PF_SEP;
-		disk_name(part, path + n, (int)(sizeof(path) - n));
+		disk_name(part, path + n, (int)(sizeof(j->path) - n));
 		s += k;
 		if (last)
 			break;
@@ -347,29 +357,145 @@ static int put_file(void *ud, const char *name, const unsigned char *data, long 
 			return 1;
 		}
 	}
-	say("Writing %s...%s", path, "");
-	if (pf_save(path, data, len)) {
-		snprintf(j->err, sizeof(j->err), "can't write %.60s: is the disk full or locked?", path);
-		return 1;
-	}
+	return 0;
+}
+
+static void cant_write(JOB *j)
+{
+	snprintf(j->err, sizeof(j->err), "can't write %.60s: is the disk full or locked?", j->path);
+}
+
+/* a file begun: written in pieces as they come (an archive's file is
+   never held whole: the guidelines' Speed, a stock Falcon's memory) */
+static int file_begin(void *ud, const char *name, long size)
+{
+	JOB *j = ud;
+	int r;
+	/* a turn for GEM between the files (an archive unpacked in one go
+	   held a stock Falcon 7 s). Esc stops the job after the archive,
+	   never half of it written */
 	if (pf_idle)
 		pf_idle();
-	if (inst.on && inst.nprog < NPROG && is_program(path))
-		str_copy(inst.prog[inst.nprog++], path, sizeof(inst.prog[0]));
+	seen(name);
+	r = out_path(j, name);
+	if (r)
+		return r;
+	say("Writing %s...%s", j->path, "");
+	tmp_of(j->path, j->tmp, sizeof(j->tmp));
+	j->fh = pf_open(j->tmp, PF_WRITE);
+	j->size = size;
+	j->got = 0;
+	if (j->fh < 0) {
+		cant_write(j);
+		return 1;
+	}
 	return 0;
+}
+
+static int file_put(void *ud, const unsigned char *p, long n)
+{
+	JOB *j = ud;
+	if (pf_write(j->fh, p, n) != n) {
+		cant_write(j);
+		return 1;
+	}
+	j->got += n;
+	if (pf_idle)
+		pf_idle();
+	return 0;
+}
+
+/* whole: renamed over the old one; else the part written taken away */
+static int file_end(void *ud, int whole)
+{
+	JOB *j = ud;
+	pf_close(j->fh);
+	j->fh = -1;
+	if (!whole || j->got != j->size) {
+		pf_remove(j->tmp);
+		return 0;
+	}
+	pf_remove(j->path);		/* TOS doesn't rename over a file */
+	if (pf_rename(j->tmp, j->path)) {
+		pf_remove(j->tmp);
+		cant_write(j);
+		return 1;
+	}
+	if (inst.on && inst.nprog < NPROG && is_program(j->path))
+		str_copy(inst.prog[inst.nprog++], j->path, sizeof(inst.prog[0]));
+	return 0;
+}
+
+static const UNZIP_TO to_disk = { file_begin, file_put, file_end };
+
+/* a release's file as it is, from memory or a file (src != 0), in pieces */
+static int put_plain(JOB *j, const char *name, const unsigned char *data, const char *src, long len)
+{
+	unsigned char *piece = 0;
+	int h = -1, r, ok = 1;
+	long done = 0;
+	r = file_begin(j, name, len);
+	if (r == 2)
+		return 1;
+	if (r)
+		return 0;
+	if (src && ((h = pf_open(src, PF_READ)) < 0 || !(piece = pf_big_alloc(32768L)))) {
+		str_copy(j->err, h < 0 ? "the download can't be read back" : "not enough memory for the file",
+			 sizeof(j->err));
+		ok = 0;
+	}
+	while (ok && done < len) {
+		long k = len - done > 32768L ? 32768L : len - done;
+		if (src && pf_read(h, piece, k) != k) {
+			str_copy(j->err, "the download can't be read back", sizeof(j->err));
+			ok = 0;
+			break;
+		}
+		if (file_put(j, src ? piece : data + done, k)) {
+			ok = 0;
+			break;
+		}
+		done += k;
+	}
+	if (h >= 0)
+		pf_close(h);
+	pf_big_free(piece);
+	return !file_end(j, ok) && ok;
+}
+
+static void job_init(JOB *j, REPO *r)
+{
+	memset(j, 0, sizeof(*j));
+	j->r = r;
+	j->fh = -1;
 }
 
 int up_put(REPO *r, const char *name, const unsigned char *data, long len, char *err, int errlen)
 {
 	JOB j;
 	int ok;
-	memset(&j, 0, sizeof(j));
-	j.r = r;
+	job_init(&j, r);
 	if (r->unzip && is_zip(name)) {
 		say("Unpacking %s...%s", name, "");
-		ok = unzip(data, len, put_file, &j, j.err, sizeof(j.err)) >= 0;
+		ok = unzip_to(data, len, &to_disk, &j, j.err, sizeof(j.err)) >= 0;
 	} else {
-		ok = !put_file(&j, name, data, len);
+		ok = put_plain(&j, name, data, 0, len);
+	}
+	if (!ok)
+		str_copy(err, j.err, errlen);
+	return ok;
+}
+
+int up_put_file(REPO *r, const char *name, const char *src, char *err, int errlen)
+{
+	JOB j;
+	int ok;
+	job_init(&j, r);
+	if (r->unzip && is_zip(name)) {
+		say("Unpacking %s...%s", name, "");
+		ok = unzip_file(src, &to_disk, &j, j.err, sizeof(j.err)) >= 0;
+	} else {
+		ok = put_plain(&j, name, 0, src, pf_size(src));
 	}
 	if (!ok)
 		str_copy(err, j.err, errlen);
@@ -396,18 +522,21 @@ int up_install(REPO *r, const GHREL *rel)
 		seen(rel->asset[i].name);
 	for (i = 0; i < n; i++) {
 		const GHASSET *a = &rel->asset[which[i]];
-		SBUF b;
+		char dl[260];
 		int ok;
 		say("Downloading %s from %s...", a->name, r->full);
-		/* in a piece of its own, given back after (unzip.h) */
-		if (!sb_big(&b, a->size)) {
-			str_copy(r->note, "not enough memory for the file", sizeof(r->note));
-			inst.on = 0;
-			return 0;
+		/* to the disk as it comes, in its folder, then from there into
+		   place: a release's zip is never held whole (a stock Falcon with
+		   4 MB had 510 KB free, and EMail's zip is 460 KB) */
+		{
+			static const char sep[2] = { PF_SEP, 0 };
+			size_t fl = strlen(r->folder);
+			snprintf(dl, sizeof(dl), "%s%sEUPDDL.$$$", r->folder,
+				 fl && r->folder[fl - 1] == PF_SEP ? "" : sep);
 		}
-		ok = gh_download(r->full, a, &b, a->size, r->note, sizeof(r->note)) &&
-		     up_put(r, a->name, (const unsigned char *)b.s, b.len, r->note, sizeof(r->note));
-		sb_big_free(&b);
+		ok = gh_download_file(r->full, a, dl, r->note, sizeof(r->note)) &&
+		     up_put_file(r, a->name, dl, r->note, sizeof(r->note));
+		pf_remove(dl);
 		if (!ok) {
 			inst.on = 0;
 			return 0;

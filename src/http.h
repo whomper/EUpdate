@@ -30,6 +30,10 @@ typedef struct {
 int  http_get(const char *url, int flags, const char *auth, const char *auth_host,
 	      SBUF *body, long max, HTTPRESP *rs, char *err, int errlen);
 void http_close_all(void);	/* close the kept connections */
+/* the bodies of 2xx answers to fn as they come, in pieces of up to 16
+   KB, not kept in body (a download to the disk), until http_sink(0, 0).
+   fn's non-zero stops the answer: "the download can't be written" */
+void http_sink(int (*fn)(void *u, const char *p, long n), void *u);
 
 /* how EUpdate names itself to servers (GitHub wants a User-Agent) */
 extern char http_user_agent[48];

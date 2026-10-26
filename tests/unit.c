@@ -410,6 +410,39 @@ static void test_zip(void)
 	free(z);
 	CHECK(!up_put(&r, "..", (unsigned char *)"x", 1, err, sizeof(err)));
 
+	/* from a file, as a download is unpacked: the same files, no NAME.EX$
+	   left; a damaged archive leaves the file there as it was */
+	rm_rf(dir);
+	pf_mkdir(dir);
+	CHECK(up_put_file(&r, "EUpdate-1.0.zip", "tests/data/good.zip", err, sizeof(err)));
+	CHECK(pf_size("build/unit-zip/EUPDATE.PRG") == 10240 && pf_size("build/unit-zip/ICONS/README.TXT") == 4400);
+	CHECK(pf_size("build/unit-zip/EUPDATE.PR$") < 0 && pf_size("build/unit-zip/ICONS/README.TX$") < 0);
+	z = load("tests/data/good.zip", &n);
+	memset(&s, 0, sizeof(s));
+	{
+		FILE *f = fopen("build/unit-zip/BAD.ZIP", "wb");
+		long k;
+		/* a byte of EUPDATE.PRG's data turned over: its CRC is wrong */
+		for (k = 0; k < n; k++)
+			fputc(k == 100 ? z[k] ^ 0x55 : z[k], f);
+		fclose(f);
+	}
+	free(z);
+	z = load("build/unit-zip/EUPDATE.PRG", &n);
+	CHECK(!up_put_file(&r, "EUpdate-1.0.zip", "build/unit-zip/BAD.ZIP", err, sizeof(err)) && strstr(err, "damaged"));
+	{
+		long m;
+		char *now = load("build/unit-zip/EUPDATE.PRG", &m);
+		CHECK(m == n && !memcmp(now, z, n));
+		free(now);
+	}
+	free(z);
+	CHECK(pf_size("build/unit-zip/EUPDATE.PR$") < 0);
+	r.unzip = 0;
+	CHECK(up_put_file(&r, "CACERT.PEM", "tests/data/good.zip", err, sizeof(err)));
+	CHECK(pf_size("build/unit-zip/CACERT.PEM") == pf_size("tests/data/good.zip"));
+	r.unzip = 1;
+
 	/* rules: a file elsewhere by its name alone, one left out */
 	rm_rf(dir);
 	pf_mkdir(dir);

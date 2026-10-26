@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
  * Copyright (C) 2026 AERA | Erez Yaary */
 /*
- * unzip.h - the files of a .zip archive held in memory (a release's
- * zip, as AERA's releases carry), with common's inflate.c. Stored and
+ * unzip.h - the files of a .zip archive, in memory or in a file (a
+ * release's zip, as AERA's releases carry), with common's inflate.c. Stored and
  * deflated files; every size and offset is checked against the archive
  * and every file against its CRC-32. Encrypted files and ZIP64 are
  * refused.
@@ -19,7 +19,24 @@ typedef int (*UNZIP_FILE)(void *ud, const char *name, const unsigned char *data,
    damaged, or the callback stopped it (err is then left to it) */
 int unzip(const unsigned char *zip, long n, UNZIP_FILE cb, void *ud, char *err, int errlen);
 
+/* the same, a file at a time in pieces, never holding a file whole
+   where it can help it: begin() with its name and size (0 go on, 2 leave
+   it out, else stop: the sink's error), put() each piece of at most 32
+   KB (non-zero stops), end() with whole set when all of it came and its
+   CRC is right (non-zero stops) */
+typedef struct {
+	int (*begin)(void *ud, const char *name, long size);
+	int (*put)(void *ud, const unsigned char *p, long n);
+	int (*end)(void *ud, int whole);
+} UNZIP_TO;
+
+int unzip_to(const unsigned char *zip, long n, const UNZIP_TO *to, void *ud, char *err, int errlen);
+/* from the archive in a file: only its directory and a piece at a time
+   in memory */
+int unzip_file(const char *path, const UNZIP_TO *to, void *ud, char *err, int errlen);
+
 unsigned long crc32(const unsigned char *p, long n);
+unsigned long crc32_more(unsigned long crc, const unsigned char *p, long n);	/* crc32 of what came, and p */
 
 /* b made a buffer of n bytes (and the NUL) from pf_big_alloc, empty; 0
    when there is no room. What goes in must stay within n: it never grows.

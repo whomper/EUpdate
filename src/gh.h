@@ -63,6 +63,8 @@ int gh_owner_repos(const char *login, GHREPO *out, int max, char *err, int errle
 int gh_latest(const char *full, GHREL *rel, char *err, int errlen);
 /* one of its files, appended to out (at most max bytes) */
 int gh_download(const char *full, const GHASSET *a, SBUF *out, long max, char *err, int errlen);
+/* the same into a file as it comes, never held whole */
+int gh_download_file(const char *full, const GHASSET *a, const char *file, char *err, int errlen);
 
 /* "owner/name": 1 if it is one (a GitHub login, a repository's name) */
 int gh_valid_full(const char *full);

@@ -11,6 +11,7 @@
 #include "json.h"
 #include "charset.h"
 #include "gh.h"
+#include "plat.h"
 
 char gh_base[64] = "https://api.github.com";
 char gh_token[100];
@@ -338,6 +339,56 @@ int gh_latest(const char *full, GHREL *rel, char *err, int errlen)
 	if (js.err || !rel->tag[0]) {
 		str_copy(err, "GitHub's answer didn't make sense", errlen);
 		return -1;
+	}
+	return 1;
+}
+
+typedef struct {
+	int h;
+	long n;
+} TOFILE;
+
+static int to_file(void *u, const char *p, long n)
+{
+	TOFILE *t = u;
+	if (pf_write(t->h, p, n) != n)
+		return 1;
+	t->n += n;
+	return 0;
+}
+
+int gh_download_file(const char *full, const GHASSET *a, const char *file, char *err, int errlen)
+{
+	char path[160];
+	SBUF b;
+	TOFILE t;
+	int st;
+	if (!gh_valid_full(full)) {
+		str_copy(err, "not a repository's name", errlen);
+		return 0;
+	}
+	t.h = pf_open(file, PF_WRITE);
+	t.n = 0;
+	if (t.h < 0) {
+		snprintf(err, errlen, "can't write %.60s: is the disk full or locked?", file);
+		return 0;
+	}
+	sb_init(&b);
+	snprintf(path, sizeof(path), "/repos/%s/releases/assets/%ld", full, a->id);
+	http_sink(to_file, &t);
+	st = ask(path, HTTP_OCTET, &b, a->size, err, errlen);
+	http_sink(0, 0);
+	pf_close(t.h);
+	sb_free(&b);
+	if (st == 404) {
+		str_copy(err, "the file is gone from GitHub", errlen);
+		return 0;
+	}
+	if (st < 0)
+		return 0;
+	if (t.n != a->size) {
+		str_copy(err, "the file came short", errlen);
+		return 0;
 	}
 	return 1;
 }
