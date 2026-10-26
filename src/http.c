@@ -490,9 +490,12 @@ out:
 	return ok;
 }
 
-/* what a GET works in: 12 KB for the addresses, in the heap, not on
-   the stack, which is part of the program's own memory and so taken
-   before the VDI opens its workstation (NVDI and accessories in 4 MB) */
+/* what a GET works in: 12 KB for the addresses, not on the stack,
+   which is part of the program's own memory and so taken before the VDI
+   opens its workstation (NVDI and accessories in 4 MB); nor in the heap,
+   which takes its memory in blocks that double and keeps them, and would
+   grow by 128 KB or more for these 12 and leave the unzip no room. A
+   block of its own, given back at the GET's end */
 typedef struct {
 	URLP p;
 	HEAD h;
@@ -542,7 +545,7 @@ static int get(GETW *w, const char *url, int flags, const char *auth, const char
 int http_get(const char *url, int flags, const char *auth, const char *auth_host,
 	     SBUF *body, long max, HTTPRESP *rs, char *err, int errlen)
 {
-	GETW *w = malloc(sizeof(*w));
+	GETW *w = pf_big_alloc(sizeof(*w));
 	int ok;
 	memset(rs, 0, sizeof(*rs));
 	rs->rate_left = -1;
@@ -551,6 +554,6 @@ int http_get(const char *url, int flags, const char *auth, const char *auth_host
 		return 0;
 	}
 	ok = get(w, url, flags, auth, auth_host, body, max, rs, err, errlen);
-	free(w);
+	pf_big_free(w);
 	return ok;
 }
