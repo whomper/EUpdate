@@ -5,6 +5,7 @@
  */
 #include "ui.h"
 #include "theme.h"
+#include "dialog.h"
 
 short pen[NPEN];
 int colour;
@@ -34,25 +35,6 @@ static const short want16[NPEN][3] = {
 	{ 0, 0, 667 }, { 667, 667, 0 }, { 0, 667, 667 }, { 1000, 0, 0 }
 };
 
-/* the pen nearest to want; dark: one that text can be read in on white
-   (or white text on it). Never white, the background */
-static short nearest(const short *want, int dark, short pal[16][3])
-{
-	short k, best = 1;
-	long bd = 0x7fffffffL;
-	for (k = 1; k < 16; k++) {
-		long r = pal[k][0] - want[0], g = pal[k][1] - want[1], b = pal[k][2] - want[2];
-		long d = r * r + g * g + b * b;
-		if (dark && 299L * pal[k][0] + 587L * pal[k][1] + 114L * pal[k][2] > 600000L)
-			continue;
-		if (d < bd) {
-			bd = d;
-			best = k;
-		}
-	}
-	return best;
-}
-
 static short saved[NPEN][3];
 static int set_rgb;
 
@@ -77,11 +59,9 @@ void theme_init(void)
 		}
 		set_rgb = 1;
 	} else {
-		short pal[16][3];
-		for (i = 0; i < 16; i++)
-			vq_color(vdi_h, i, pal[i]);
-		for (i = 0; i < NPEN; i++)
-			pen[i] = nearest(want16[i], i != P_PANEL, pal);
+		for (i = 0; i < NPEN; i++)	/* text, and bars white text is on: dark */
+			pen[i] = pen_nearest(vdi_h, 16, want16[i][0], want16[i][1], want16[i][2],
+					     i != P_PANEL);
 		/* a state's colour never the dim one: an Update button in it
 		   would look disabled. Then plain, as the word says it */
 		for (i = P_NEW; i <= P_ERR; i++)

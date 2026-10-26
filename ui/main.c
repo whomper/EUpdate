@@ -28,6 +28,10 @@
 
 extern const char app_version[];
 
+#ifndef COLORS_CHANGED
+#define COLORS_CHANGED 84	/* AES 4.1: the palette was changed */
+#endif
+
 short vdi_h, cw, ch, scr_w, scr_h, desk_x, desk_y, desk_w, desk_h, planes;
 short gl_wchar, gl_hchar;
 short ap_id;
@@ -1152,6 +1156,10 @@ int main(void)
 				break;
 			case AP_TERM:
 				quit = 1;
+				break;
+			case COLORS_CHANGED:	/* the palette: each colour's pen again */
+				theme_init();
+				win_redraw_all();
 				break;
 			default: {
 				DROP dr;
