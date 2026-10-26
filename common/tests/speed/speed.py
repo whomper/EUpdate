@@ -29,6 +29,11 @@ Run as a script for its own check, with SPT.PRG (make prg):
 Hatari's CPU is cycle-exact (its default); the Falcon's sharing of ST RAM
 with the screen is approximated, so Erez's own Falcon with the DFB1 off
 is the referee.
+
+Where a stretch's time goes (EFTP's recipe): stop Hatari's profiler at the
+stretch's end with a breakpoint on nf_debug that runs a file holding
+"profile save" (b pc = nf_debug :once :file x.dbg), then hatari_profile -p
+with the ELF's symbols (nm, made relative to TEXT).
 """
 import os
 import re
@@ -53,7 +58,7 @@ START = 2000    # the program started
 
 
 class Rig:
-    def __init__(self, work, machine, nvdi=False, display=":91"):
+    def __init__(self, work, machine, nvdi=False, display=":91", extra=()):
         self.work = os.path.abspath(work)
         shutil.rmtree(self.work, ignore_errors=True)
         self.hd = os.path.join(self.work, "hd")
@@ -71,6 +76,10 @@ class Rig:
         self.hatari = self.x = None
         self.log = os.path.join(self.work, "hatari.log")
         self.n = 0
+        self.extra = list(extra)        # more of Hatari's arguments (ClaudeST's --rs232-in/out)
+        self.held = []                  # modifiers held down until an action settles
+        self.in_act = False
+        self.start_end = 0
 
     def describe(self):
         return self.m.describe() + (" with NVDI" if self.nvdi else "")
@@ -99,7 +108,7 @@ class Rig:
         # in its buffer would count for the next action
         self.hatari = subprocess.Popen(
             ["stdbuf", "-oL", "-eL", "hatari", "--statusbar", "no", "--borders", "no", "--zoom", "1", "--natfeats", "yes",
-             "--fast-boot", "yes", "--log-level", "warn"] + self.m.args() +
+             "--fast-boot", "yes", "--log-level", "warn"] + self.m.args() + self.extra +
             (["--auto", auto] if auto else []),
             env=self.env, stdout=open(self.log, "w"), stderr=subprocess.STDOUT)
         # a program's own start is its first event call (AESSTART, from a
@@ -114,7 +123,11 @@ class Rig:
                 if self.still(most=10):
                     break
         if auto:
-            self.results.append(("the program started", "AESSTART", START))   # read by report()
+            # the start is AESSTART and every stretch until the screen came to
+            # rest: a program that opens its window after its first event
+            # call draws it in the next one (ClaudeST: 280 + 1515 ms)
+            self.start_end = os.path.getsize(self.log)
+            self.results.append(("the program started, window drawn", "AESSTART", START))
 
     def console(self):
         with open(self.log, errors="replace") as f:
@@ -155,9 +168,23 @@ class Rig:
 
     # the user
     def key(self, *keys):
-        """keys as xdotool names them (Down, shift+Down, ctrl+comma, Escape)"""
+        """keys as xdotool names them (Down, shift+Down, ctrl+comma, Escape).
+        A modifier is held down until the action settles: the AES gives the
+        modifiers as they are when the program reads the key, after a long
+        draw on an ST, so a Shift let go at once made Shift+Down a Down
+        (ClaudeST, 26 Oct 2026)"""
         for k in keys:
-            self.xdo("key", "--delay", "120", k)
+            parts = k.split("+")
+            for m in parts[:-1]:
+                self.xdo("keydown", m)
+                self.held.append(m)
+            self.xdo("key", "--delay", "120", parts[-1])
+            if not self.in_act:
+                self.release()
+
+    def release(self):
+        while self.held:
+            self.xdo("keyup", self.held.pop())
 
     def type(self, text):
         self.xdo("type", "--delay", "150", text)
@@ -177,9 +204,14 @@ class Rig:
         """does it, waits until the Atari is still, and keeps the longest
         stretch that came meanwhile"""
         start = os.path.getsize(self.log)
-        do()
-        time.sleep(1)
-        self.still()
+        self.in_act = True
+        try:
+            do()
+            time.sleep(1)
+            self.still()
+        finally:
+            self.in_act = False
+            self.release()
         with open(self.log, errors="replace") as f:
             f.seek(start)
             new = f.read()
@@ -192,10 +224,12 @@ class Rig:
     def report(self):
         """the table; 1 if any action is over its time"""
         over = 0
-        m = re.search(r"AESSTART (\d+) ms", self.console())
+        con = self.console()
+        m = re.search(r"AESSTART (\d+) ms", con)
+        drawn = sum(int(g) for g in re.findall(r"AESGAP (\d+) ms", con[:self.start_end]))
         for i, (what, ms, budget) in enumerate(self.results):
             if ms == "AESSTART":
-                self.results[i] = (what, int(m.group(1)) if m else None, budget)
+                self.results[i] = (what, int(m.group(1)) + drawn if m else None, budget)
                 if not m:
                     print("NOTE  no AESSTART: is the program built with -DAES_PROFILE?", flush=True)
         print("speed on %s" % self.describe())
