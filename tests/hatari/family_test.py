@@ -91,7 +91,8 @@ def main():
     wait_port(PORT + 1)
     os.environ.setdefault("AERA_WITH_ACCS", ",".join(ACCS))
     m = rig.machine(spec, work)
-    r = rig.Rig(work, m, extra=m.network(rate=int(os.environ.get("RATE", "100000"))))   # a NetUSBee's pace
+    r = rig.Rig(work, m, display=os.environ.get("XDISPLAY", ":99"),
+                extra=m.network(rate=int(os.environ.get("RATE", "100000"))))   # a NetUSBee's pace
     print("on", m.describe(), flush=True)
     try:
         inf = ""

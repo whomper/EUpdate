@@ -49,6 +49,9 @@ void  pf_big_free(void *p);
 
 char *pf_load(const char *path, long *len);
 int   pf_save(const char *path, const void *data, long len);
+/* set: pf_save writes 32 KB at a time and calls it between (a program's
+   turn for GEM; never an accessory's, which may not keep a file open) */
+extern void (*pf_save_turn)(void);
 
 /* ---- time ---- */
 typedef struct {

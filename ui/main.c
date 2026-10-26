@@ -1071,6 +1071,7 @@ int main(void)
 	falcon_dsp_init();
 	falcon_dsp_ec_init();
 	pf_idle = idle;
+	pf_save_turn = idle;		/* big files saved in pieces, a turn between */
 	up_status = job_status;
 	up_replaced = on_replaced;
 	http_progress = job_progress;

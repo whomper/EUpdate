@@ -4,8 +4,9 @@
  * unzip.c - the files of a .zip archive (see unzip.h), after PKWARE's
  * APPNOTE: the central directory at the end says where each file is.
  * One reader for an archive in memory and one in a file: it asks for the
- * bytes at an offset, and hands each file on in pieces, so a file's
- * archive is never held whole (a stock Falcon with 4 MB had 510 KB free
+ * bytes at an offset, and hands each file on in pieces, unpacked through
+ * common's streaming inflate, so neither an archive nor a file in it is
+ * ever held whole (a stock Falcon with 4 MB had 510 KB free
  * for EUpdate's work, and EMail's zip alone is 460 KB).
  */
 #include <string.h>
@@ -85,6 +86,26 @@ static int get(SRC *s, long off, void *buf, long n)
 
 #define PIECE 32768L		/* what a file is handed on in */
 
+/* a deflated file's packed bytes for the inflate, no more than it has */
+typedef struct {
+	SRC *s;
+	long at, left;
+} FEED;
+
+static int feed(void *u, unsigned char *buf, long n)
+{
+	FEED *f = u;
+	if (n > f->left)
+		n = f->left;
+	if (n <= 0)
+		return 0;
+	if (!get(f->s, f->at, buf, n))
+		return -1;
+	f->at += n;
+	f->left -= n;
+	return (int)n;
+}
+
 /* one file's bytes: stored ones as they are, deflated ones unpacked;
    each piece to the sink, the CRC on the way. 1 when whole and right,
    0 damaged, -1 out of memory, -2 the sink stopped */
@@ -107,39 +128,36 @@ static int member(SRC *s, long data, unsigned long csize, unsigned long usize, u
 			done += k;
 		}
 	} else {
-		/* deflated: the whole file unpacked in a piece of memory of its
-		   own, and from a file its packed bytes too, given back after.
-		   (common's streaming inflate will take this to a 32 KB window) */
-		SBUF in, out;
-		const unsigned char *z = s->mem ? s->mem + data : 0;
-		long done = 0;
-		int r;
-		sb_init(&in);
-		if (usize > 0x3FFFFFFFUL || csize > 0x3FFFFFFFUL)
-			return 0;
-		if (!z) {
-			if (!sb_big(&in, (long)csize))
-				return -1;
-			if (!get(s, data, in.s, (long)csize)) {
-				sb_big_free(&in);
-				return 0;
-			}
-			z = (const unsigned char *)in.s;
-		}
-		if (!sb_big(&out, (long)usize)) {
-			sb_big_free(&in);
+		/* deflated: through common's streaming inflate (a 32 KB window),
+		   a piece at a time, never the whole file */
+		FEED f;
+		INFLATE *z;
+		unsigned long total = 0;
+		long k;
+		int r = 1;
+		f.s = s;
+		f.at = data;
+		f.left = (long)csize;
+		z = inflate_open(feed, &f);
+		if (!z)
 			return -1;
-		}
-		r = inflate_raw(z, (long)csize, &out, (long)usize) == 1 && out.len == (long)usize;
-		sb_big_free(&in);
-		while (r == 1 && done < (long)usize) {
-			long k = (long)usize - done > PIECE ? PIECE : (long)usize - done;
-			c = crc32_more(c, (unsigned char *)out.s + done, k);
-			if (to->put(ud, (unsigned char *)out.s + done, k))
+		while ((k = inflate_read(z, piece, PIECE)) > 0) {
+			total += k;
+			if (total > usize) {
+				r = 0;
+				break;
+			}
+			c = crc32_more(c, piece, k);
+			if (to->put(ud, piece, k)) {
 				r = -2;
-			done += k;
+				break;
+			}
 		}
-		sb_big_free(&out);
+		if (k < 0)
+			r = 0;
+		inflate_close(z);
+		if (r == 1 && total != usize)
+			r = 0;
 		if (r != 1)
 			return r;
 	}
@@ -189,8 +207,8 @@ static int unzip_src(SRC *s, const UNZIP_TO *to, void *ud, char *err, int errlen
 	if (cd < 0 || cd > e || cdlen > e - cd)
 		return bad(err, errlen, "the zip archive is damaged");
 	cdir = s->mem ? (unsigned char *)s->mem + cd : pf_big_alloc(cdlen + 1);
-	piece = s->mem ? 0 : pf_big_alloc(PIECE);
-	if (!cdir || (!s->mem && !piece)) {
+	piece = pf_big_alloc(PIECE);
+	if (!cdir || !piece) {
 		bad(err, errlen, "not enough memory to unpack the zip archive");
 		goto done;
 	}
@@ -273,10 +291,9 @@ static int unzip_src(SRC *s, const UNZIP_TO *to, void *ud, char *err, int errlen
 damaged:
 	bad(err, errlen, "the zip archive is damaged");
 done:
-	if (!s->mem) {
+	if (!s->mem)
 		pf_big_free(cdir);
-		pf_big_free(piece);
-	}
+	pf_big_free(piece);
 	return r;
 }
 
