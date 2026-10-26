@@ -19,6 +19,7 @@ AERA_WITH_ACCS= (empty) runs it with no accessories, as Erez ran 1.1 when
 it crashed on 22 Oct 2026.
 """
 import os
+import socket
 import shutil
 import subprocess
 import sys
@@ -58,7 +59,21 @@ def certs():
         f.write(open(os.path.join(work, "leaf.pem")).read() + open(os.path.join(work, "int.pem")).read())
 
 
+def port_taken(port):
+    s = socket.socket()
+    try:
+        return s.connect_ex(("127.0.0.1", port)) == 0
+    finally:
+        s.close()
+
+
 def main():
+    # another family_test's servers on these ports would answer with its
+    # own CA's chain: every check then fails on the certificate
+    taken = [p for p in (PORT, PORT + 1) if port_taken(p)]
+    if taken:
+        sys.exit("family_test: %s %s in use (another family_test running?)" %
+                 ("ports" if len(taken) > 1 else "port", " and ".join(map(str, taken))))
     shutil.rmtree(work, ignore_errors=True)
     os.makedirs(work)
     subprocess.run([sys.executable, os.path.join(TOP, "tests", "github", "fetch_family.py"), CACHE], check=True)
