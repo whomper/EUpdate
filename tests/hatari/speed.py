@@ -111,10 +111,12 @@ def main():
         r.move(*REST)
         r.shot("start")
         lines = con.lines()
+        # common's AESSTART: appl_init to the first event call; the window
+        # is drawn in the first redraw after it
         start = [int(m.group(1)) for m in (re.match(r"AESSTART (\d+) ms", l) for l in lines) if m]
-        report("the program started: its window drawn", (start[0] if start else 99999, ""), 2000)
-        report("the window drawn whole (opened)", max([g for g in con.gaps(lines) if g[1] == "redraw"] or
-                                                     [(0, "")]), 300)
+        drawn = max([g for g in con.gaps(lines) if g[1] == "redraw"] or [(0, "")])
+        report("the program started: its window drawn", (start[0] + drawn[0] if start else 99999, ""), 2000)
+        report("the window drawn whole (opened)", drawn, 300)
         if os.environ.get("EXPLORE"):
             return
         r.key(K["DOWN"])                       # the first row
