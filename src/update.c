@@ -300,6 +300,11 @@ static int put_file(void *ud, const char *name, const unsigned char *data, long 
 	const RULE *u = up_rule(j->r, name);
 	long n;
 	int depth = 0;
+	/* a turn for GEM between the files (the guidelines' Speed: an
+	   archive unpacked in one go held a stock Falcon 7 s). Esc stops
+	   the job after the archive, never half of it written */
+	if (pf_idle)
+		pf_idle();
 	seen(name);
 	if (u && !strcmp(u->folder, "-"))
 		return 0;		/* left out */
@@ -347,6 +352,8 @@ static int put_file(void *ud, const char *name, const unsigned char *data, long 
 		snprintf(j->err, sizeof(j->err), "can't write %.60s: is the disk full or locked?", path);
 		return 1;
 	}
+	if (pf_idle)
+		pf_idle();
 	if (inst.on && inst.nprog < NPROG && is_program(path))
 		str_copy(inst.prog[inst.nprog++], path, sizeof(inst.prog[0]));
 	return 0;

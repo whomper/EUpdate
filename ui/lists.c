@@ -95,6 +95,8 @@ static void column_titles(WIN *w, const char *const *t, const short *x, short n)
 /* one cell: text cut to its column, in a colour or inverted on the bar */
 static void cell(short x, short y, const char *s, short width, short p, short sel, short flags)
 {
+	if (!sel)
+		flags |= TX_ON_WHITE;
 	if (sel || !colour || p == P_TEXT)
 		text_at(x, y, s, (long)strlen(s), width, flags | (sel ? TX_INVERSE : 0) |
 			(!colour && p == P_DIM && !sel ? TX_LIGHT : 0));
@@ -102,18 +104,32 @@ static void cell(short x, short y, const char *s, short width, short p, short se
 		text_pen_at(pen[p], x, y, s, (long)strlen(s), width, flags);
 }
 
+/* the rows a redraw's rectangle touches, first to end: only they are
+   drawn (the guidelines' Speed: a row changed is a row drawn) */
+static void rows_in(WIN *w, GRECT *clip, long *first, long *end)
+{
+	short y0 = clip->y - w->work.y - w->head_h, y1 = y0 + clip->h;
+	long last = w->top + win_rows(w) + 1;
+	*first = w->top + (y0 > 0 ? y0 / ch : 0);
+	*end = y1 > 0 ? w->top + (y1 + ch - 1) / ch : w->top;
+	if (*end > last)
+		*end = last;
+}
+
 static void repos_draw(WIN *w, GRECT *clip)
 {
 	static const char *const t[] = { "Repository", "Have", "Latest", "State", "Folder" };
-	short cols = w->work.w / cw, cn = col_name(cols), x[5], i;
-	long row;
+	short cols = w->work.w / cw, cn = col_name(cols), x[5];
+	long row, end;
 	x[0] = 1;
 	x[1] = x[0] + cn + 1;
 	x[2] = x[1] + C_HAVE;
 	x[3] = x[2] + C_LATEST;
 	x[4] = x[3] + C_STATE;
-	column_titles(w, t, x, cols - x[4] >= 12 ? 5 : 4);
-	for (row = w->top; row < w->top + win_rows(w) + 1; row++) {
+	if (clip->y < w->work.y + w->head_h)
+		column_titles(w, t, x, cols - x[4] >= 12 ? 5 : 4);
+	rows_in(w, clip, &row, &end);
+	for (; row < end; row++) {
 		GRECT r;
 		REPO *p;
 		short y = w->work.y + w->head_h + (short)((row - w->top) * ch), sp, sel;
@@ -137,8 +153,6 @@ static void repos_draw(WIN *w, GRECT *clip)
 		if (cols - x[4] >= 12)
 			cell(r.x + x[4] * cw, y, p->folder, cols - x[4] - 1, P_DIM, sel, TX_LTR);
 	}
-	(void)clip;
-	(void)i;
 }
 
 static long repo_at(WIN *w, short my)
@@ -174,15 +188,38 @@ void repo_redraw(REPO *r)
 
 static void select_only(long row)
 {
-	short i;
+	short i, lo = -1, hi = -1, changed[2], n = 0, scrolled;
+	long top = w_repos.top;
 	for (i = 0; i < nrepos; i++)
 		if (repos[i]->sel != (i == row)) {
 			repos[i]->sel = (short)(i == row);
-			win_redraw_lines(&w_repos, i, 1);
+			if (n < 2)
+				changed[n] = i;
+			n++;
 		}
+	/* scrolled first: the row it brings into sight is drawn by it, and
+	   only the rest of what changed after */
 	if (row >= 0) {
 		cursor = row;
 		win_ensure_visible(&w_repos, row);
+	}
+	scrolled = w_repos.top != top;
+	if (n > 2) {
+		win_redraw(&w_repos, 0);
+	} else {
+		for (i = 0; i < n; i++) {
+			if (scrolled && changed[i] == row)
+				continue;
+			if (lo >= 0 && changed[i] - hi > 1) {	/* apart: each on its own */
+				win_redraw_lines(&w_repos, lo, hi - lo + 1);
+				lo = -1;
+			}
+			if (lo < 0)
+				lo = changed[i];
+			hi = changed[i];
+		}
+		if (lo >= 0)		/* next to each other: in one go */
+			win_redraw_lines(&w_repos, lo, hi - lo + 1);
 	}
 	toolbar_redraw();
 }
@@ -376,16 +413,19 @@ static void found_draw(WIN *w, GRECT *clip)
 	static const char *const tr[] = { "Repository", "Stars", "Changed", "What it is" };
 	static const char *const to[] = { "Owner" };
 	short cols = w->work.w / cw, x[4], cn = cols >= 90 ? 32 : 26;
-	long row;
+	long row, end;
 	x[0] = 3;
 	x[1] = x[0] + cn + 1;
 	x[2] = x[1] + 7;
 	x[3] = x[2] + 12;
-	if (showing_owners)
+	if (clip->y >= w->work.y + w->head_h)
+		;
+	else if (showing_owners)
 		column_titles(w, to, x, 1);
 	else
 		column_titles(w, tr, x, 4);
-	for (row = w->top; row < w->top + win_rows(w) + 1; row++) {
+	rows_in(w, clip, &row, &end);
+	for (; row < end; row++) {
 		GRECT r;
 		short y = w->work.y + w->head_h + (short)((row - w->top) * ch), sel = row == f_sel;
 		char t[16];
@@ -415,7 +455,6 @@ static void found_draw(WIN *w, GRECT *clip)
 				cell(r.x + x[3] * cw, y, g->desc, cols - x[3] - 1, P_TEXT, sel, 0);
 		}
 	}
-	(void)clip;
 }
 
 static long found_at(WIN *w, short my)

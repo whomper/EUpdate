@@ -171,6 +171,11 @@ void text_at(short x, short y, const char *s, long n, short cols, short flags)
 		n = BIDI_MAX;
 	if (n <= 0)
 		return;
+	/* text starts on a byte, the nearest, when the font's cells are 8 or
+	   16 wide: the VDI's fast way (EmuTOS on a stock Falcon in 16 colours
+	   took 7 ms for 14 letters a pixel off a byte, 2.1 ms on one) */
+	if (!(cw & 7))
+		x = (x + 3) & ~7;
 	if (bidi_has_rtl(s, (short)n)) {
 		short rtl = (flags & TX_LTR) ? 0 : bidi_is_rtl(s, (short)n);
 		bidi_visual(s, (short)n, rtl, vis);
@@ -193,7 +198,7 @@ void text_at(short x, short y, const char *s, long n, short cols, short flags)
 		out = vis;
 		heb_font_map(vis, n, opt.hebfont);
 	}
-	vswr_mode(vdi_h, 2);
+	vswr_mode(vdi_h, (flags & TX_ON_WHITE) && !(flags & TX_INVERSE) ? 1 : 2);
 	vst_color(vdi_h, (flags & TX_INVERSE) ? 0 : text_pen);
 	vst_effects(vdi_h, (flags & TX_BOLD) ? 1 : (flags & TX_LIGHT) ? 2 : 0);
 	for (i = 0; i < n; i += 120) {

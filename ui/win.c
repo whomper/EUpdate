@@ -134,6 +134,18 @@ static void draw_button(int i)
 		text_at(tx, r.y + 1, l, n, n, TX_LTR | (on ? 0 : TX_LIGHT));
 }
 
+/* what the toolbar shows: drawn again only when it changes */
+static long tool_drawn = -1;
+
+static long tool_state(void)
+{
+	long st = ((long)found_new_count() << 20) | ((long)nrepos << 4);
+	int i;
+	for (i = 0; i < NBUT; i++)
+		st |= (long)enabled(i) << i;
+	return st;
+}
+
 static void draw_toolbar(GRECT *clip)
 {
 	GRECT r = r_tool;
@@ -142,6 +154,7 @@ static void draw_toolbar(GRECT *clip)
 	int i;
 	if (!intersect(clip, &r))
 		return;
+	tool_drawn = tool_state();
 	fill(&r, 0);
 	for (i = 0; i < NBUT; i++)
 		draw_button(i);
@@ -164,7 +177,7 @@ static void main_redraw(GRECT *area);
 
 void toolbar_redraw(void)
 {
-	if (main_h > 0)
+	if (main_h > 0 && tool_state() != tool_drawn)
 		main_redraw(&r_tool);
 }
 
@@ -350,6 +363,12 @@ static void draw_divider(GRECT *r)
 }
 
 /* everything of the window inside clip (already set as VDI clip) */
+/* the AES's rectangle being drawn through: the VDI's clip. What is
+   drawn is chosen by the area asked for (draw_main's clip), and drawn
+   whole within this: text that touches the clip's edge takes EmuTOS's
+   slow way, 6 ms for 14 letters where it is 2 inside (a stock Falcon) */
+static GRECT vis;
+
 static void draw_main(GRECT *clip)
 {
 	short i;
@@ -366,9 +385,11 @@ static void draw_main(GRECT *clip)
 			draw_header(w);
 		r = w->work;
 		if (intersect(clip, &r) && w->draw) {
-			clip_on(&r);
+			GRECT v = w->work;
+			intersect(&vis, &v);
+			clip_on(&v);
 			w->draw(w, &r);
-			clip_on(clip);
+			clip_on(&vis);
 		}
 		r = sb_rect(w);
 		if (intersect(clip, &r)) {
@@ -400,7 +421,8 @@ static void main_redraw(GRECT *area)
 	while (r.w > 0 && r.h > 0) {
 		GRECT c = r;
 		if (intersect(&a, &c)) {
-			clip_on(&c);
+			vis = r;
+			clip_on(&vis);
 			draw_main(&c);
 		}
 		wind_get(main_h, WF_NEXTXYWH, &r.x, &r.y, &r.w, &r.h);
@@ -419,6 +441,11 @@ void win_redraw(WIN *w, GRECT *area)
 void win_redraw_all(void)
 {
 	main_redraw(0);
+}
+
+void win_redraw_area(GRECT *area)
+{
+	main_redraw(area);
 }
 
 void win_redraw_lines(WIN *w, long first, long n)
@@ -587,9 +614,61 @@ static int win_is_top(void)
 
 /* ---------------- scrolling ---------------- */
 
+/* a scroll: the rows that stay moved on the screen (vro_cpyfm) and only
+   those that come in drawn (the guidelines' Speed). Only when all of
+   the pane's rows are in sight, in the window's first rectangle; 0 when
+   they aren't, and the caller draws them all. */
+static int scroll_moved(WIN *w, long old)
+{
+	GRECT a = w->work, r;
+	long d = w->top - old;
+	short dy, pxy[8];
+	MFDB scr;
+	a.y += w->head_h;
+	a.h -= w->head_h;
+	if (d <= -(long)(a.h / ch) || d >= (long)(a.h / ch))
+		return 0;
+	dy = (short)d * ch;
+	wind_get(main_h, WF_FIRSTXYWH, &r.x, &r.y, &r.w, &r.h);
+	if (r.x > a.x || r.y > a.y || r.x + r.w < a.x + a.w || r.y + r.h < a.y + a.h)
+		return 0;
+	memset(&scr, 0, sizeof(scr));		/* the screen */
+	pxy[0] = pxy[4] = a.x;
+	pxy[2] = pxy[6] = a.x + a.w - 1;
+	if (dy > 0) {
+		pxy[1] = a.y + dy;
+		pxy[3] = a.y + a.h - 1;
+		pxy[5] = a.y;
+		pxy[7] = a.y + a.h - 1 - dy;
+	} else {
+		pxy[1] = a.y;
+		pxy[3] = a.y + a.h - 1 + dy;
+		pxy[5] = a.y - dy;
+		pxy[7] = a.y + a.h - 1;
+	}
+	wind_update(BEG_UPDATE);
+	graf_mouse(M_OFF, 0);
+	vro_cpyfm(vdi_h, 3, pxy, &scr, &scr);
+	graf_mouse(M_ON, 0);
+	wind_update(END_UPDATE);
+	/* what came in: at the bottom with the row cut short there before,
+	   or at the top */
+	if (dy > 0) {
+		short in = dy + a.h % ch;
+		if (in > a.h)
+			in = a.h;
+		a.y += a.h - in;
+		a.h = in;
+	} else {
+		a.h = -dy;
+	}
+	main_redraw(&a);
+	return 1;
+}
+
 void win_scroll_to(WIN *w, long top)
 {
-	long max = w->total - win_rows(w);
+	long max = w->total - win_rows(w), old = w->top;
 	GRECT a, s;
 	if (max < 0)
 		max = 0;
@@ -605,12 +684,13 @@ void win_scroll_to(WIN *w, long top)
 		s.w = 0;
 	} else {
 		PANEBAR b = bar_of(w);
-		long old = w->top;
 		b.top = w->top = top;
 		s = pb_moved(&b, old);
 	}
 	if (s.w > 0)
 		main_redraw(&s);
+	if (scroll_moved(w, old))
+		return;
 	a = w->work;
 	a.y += w->head_h;
 	a.h -= w->head_h;

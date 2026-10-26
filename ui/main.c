@@ -98,23 +98,39 @@ static void enable(short cmd, int on)
 		menu_ienable(mb.tree, i, on ? 1 : 0);
 }
 
+/* the menus as they are: the AES is asked only when one changes (13
+   calls after every key took 10 ms on a stock Falcon) */
 void menu_update(void)
 {
-	long sel = repos_selected();
-	int idle = !running;
-	enable(C_FIND, idle);
-	enable(C_FOLLOW, idle);
-	enable(C_COPY, win_focused() == &w_repos ? sel > 0 : w_found.total > 0);
-	enable(C_SELALL, nrepos > 0);
-	enable(C_CHECK, idle && nrepos > 0);
-	enable(C_UPDATE, idle && (sel > 0 || found_new_count() > 0));
-	enable(C_UPDNEW, idle && found_new_count() > 0);
-	enable(C_AGAIN, idle && sel > 0);
-	enable(C_INFO, idle && sel == 1);
-	enable(C_UNFOLLOW, idle && sel > 0);
-	enable(C_SETTINGS, idle);
-	menu_icheck(mb.tree, mbar_object(&mb, C_HEBREW), hebrew_kbd);
-	menu_icheck(mb.tree, mbar_object(&mb, C_PLOG), opt.log);
+	static const short cmds[] = { C_FIND, C_FOLLOW, C_COPY, C_SELALL, C_CHECK, C_UPDATE, C_UPDNEW,
+				      C_AGAIN, C_INFO, C_UNFOLLOW, C_SETTINGS };
+	static long shown = -1;
+	long sel = repos_selected(), now;
+	int idle = !running, news = found_new_count() > 0, i;
+	short on[13];
+	on[0] = idle;
+	on[1] = idle;
+	on[2] = win_focused() == &w_repos ? sel > 0 : w_found.total > 0;
+	on[3] = nrepos > 0;
+	on[4] = idle && nrepos > 0;
+	on[5] = idle && (sel > 0 || news);
+	on[6] = idle && news;
+	on[7] = idle && sel > 0;
+	on[8] = idle && sel == 1;
+	on[9] = idle && sel > 0;
+	on[10] = idle;
+	on[11] = hebrew_kbd != 0;
+	on[12] = opt.log != 0;
+	for (now = 0, i = 0; i < 13; i++)
+		now |= (long)on[i] << i;
+	for (i = 0; i < 11; i++)
+		if (shown < 0 || ((shown ^ now) >> i & 1))
+			enable(cmds[i], on[i]);
+	if (shown < 0 || ((shown ^ now) >> 11 & 1))
+		menu_icheck(mb.tree, mbar_object(&mb, C_HEBREW), on[11]);
+	if (shown < 0 || ((shown ^ now) >> 12 & 1))
+		menu_icheck(mb.tree, mbar_object(&mb, C_PLOG), on[12]);
+	shown = now;
 }
 
 /* ---------------- status and helpers ---------------- */
@@ -883,9 +899,7 @@ static void tip_hide(void)
 	if (!tip_on)
 		return;
 	tip_on = 0;
-	win_redraw(&w_repos, &tip_r);
-	win_redraw(&w_found, &tip_r);
-	toolbar_redraw();
+	win_redraw_area(&tip_r);
 }
 
 static void tip_show(void)

@@ -51,6 +51,7 @@ void win_title(WIN *w, const char *title);
 void win_redraw(WIN *w, GRECT *area);	/* area NULL = its lines */
 void win_redraw_lines(WIN *w, long first, long n);
 void win_redraw_all(void);
+void win_redraw_area(GRECT *area);	/* any part of the window, on the screen */
 void win_scroll_to(WIN *w, long top);
 void win_ensure_visible(WIN *w, long line);
 long win_rows(WIN *w);			/* whole lines that fit */
@@ -72,6 +73,7 @@ void icon_window(GRECT *area);		/* the iconified window: the icon, "2 new" */
 #define TX_RIGHT    4	/* align right-to-left text to the right edge */
 #define TX_LIGHT    8
 #define TX_LTR     16	/* left-to-right paragraph even when it starts in Hebrew */
+#define TX_ON_WHITE 32	/* on colour 0: drawn in replace mode, the VDI's fastest */
 #define TX_DIM     TX_LIGHT	/* what can't be used: the shared popup's disabled items */
 void fill(GRECT *r, short color);
 extern short text_pen;		/* the colour of text (theme.h pens); set, draw, set back to 1 */
