@@ -52,6 +52,19 @@ def server_token():
     return server.LONG_TOKEN
 
 
+def changed(r, base, name, act, tries=5, again=True):
+    """act (again: each try, else once) until the screen differs from
+    the shot base; that shot's path"""
+    for i in range(tries):
+        if again or not i:
+            act()
+        time.sleep(1.5)
+        shot = r.shot(name)
+        if open(shot, "rb").read() != open(base, "rb").read():
+            return shot
+    return shot
+
+
 def wait_port(port):
     for _ in range(50):
         try:
@@ -125,13 +138,13 @@ def main():
         r.shot("info")
         r.key(K["ESC"])
         time.sleep(1)
-        r.key(0x33, ctrl=True)                 # ^,
-        time.sleep(2)
-        r.shot("settings")
+        before = r.shot("before_settings")
+        settings = changed(r, before, "settings", lambda: r.key(0x33, ctrl=True), again=False)   # ^,
         # a fine-grained token, 93 characters, into the field 30 wide
-        # (the guidelines 5.4): the field scrolls, and all of it is kept
-        r.click(140, 241)
-        time.sleep(1)
+        # (the guidelines 5.4): the field scrolls, and all of it is kept.
+        # Typed only once the GitHub page is up: on a loaded host the
+        # dialog can be drawn before it takes clicks (the hub, 26 Oct)
+        changed(r, settings, "settings_github_page", lambda: r.click(140, 241))
         r.type(server_token())
         time.sleep(0.5)
         r.shot("settings_github")
