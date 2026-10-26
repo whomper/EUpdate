@@ -23,10 +23,35 @@ static const short shade[NPEN][3] = {
 };
 #define FIRST_PEN 16		/* past the desktop's sixteen */
 
-/* with sixteen colours: the standard TOS ones, the darker shades (12
-   navy, 14 brown for the orange, 13 dark cyan for the teal) rather than
-   the loud full ones */
-static const short stock[NPEN] = { 1, 9, 9, 8, 1, 12, 14, 13, 2 };
+/* with sixteen colours, the standard TOS ones as the ST's and Falcon's
+   palette has them: the darker shades (navy, brown for the orange, dark
+   cyan for the teal) rather than the loud full ones. Each takes the pen
+   nearest to it in the palette there is: a TT's has light colours where
+   these are dark, pale yellow on white for "New release" (Erez, 23 Oct
+   2026: colours right in any environment; the hub's rule) */
+static const short want16[NPEN][3] = {
+	{ 0, 0, 0 }, { 533, 533, 533 }, { 533, 533, 533 }, { 733, 733, 733 }, { 0, 0, 0 },
+	{ 0, 0, 667 }, { 667, 667, 0 }, { 0, 667, 667 }, { 1000, 0, 0 }
+};
+
+/* the pen nearest to want; dark: one that text can be read in on white
+   (or white text on it). Never white, the background */
+static short nearest(const short *want, int dark, short pal[16][3])
+{
+	short k, best = 1;
+	long bd = 0x7fffffffL;
+	for (k = 1; k < 16; k++) {
+		long r = pal[k][0] - want[0], g = pal[k][1] - want[1], b = pal[k][2] - want[2];
+		long d = r * r + g * g + b * b;
+		if (dark && 299L * pal[k][0] + 587L * pal[k][1] + 114L * pal[k][2] > 600000L)
+			continue;
+		if (d < bd) {
+			bd = d;
+			best = k;
+		}
+	}
+	return best;
+}
 
 static short saved[NPEN][3];
 static int set_rgb;
@@ -52,8 +77,16 @@ void theme_init(void)
 		}
 		set_rgb = 1;
 	} else {
+		short pal[16][3];
+		for (i = 0; i < 16; i++)
+			vq_color(vdi_h, i, pal[i]);
 		for (i = 0; i < NPEN; i++)
-			pen[i] = stock[i];
+			pen[i] = nearest(want16[i], i != P_PANEL, pal);
+		/* a state's colour never the dim one: an Update button in it
+		   would look disabled. Then plain, as the word says it */
+		for (i = P_NEW; i <= P_ERR; i++)
+			if (pen[i] == pen[P_DIM])
+				pen[i] = pen[P_TEXT];
 	}
 }
 
