@@ -353,10 +353,7 @@ static void dialog_redraw(const short *msg)
 static void on_replaced(const REPO *r, const char *old, const char *now)
 {
 	const char *app = strchr(r->full, '/');
-	char m[120];
-	snprintf(m, sizeof(m), "%s replaced by %s", old, now);
-	log_step(m);
-	app = app ? app + 1 : r->full;
+	app = app ? app + 1 : r->full;	/* the log has it already (update.c's say) */
 	if (nreplaced < NREPLACED && wild_match("*.ACC", now))
 		snprintf(replaced[nreplaced++], sizeof(replaced[0]),
 			 "[1][%s's accessory is now %s (%s is gone). Restart the Atari to load it; "
