@@ -423,6 +423,7 @@ static short open_any(OBJECT *tree, void (*draw)(short, short, short, short),
 		short wx = tree ? tree[0].ob_x : *x, wy = tree ? tree[0].ob_y : *y;
 		short ww = tree ? tree[0].ob_width : *w, wh = tree ? tree[0].ob_height : *h;
 		wind_get(0, WF_WORKXYWH, &dx, &dy, &dwid, &dh);
+		wx = (wx + 8) & ~15;		/* its text on a byte, as align16 */
 		wind_calc(WC_BORDER, DLG_KIND, wx, wy, ww, wh, &bx, &by, &bw, &bh);
 		if (by < dy) {			/* below the menu bar */
 			wy += dy - by;
@@ -583,6 +584,10 @@ short dlg_evnt(short flags, short clicks, short mask, short state,
 				win_paint(k, msg[4], msg[5], msg[6], msg[7]);
 				wind_update(BEG_UPDATE);
 			} else if (msg[0] == WM_MOVED && k <= i && dw[k].h > 0) {
+				short wx, wy, ww, wh;
+				/* the work area stays on 16 pixels across */
+				wind_calc(WC_WORK, DLG_KIND, msg[4], msg[5], msg[6], msg[7], &wx, &wy, &ww, &wh);
+				msg[4] += ((wx + 8) & ~15) - wx;
 				wind_set(dw[k].h, WF_CURRXYWH, msg[4], msg[5], msg[6], msg[7]);
 				if (dw[k].tree)
 					wind_get(dw[k].h, WF_WORKXYWH, &dw[k].tree[0].ob_x,

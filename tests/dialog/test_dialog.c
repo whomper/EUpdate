@@ -296,7 +296,7 @@ short evnt_multi_(short flags, short clicks, short mask, short state,
 		if (script->key == WM_REDRAW)
 			msg[4] = 0, msg[5] = 0, msg[6] = 640, msg[7] = 480;	/* all of it */
 		else
-			msg[4] = 300, msg[5] = 200, msg[6] = 322, msg[7] = 181;	/* WM_MOVED: work at 301, 220 */
+			msg[4] = 300, msg[5] = 200, msg[6] = 322, msg[7] = 181;	/* WM_MOVED: work at 301, 220, put on 304 */
 		script++;
 		return ev->which;
 	}
@@ -954,7 +954,7 @@ int main(void)
 		      "... a window of the AES's with the app's name, closed after; no form_dial");
 		check(draws >= 2 && !(root_drawn_state & OUTLINED), "... drawn when it opened and when the AES asked, without the outline");
 		check(tree[ROOT].ob_state == OUTLINED && tree[ROOT].ob_spec == 0x00021100L, "... the root as it was, after");
-		check(tree[ROOT].ob_x == 301 && tree[ROOT].ob_y == 220, "... moved: the tree with the window");
+		check(tree[ROOT].ob_x == 304 && tree[ROOT].ob_y == 220, "... moved: the tree with the window, its work area on 16 pixels");
 		check(evnt_updates == 0, "... the screen not held while it waits (the others draw)");
 		tidy("in a window");
 	}

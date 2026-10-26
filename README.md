@@ -237,6 +237,10 @@ as runs and a letter at a time. On TOS a dialog, a popup and the About box keep 
 them and put it back (`dialog.c`'s `dlg_under`), so nothing under them is drawn again.
 `tests/mem` checks `libc.c`'s `memcpy`, `memmove`, `memset` and `memchr` (68000 loops by hand)
 against plain C under qemu-m68k, as 68000 and 68030 code.
+`src/inflate.c` also unpacks a piece at a time (`inflate_open`, `inflate_read`): a file of any
+size through a 32 KB window, with a turn for GEM between pieces; `tests/inflate` checks it against
+`inflate_raw` and zlib (every level and strategy, stored blocks after compressed ones). `str_istr`
+looks for the needle's first letter before comparing the rest (`tests/istr`).
 
 ## People from EContact (17 Oct 2026)
 
