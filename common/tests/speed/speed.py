@@ -95,22 +95,26 @@ class Rig:
         stretch (AESSTART) is the first result, when the program has one"""
         self.x = machines.xvfb(self.display)
         self.env = self.m.env(dict(os.environ, DISPLAY=self.display, SDL_VIDEODRIVER="x11"))
+        # line-buffered: Hatari's console is a file here, and a line held
+        # in its buffer would count for the next action
         self.hatari = subprocess.Popen(
-            ["hatari", "--statusbar", "no", "--borders", "no", "--zoom", "1", "--natfeats", "yes",
+            ["stdbuf", "-oL", "-eL", "hatari", "--statusbar", "no", "--borders", "no", "--zoom", "1", "--natfeats", "yes",
              "--fast-boot", "yes", "--log-level", "warn"] + self.m.args() +
             (["--auto", auto] if auto else []),
             env=self.env, stdout=open(self.log, "w"), stderr=subprocess.STDOUT)
-        t_end = time.time() + (boot or (90 if self.nvdi else 45) * (2 if self.st else 1))
+        # a program's own start is its first event call (AESSTART, from a
+        # -DAES_PROFILE build): a still screen alone isn't, NVDI's outline
+        # fonts load for a minute behind one
+        if auto and ready is None:
+            ready = "AESSTART"
+        t_end = time.time() + (boot or (120 if self.nvdi else 45) * (2 if self.st else 1))
         while time.time() < t_end:
             time.sleep(2)
             if ready is None or ready in self.console():
                 if self.still(most=10):
                     break
         if auto:
-            m = re.search(r"AESSTART (\d+) ms", self.console())
-            self.results.append(("the program started", int(m.group(1)) if m else None, START))
-            if not m:
-                print("NOTE  no AESSTART: is the program built with -DAES_PROFILE?", flush=True)
+            self.results.append(("the program started", "AESSTART", START))   # read by report()
 
     def console(self):
         with open(self.log, errors="replace") as f:
@@ -188,6 +192,12 @@ class Rig:
     def report(self):
         """the table; 1 if any action is over its time"""
         over = 0
+        m = re.search(r"AESSTART (\d+) ms", self.console())
+        for i, (what, ms, budget) in enumerate(self.results):
+            if ms == "AESSTART":
+                self.results[i] = (what, int(m.group(1)) if m else None, budget)
+                if not m:
+                    print("NOTE  no AESSTART: is the program built with -DAES_PROFILE?", flush=True)
         print("speed on %s" % self.describe())
         print("  %-40s %8s %8s" % ("action", "longest", "time"))
         for what, ms, budget in self.results:
