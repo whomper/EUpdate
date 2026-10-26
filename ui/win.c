@@ -402,8 +402,70 @@ static void draw_main(GRECT *clip)
 		draw_divider(&r);
 }
 
-/* redraw area of the window through its rectangle list */
+static void redraw_now(GRECT *area);
+
+/* the screen held (the AES's update, the mouse off) for a pass or a copy;
+   once for a whole batch */
+static int batching, held;
+
+static void hold(void)
+{
+	if (held++)
+		return;
+	wind_update(BEG_UPDATE);
+	graf_mouse(M_OFF, 0);
+}
+
+static void let_go(void)
+{
+	if (--held)
+		return;
+	graf_mouse(M_ON, 0);
+	wind_update(END_UPDATE);
+}
+
+/* redraws asked for while batching (win_batch) and not drawn yet: those
+   that touch go in one pass through the rectangle list, which costs a
+   stock Falcon 5-10 ms each */
+static GRECT owed;
+
 static void main_redraw(GRECT *area)
+{
+	if (batching && area) {
+		if (owed.w > 0 && area->x == owed.x && area->w == owed.w &&
+		    area->y <= owed.y + owed.h && owed.y <= area->y + area->h) {
+			short y2 = owed.y + owed.h > area->y + area->h ? owed.y + owed.h : area->y + area->h;
+			if (area->y < owed.y)
+				owed.y = area->y;
+			owed.h = y2 - owed.y;
+			return;
+		}
+		if (owed.w > 0)
+			redraw_now(&owed);
+		owed = *area;
+		return;
+	}
+	redraw_now(area);
+}
+
+void win_batch(int on)
+{
+	if (on) {
+		batching = 1;
+		hold();
+		return;
+	}
+	batching = 0;
+	if (owed.w > 0) {
+		GRECT a = owed;
+		owed.w = 0;
+		redraw_now(&a);
+	}
+	let_go();
+}
+
+/* redraw area of the window through its rectangle list */
+static void redraw_now(GRECT *area)
 {
 	GRECT r, a;
 	if (main_h <= 0)
@@ -415,8 +477,7 @@ static void main_redraw(GRECT *area)
 	a = area ? *area : mwork;
 	if (!intersect(&mwork, &a))
 		return;
-	wind_update(BEG_UPDATE);
-	graf_mouse(M_OFF, 0);
+	hold();
 	wind_get(main_h, WF_FIRSTXYWH, &r.x, &r.y, &r.w, &r.h);
 	while (r.w > 0 && r.h > 0) {
 		GRECT c = r;
@@ -427,8 +488,7 @@ static void main_redraw(GRECT *area)
 		}
 		wind_get(main_h, WF_NEXTXYWH, &r.x, &r.y, &r.w, &r.h);
 	}
-	graf_mouse(M_ON, 0);
-	wind_update(END_UPDATE);
+	let_go();
 }
 
 void win_redraw(WIN *w, GRECT *area)
@@ -632,6 +692,11 @@ static int scroll_moved(WIN *w, long old)
 	wind_get(main_h, WF_FIRSTXYWH, &r.x, &r.y, &r.w, &r.h);
 	if (r.x > a.x || r.y > a.y || r.x + r.w < a.x + a.w || r.y + r.h < a.y + a.h)
 		return 0;
+	if (owed.w > 0) {			/* nothing owed is moved unmade */
+		GRECT o = owed;
+		owed.w = 0;
+		redraw_now(&o);
+	}
 	memset(&scr, 0, sizeof(scr));		/* the screen */
 	pxy[0] = pxy[4] = a.x;
 	pxy[2] = pxy[6] = a.x + a.w - 1;
@@ -646,11 +711,9 @@ static int scroll_moved(WIN *w, long old)
 		pxy[5] = a.y - dy;
 		pxy[7] = a.y + a.h - 1;
 	}
-	wind_update(BEG_UPDATE);
-	graf_mouse(M_OFF, 0);
+	hold();
 	vro_cpyfm(vdi_h, 3, pxy, &scr, &scr);
-	graf_mouse(M_ON, 0);
-	wind_update(END_UPDATE);
+	let_go();
 	/* what came in: at the bottom with the row cut short there before,
 	   or at the top */
 	if (dy > 0) {

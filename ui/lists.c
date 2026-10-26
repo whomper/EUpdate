@@ -208,7 +208,8 @@ static void select_only(long row)
 			n++;
 		}
 	/* scrolled first: the row it brings into sight is drawn by it, and
-	   only the rest of what changed after */
+	   only the rest of what changed after, in one pass with it */
+	win_batch(1);
 	if (row >= 0) {
 		cursor = row;
 		win_ensure_visible(&w_repos, row);
@@ -231,6 +232,7 @@ static void select_only(long row)
 		if (lo >= 0)		/* next to each other: in one go */
 			win_redraw_lines(&w_repos, lo, hi - lo + 1);
 	}
+	win_batch(0);
 	toolbar_redraw();
 }
 
