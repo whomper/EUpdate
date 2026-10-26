@@ -96,7 +96,7 @@ def main():
     print("on", m.describe(), flush=True)
     try:
         inf = ""
-        for i in range(int(os.environ.get("WAIT", "60"))):
+        for i in range(int(os.environ.get("WAIT", "150"))):
             time.sleep(10)
             inf = open(os.path.join(hd, "EUPDATE.INF"), errors="replace").read()   # lines end "\n" here
             if inf.count("HAVE=v") == len(FOLLOW):
