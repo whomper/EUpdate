@@ -1121,6 +1121,7 @@ int main(void)
 	av_init("EUPDATE");		/* the desktop's AV server, if there is one */
 	notify_init("EUPDATE ");	/* BGEM.NG's notifications, where it runs (4.5) */
 	notify_clicked = on_notify;
+	notify_ask();			/* sent only once BGEM.NG said it shows them */
 	crash_cleanup = crash_quit;
 	crash_report = conn_log_append;	/* the report in EUPDATE.LOG too */
 	secret_warn = warn_plain;	/* before anything is saved */
