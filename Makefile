@@ -122,9 +122,9 @@ $(OBJDIR)/%.o: atari/%.c $(HDRS) | $(OBJDIR)
 $(OBJDIR)/%.o: ui/%.c $(HDRS) | $(OBJDIR)
 	$(CC) $(CFLAGS) $(OWNWARN) -c -o $@ $<
 # the first code, built for the 68000: on an ST it says EUpdate needs a
-# Falcon or TT, before anything of the 68030's runs (ui/cpucheck.c)
-$(OBJDIR)/cpucheck.o: ui/cpucheck.c | $(OBJDIR)
-	$(CC) $(subst -m68030,-m68000,$(CFLAGS)) $(OWNWARN) -c -o $@ $<
+# Falcon or TT, before anything of the 68030's runs (common's cpucheck.c)
+$(OBJDIR)/cpucheck.o: common/atari/cpucheck.c | $(OBJDIR)
+	$(CC) $(subst -m68030,-m68000,$(CFLAGS)) -c -o $@ $<
 $(OBJDIR)/%.o: common/src/%.c $(HDRS) | $(OBJDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 $(OBJDIR)/%.o: common/atari/%.c $(HDRS) | $(OBJDIR)

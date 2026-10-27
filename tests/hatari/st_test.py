@@ -4,7 +4,7 @@
 """EUPDATE.PRG started on an ST: it says it needs a Falcon or a TT, and
 the desktop comes back when the alert is answered (the hub, 27 Oct 2026:
 1.18 died on TOS 1.04 with an illegal instruction before its check; the
-check is ui/cpucheck.c now, built for the 68000).
+check is common's cpucheck.c now, built for the 68000).
 
     st_test.py WORK [MACHINE]     (MACHINE: ST:mono; Xvfb)
 

@@ -1062,9 +1062,12 @@ static void warn_plain(const char *keyfile)
 		 "Is the disk locked or full?][ OK ]", keyfile);
 }
 
-/* after cpucheck.c's main, which has seen a 68020 or better */
-int eupdate_main(void);
-int eupdate_main(void)
+/* common's cpucheck.c is main(), built for the 68000: on an ST it says
+   this, and goes; on a 68020 or better it calls app_main */
+const long cpu_need = 20;
+const char cpu_alert[] = "[3][EUpdate needs a 68020 or|better: a Falcon or a TT.][ Quit ]";
+int app_main(void);
+int app_main(void)
 {
 	short work_out[57], msg[8], d;
 	char dir[200];
