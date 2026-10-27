@@ -1088,8 +1088,10 @@ int main(void)
 	ch = gl_hchar;
 	{
 		/* the workstation: NVDI needs memory for it; 0 is none, and is
-		   said, never drawn with (the guidelines, 2.1; as EFTP) */
+		   said, never drawn with (the guidelines, 2.1; as EFTP). The
+		   alert says how much was free, for a report */
 		short aes_h = vdi_h, tries;
+		long st = (long)Mxalloc(-1L, 0), tt = (long)Mxalloc(-1L, 1);
 		for (tries = 0; tries < 2; tries++) {
 			vdi_h = v_opnvwk_(aes_h, work_out);
 			if (vdi_h > 0)
@@ -1097,7 +1099,10 @@ int main(void)
 			evnt_timer_(500);
 		}
 		if (vdi_h <= 0) {
-			form_alert(1, "[3][EUpdate can't open its screen:|the VDI has no memory for it.|Load fewer accessories.][ Quit ]");
+			char a[200];
+			snprintf(a, sizeof(a), "[3][EUpdate can't open its screen:|the VDI has no memory for it.|%ld KB were free; the|accessories hold the rest.|Load fewer, or add memory.][ Quit ]",
+				 ((st > 0 ? st : 0) + (tt > 0 ? tt : 0)) / 1024);
+			form_alert(1, a);
 			appl_exit();
 			return 1;
 		}
