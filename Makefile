@@ -4,9 +4,10 @@
 # Atari Falcon and TT: find repositories and owners, follow them, see
 # which are current, and update them by hand or on a schedule.
 #
-#   make            binary/EUPDATE.PRG (68030 code, TLS on the Atari with
-#                   BearSSL, RSA and the curves on the Falcon's DSP) and the
-#                   root certificates, with a stock m68k ELF cross compiler
+#   make            binary/EUPDATE.PRG (68030 code), TLS.OVL beside it (its
+#                   TLS: BearSSL, RSA and the curves on the Falcon's DSP;
+#                   the family's, the guidelines 7.4) and the root
+#                   certificates, with a stock m68k ELF cross compiler
 #                   (Debian/Ubuntu: apt install gcc-m68k-linux-gnu). No
 #                   MiNTLib: the program is freestanding, on common/'s
 #                   runtime, and common/tools/elf2tos.py writes the header.
@@ -36,48 +37,39 @@ INC     := -Isrc -Icommon/src -Iatari -Icommon/atari -Iui -Icommon/ui -Icommon/t
 CFLAGS  := -m68030 -O2 -fomit-frame-pointer -ffreestanding -fno-builtin -fno-pic -fno-pie \
            -fno-tree-loop-distribute-patterns -fno-asynchronous-unwind-tables \
            -ffunction-sections -fdata-sections -Wall -Wno-pointer-sign \
-           -DEU_TOS -DTLS_030 -nostdinc -isystem $(GCCINC) -Icommon/atari/include $(INC)
+           -DEU_TOS -nostdinc -isystem $(GCCINC) -Icommon/atari/include $(INC)
 # EUpdate's own files: no warning passes
 OWNWARN := -Wextra -Wno-unused-parameter -Werror
 LDFLAGS := -m68030 -nostdlib -static -no-pie -Wl,--emit-relocs -Wl,-T,common/atari/link.ld \
            -Wl,--gc-sections -Wl,--build-id=none -Wl,-z,noexecstack -Wl,--no-warn-rwx-segments
 
-# BearSSL 0.6, for TLS on the Atari (as EFTP, EMail and ECal)
+# BearSSL 0.6, for the tests on this computer: on the Atari the TLS is
+# TLS.OVL's (common/tlsovl, built in AERA-Atari, never here)
 BSSL    := common/third_party/bearssl
 BSSLSRC := $(wildcard $(BSSL)/src/*/*.c)
-BSSLDEF := -DBR_USE_URANDOM=0 -DBR_USE_GETENTROPY=0 -DBR_USE_UNIX_TIME=0 \
-           -DBR_USE_WIN32_TIME=0 -DBR_USE_WIN32_RAND=0 -DBR_RDRAND=0
-BSSLCF  := -m68030 -O2 -fomit-frame-pointer -ffreestanding -fno-builtin -fno-pic -fno-pie \
-           -fno-tree-loop-distribute-patterns -fno-asynchronous-unwind-tables -ffunction-sections \
-           -fdata-sections -w -nostdinc -isystem $(GCCINC) -Icommon/atari/include -I$(BSSL)/inc \
-           -I$(BSSL)/src $(BSSLDEF)
-# on the Atari, BearSSL's br_i31_montymul is common/tlsovl's, its loop in
-# 68030 assembly (as TLS.OVL's: RSA, the prime curves, ECDSA, X25519),
-# and RSA on the 68030 is rsa030.c with mont030.S (TLS_030; AERA-Atari
-# d6a764d: a TT's chain check from 16.6 s to under 2 s)
-ABSSLSRC := $(filter-out $(BSSL)/src/int/i31_montmul.c,$(BSSLSRC))
-BSSLOBJ  = $(patsubst $(BSSL)/src/%.c,$(OBJDIR)/bssl/%.o,$(ABSSLSRC)) $(OBJDIR)/bssl/i31_montmul_030.o \
-           $(OBJDIR)/bssl/mont31_030.o
 HBSSLOBJ = $(patsubst $(BSSL)/src/%.c,$(OBJDIR)/hbssl/%.o,$(BSSLSRC))
 
 # EUpdate's core (src/), and what it takes from common/src
 OWN     := http json gh store unzip update
-CORE    := conn tls util futil inflate secret charset ctime bidi ecdsp rsa030
-ATARI   := libc tos plat_tos net_tos sting gem dsprsa dspec crash bigbuf
+CORE    := conn util futil inflate secret charset ctime bidi ovl
+ATARI   := libc tos plat_tos net_tos sting gem tls_ovl crash bigbuf
 UI      := main win draw lists dialogs font about theme \
-           dsp dsp_ec fontsel help av alert dialog field mbar aboutbox iconify clip clipedit dd popup \
+           dsp_ovl fontsel help av alert dialog field mbar aboutbox iconify clip clipedit dd popup \
            panebar notify aboutline cpucheck
 
 OBJDIR  := build
-OBJS    := $(OBJDIR)/crt0.o $(OBJDIR)/sting_s.o $(OBJDIR)/nf.o $(OBJDIR)/crash_s.o $(OBJDIR)/mont030.o \
+OBJS    := $(OBJDIR)/crt0.o $(OBJDIR)/sting_s.o $(OBJDIR)/nf.o $(OBJDIR)/crash_s.o \
            $(addprefix $(OBJDIR)/,$(addsuffix .o,$(OWN) $(CORE) $(ATARI) $(UI)))
 HDRS    := $(wildcard src/*.h atari/*.h ui/*.h common/src/*.h common/atari/*.h \
            common/atari/include/*.h common/ui/*.h common/dsp/*.h)
 
-all: binary/EUPDATE.PRG binary/ROOTS.DAT
+all: binary/EUPDATE.PRG binary/TLS.OVL binary/ROOTS.DAT
 
 binary/EUPDATE.PRG: $(OBJDIR)/eupdate.elf common/tools/elf2tos.py | binary
 	PRGFLAGS=7 python3 common/tools/elf2tos.py $< $@
+# the family's TLS.OVL, as it comes with common/: copied, never built here
+binary/TLS.OVL: common/tlsovl/TLS.OVL | binary
+	cp $< $@
 
 # the version: VERSION holds the last release (major.minor), and the
 # build never writes it; tools/bump.py starts a release
@@ -97,23 +89,8 @@ icons:
 	python3 common/tools/appicon.py EUPDATE --rsc icons/EUPDATE.RSC --rscnv icons/EUPDNV.RSC \
 		--icn icons/EUPDATE.ICN --mask icons/EUPDMK.ICN --headers ui --docs docs
 
-$(OBJDIR)/eupdate.elf: $(OBJS) $(OBJDIR)/version.o $(OBJDIR)/libbearssl.a common/atari/link.ld
-	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(OBJDIR)/version.o $(OBJDIR)/libbearssl.a -lgcc
-
-$(OBJDIR)/bssl/%.o: $(BSSL)/src/%.c
-	@mkdir -p $(dir $@)
-	$(CC) $(BSSLCF) -c -o $@ $<
-
-$(OBJDIR)/bssl/i31_montmul_030.o: common/tlsovl/i31_montmul_030.c
-	@mkdir -p $(dir $@)
-	$(CC) $(BSSLCF) -c -o $@ $<
-$(OBJDIR)/bssl/mont31_030.o: common/tlsovl/mont31_030.S
-	@mkdir -p $(dir $@)
-	$(CC) -m68030 -c -o $@ $<
-
-$(OBJDIR)/libbearssl.a: $(BSSLOBJ)
-	rm -f $@
-	$(CROSS)ar rcs $@ $^
+$(OBJDIR)/eupdate.elf: $(OBJS) $(OBJDIR)/version.o common/atari/link.ld
+	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(OBJDIR)/version.o -lgcc
 
 $(OBJDIR)/%.o: src/%.c $(HDRS) | $(OBJDIR)
 	$(CC) $(CFLAGS) $(OWNWARN) -c -o $@ $<
@@ -131,7 +108,6 @@ $(OBJDIR)/%.o: common/atari/%.c $(HDRS) | $(OBJDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 $(OBJDIR)/%.o: common/ui/%.c $(HDRS) | $(OBJDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
-$(OBJDIR)/dspec.o: common/dsp/ec_prog.h
 # the stack, 20 KB: a family update on Falcon-4:16 reaches 11 KB (TLS's
 # handshake), the window and dialogs 3 KB. It is the program's own memory,
 # taken before the VDI opens its workstation: NVDI with four accessories
@@ -144,8 +120,6 @@ $(OBJDIR)/sting_s.o: common/atari/sting.S | $(OBJDIR)
 $(OBJDIR)/crash_s.o: common/atari/crash.S | $(OBJDIR)
 	$(CC) -m68030 -c -o $@ $<
 $(OBJDIR)/nf.o: common/atari/nf.S | $(OBJDIR)
-	$(CC) -m68030 -c -o $@ $<
-$(OBJDIR)/mont030.o: common/atari/mont030.S | $(OBJDIR)
 	$(CC) -m68030 -c -o $@ $<
 
 $(OBJDIR) binary:
@@ -252,7 +226,7 @@ itest: $(OBJDIR)/eupd-cli
 
 # a release's files: each one in dist/, and all of them in
 # dist/EUPDATE-x.y.zip (the icons in icons/), for the release workflow
-DIST    := binary/EUPDATE.PRG binary/CACERT.PEM binary/ROOTS.DAT binary/EUPDATE.HYP binary/DEFAULTS.INF
+DIST    := binary/EUPDATE.PRG binary/TLS.OVL binary/CACERT.PEM binary/ROOTS.DAT binary/EUPDATE.HYP binary/DEFAULTS.INF
 ICONS   := icons/EUPDATE.RSC icons/EUPDNV.RSC icons/EUPDATE.ICN icons/EUPDMK.ICN
 dist: all help binary/DEFAULTS.INF
 	rm -rf dist

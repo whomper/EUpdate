@@ -78,9 +78,10 @@ information, your assessment and what he should do, nothing more.
 
 - **What it is:** `EUPDATE.PRG`, a program only (no accessory: its work is TLS to GitHub, which an
   accessory may not do in the background, guidelines 2.2), for the Falcon and TT only: 68030
-  code, TLS on the Atari (common's `tls.c`, RSA and the curves on the DSP: `ui/dsp.c`,
-  `ui/dsp_ec.c`). There is no ST edition and no gateway: `opt.falcon` is always 1, kept only
-  because common's `dsp.c` and `dsp_ec.c` read it.
+  code, TLS on the Atari in the family's `TLS.OVL` (Erez, 27 Oct 2026; guidelines 7.4:
+  `atari/tls_ovl.c`, `src/ovl.c`, `ui/dsp_ovl.c`; RSA and the curves on the DSP), loaded at the
+  first job (`job_begin`), its error in an alert; the host builds keep `src/tls.c`. There is no
+  ST edition and no gateway: `opt.falcon` is always 1, kept only because `dsp_ovl.c` reads it.
 - **Light (Erez's wish):** every file is built with `-ffunction-sections -fdata-sections` and
   linked with `--gc-sections`, so of `common/` only what EUpdate calls is in the program. Don't
   add code nothing calls, nor settings nobody asked for; take what `common/` has before writing
@@ -102,7 +103,8 @@ information, your assessment and what he should do, nothing more.
   WORK` (Falcon:16; TT and Falcon:256 too for drawing) and look at its screenshots; when the
   window changes, `tests/hatari/screenshots.py WORK` for `docs/` and `helpfront.py thumb` for
   `docs/help/WINDOW.IMG`. After a change to the start (common's `cpucheck.c`, `app_main()`, crt0, the
-  Makefile's flags), `tests/hatari/st_test.py WORK`: on an ST, the alert and the desktop again.
+  Makefile's flags), `tests/hatari/st_test.py WORK`: on an ST, the alert and the desktop again. After a change to how TLS.OVL
+  is loaded, `tests/hatari/noovl_test.py WORK`.
 - **Speed:** EUpdate runs only on a TT or Falcon, so its slow machine is `Falcon-4:16`, with and
   without NVDI. `make prof && tests/hatari/speed.py WORK` times what the user does (the window
   drawn, rows, scrolling, the dialogs); `PRG=build/prof/EUPDATE.PRG tests/hatari/family_test.py
@@ -119,8 +121,8 @@ information, your assessment and what he should do, nothing more.
 - **The tests' GitHub** is `tests/server.py` (its repository is `tests/github/repo.json`, a real
   one as the API gave it): `APIBASE=` points EUpdate at it, as at a GitHub Enterprise server.
   GitHub's real API isn't asked by any test.
-- **A release** carries `EUPDATE.PRG`, `EUPDATE.HYP`, `CACERT.PEM`, `ROOTS.DAT`, `DEFAULTS.INF`
-  and the icon (`icons/`, `make icons`), from `make dist`. `DEFAULTS.INF` (Erez, 24 Oct 2026) is
+- **A release** carries `EUPDATE.PRG`, `TLS.OVL` (common's, copied), `EUPDATE.HYP`, `CACERT.PEM`,
+  `ROOTS.DAT`, `DEFAULTS.INF` and the icon (`icons/`, `make icons`), from `make dist`. `DEFAULTS.INF` (Erez, 24 Oct 2026) is
   what a first start follows, with no `EUPDATE.INF` yet: the AERA programs into `C:\AERA\NAME`,
   accessories to `C:\`, EUpdate in its own folder (`.`) at the release's version
   (`HAVE=v@VERSION@`, filled in by make). A new AERA program is added there.

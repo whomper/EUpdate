@@ -32,7 +32,7 @@ def main():
     shutil.rmtree(work, ignore_errors=True)
     hd = os.path.join(work, "hd")
     os.makedirs(hd)
-    for f in ("EUPDATE.PRG", "CACERT.PEM", "ROOTS.DAT"):
+    for f in ("EUPDATE.PRG", "TLS.OVL", "CACERT.PEM", "ROOTS.DAT"):
         shutil.copy(os.path.join(TOP, "binary", f), hd)
     with open(os.path.join(hd, "EUPDATE.INF"), "w", newline="") as f:
         f.write("[OPTIONS]\r\nCHECK=1\r\nAPIBASE=http://127.0.0.1:%d\r\nFOLDER=C:\\NET\r\n" % PORT)

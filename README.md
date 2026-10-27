@@ -24,12 +24,12 @@ folders of your choice, shows which are current, and updates them with a click o
   safely, so a reset never leaves half a program. An AERA program's `TLS.OVL` always goes with it,
   and a hand-copied ST edition (`ECALST.ACC`) gives way to the one program that replaces it.
 - **TLS on the Atari itself:** TLS 1.2 with BearSSL, the handshake's sums on the Falcon's DSP; no
-  gateway. A GitHub token is optional, kept encrypted, and goes nowhere but GitHub's API.
+  gateway. It is the family's `TLS.OVL`, beside the program, loaded when EUpdate first talks to GitHub. A GitHub token is optional, kept encrypted, and goes nowhere but GitHub's API.
 - **Modern but Atari:** one window with a toolbar and tooltips, right-click menus, the family's
   Settings dialog, VA_START and drag and drop (drop a repository's address on the window),
   iconify, help in EHypView or ST-Guide.
-- **Light:** about 300 KB, a third of it BearSSL; built so that only the shared AERA code it calls
-  goes in.
+- **Light:** about 220 KB, and 140 KB more for `TLS.OVL` once it talks to GitHub; built so that
+  only the shared AERA code it calls goes in.
 
 ![EUpdate on a Falcon: the AERA programs followed above, one with a new release, one not
 downloaded yet; whomper's repositories found below, ticks by those followed](docs/screenshot.png)
@@ -42,13 +42,15 @@ file by file or all together in the zip:
 | File | What it is |
 |---|---|
 | `EUPDATE.PRG` | the program, for a Falcon or TT (68030; a 68020 or better) |
+| `TLS.OVL` | its TLS (the AERA family's): EUpdate can't reach GitHub without it |
 | `CACERT.PEM`, `ROOTS.DAT` | the root certificates GitHub's are checked against |
 | `EUPDATE.HYP` | the user guide, for EHypView or ST-Guide; the Help key opens it |
 | `DEFAULTS.INF` | what EUpdate follows on its first start: the AERA programs |
 | `EUPDATE.RSC`, `EUPDNV.RSC`, `EUPDATE.ICN`, `EUPDMK.ICN` | the desktop icon (in the zip's `icons/` folder): `EUPDATE.RSC` under TOS, EmuTOS, or NVDI with TOS's palette loaded (COLORVDI); `EUPDNV.RSC`, renamed `EUPDATE.RSC`, under NVDI with its own palette |
 | `EUPDATE-x.y.zip` | all of these together |
 
-1. Copy `EUPDATE.PRG`, `CACERT.PEM`, `ROOTS.DAT`, `EUPDATE.HYP` and `DEFAULTS.INF` into a folder of their own.
+1. Copy `EUPDATE.PRG`, `TLS.OVL`, `CACERT.PEM`, `ROOTS.DAT`, `EUPDATE.HYP` and `DEFAULTS.INF` into a folder
+   of their own.
    EUpdate keeps its settings and the repositories it follows (`EUPDATE.INF`, `EUPDATE.KEY`) in
    the folder it is started from.
 2. Load STinG (or run MiNT with MiNTnet).
@@ -98,7 +100,7 @@ Enterprise server, `APIBASE=` in `EUPDATE.INF`.
 
 ```sh
 sudo apt install gcc-m68k-linux-gnu python3   # Debian/Ubuntu; no MiNTLib needed
-make            # binary/EUPDATE.PRG, CACERT.PEM, ROOTS.DAT
+make            # binary/EUPDATE.PRG, TLS.OVL (common's), CACERT.PEM, ROOTS.DAT
 make test       # the core on this computer, with AddressSanitizer and UBSan
 make itest      # eupd-cli against a GitHub of the tests' own (tests/server.py), HTTP and TLS
 make fuzz       # the parsers under libFuzzer (clang)
@@ -148,6 +150,8 @@ docs/       the user guide (GUIDE.md, the source of EUPDATE.HYP) and pictures
 - `tests/hatari/st_test.py WORK`: `EUPDATE.PRG` started on an ST (`ST:mono`) says it needs a Falcon
   or a TT, and Quit brings the desktop back (common's `cpucheck.c`, the program's first code, is built for
   the 68000).
+- `tests/hatari/noovl_test.py WORK`: with no `TLS.OVL` beside `EUPDATE.PRG`, the check at the
+  start says so in an alert and in `EUPDATE.LOG`, asks GitHub nothing, and EUpdate goes on.
 - `tests/hatari/family_test.py WORK`: as on Erez's Falcon: the AERA family updated from their real
   latest releases (`tests/github/fetch_family.py`, served by `tests/family_server.py` as GitHub
   serves them: a certificate chain like GitHub's, the files from a second host at signed addresses,

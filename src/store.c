@@ -17,6 +17,7 @@
 #include "util.h"
 #include "conn.h"
 #include "tls.h"
+#include "tlsovl.h"
 
 OPTIONS opt;
 REPO *repos[MAXREPO];
@@ -175,6 +176,8 @@ int store_init(const char *workdir)
 	/* the certificates' signatures already checked (RSA and ECDSA): the
 	   next start doesn't check GitHub's chain again */
 	path_join(tls_sigs_path, sizeof(tls_sigs_path), workdir, "SIGS.DAT");
+	/* the TLS itself, the family's TLS.OVL (the guidelines 7.4) */
+	path_join(tls_ovl_path, sizeof(tls_ovl_path), workdir, "TLS.OVL");
 	buf = pf_load(inf_path, 0);
 	if (!buf) {
 		/* a first start: the AERA programs to follow, from DEFAULTS.INF

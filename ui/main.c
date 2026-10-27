@@ -17,6 +17,7 @@
 #include "../src/update.h"
 #include "util.h"
 #include "tls.h"
+#include "tlsovl.h"
 #include "crash.h"
 #include "help.h"
 #include "av.h"
@@ -327,6 +328,16 @@ static int job_begin(void)
 		AEVENT ev;
 		while (n++ < 16 && (evnt_multi_(MU_MESAG | MU_TIMER, 0, 0, 0, 0, msg, &ev) & MU_MESAG))
 			win_message(msg);
+	}
+	/* the TLS, TLS.OVL beside EUPDATE.PRG (the guidelines 7.4): loaded at
+	   the first job once the window is drawn, and what is wrong said then */
+	{
+		char err[120];
+		if (!tls_ovl_load(err, sizeof(err))) {
+			conn_log("TLS", " -- ", err, strlen(err));
+			alert(1, "[3][%s.][ OK ]", err);
+			return 0;
+		}
 	}
 	running = 1;
 	conn_stop = 0;

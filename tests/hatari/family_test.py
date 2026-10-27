@@ -81,6 +81,7 @@ def main():
     hd = os.path.join(work, "hd")
     os.makedirs(hd)
     shutil.copy(os.environ.get("PRG", os.path.join(TOP, "binary", "EUPDATE.PRG")), os.path.join(hd, "EUPDATE.PRG"))
+    shutil.copy(os.path.join(TOP, "binary", "TLS.OVL"), os.path.join(hd, "TLS.OVL"))
     shutil.copy(os.path.join(work, "root.pem"), os.path.join(hd, "CACERT.PEM"))
     tags = {r: open(os.path.join(CACHE, r, "TAG")).read().strip() for r, _ in FOLLOW}
     # an ST edition copied by hand beside its program (the guidelines 7.4):

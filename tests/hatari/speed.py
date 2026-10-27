@@ -35,7 +35,7 @@ def drive_c():
     hd = os.path.join(work, "hd")
     os.makedirs(hd, exist_ok=True)
     shutil.copy(os.path.join(TOP, "build", "prof", "EUPDATE.PRG"), hd)
-    for f in ("CACERT.PEM", "ROOTS.DAT"):
+    for f in ("TLS.OVL", "CACERT.PEM", "ROOTS.DAT"):
         shutil.copy(os.path.join(TOP, "binary", f), hd)
     # more repositories than the window shows, as they are after a check
     with open(os.path.join(hd, "EUPDATE.INF"), "w", newline="") as f:

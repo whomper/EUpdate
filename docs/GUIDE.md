@@ -37,6 +37,7 @@ drive:
 
 ```
 EUPDATE.PRG   the program
+TLS.OVL       its TLS, loaded when EUpdate first talks to GitHub
 EUPDATE.HYP   this guide, for EHypView or ST-Guide (the Help key opens it)
 DEFAULTS.INF  what EUpdate follows on its first start
 CACERT.PEM    the root certificates GitHub's are checked against
@@ -193,8 +194,11 @@ looks after both:
   after the restart the Desk menu shows the app as before. An ST
   edition you switched off (`.ACX`, `.PRX`) is left as it is.
 
-EUpdate itself keeps its TLS built in: the program that fetches a good
-`TLS.OVL` mustn't depend on one.
+EUpdate's own TLS is in `TLS.OVL` too, beside `EUPDATE.PRG`, and comes
+with each of its releases. It is loaded when EUpdate first talks to
+GitHub, and written again like any other file: safely, so a reset never
+leaves half of it. If it is ever missing or damaged, EUpdate says so;
+copy it again from EUpdate's latest release.
 
 ## Checking and updating
 
@@ -316,6 +320,8 @@ fixed-width GDOS font under NVDI or SpeedoGDOS.
 - **"No network"**: STinG (or MiNTnet) isn't loaded.
 - **"EUpdate needs the root certificates"**: copy `CACERT.PEM` and
   `ROOTS.DAT` next to `EUPDATE.PRG`.
+- **"TLS.OVL is missing"** or **"damaged"**: copy `TLS.OVL` from
+  EUpdate's latest release next to `EUPDATE.PRG`.
 - **"GitHub's limit is reached"**: 60 questions an hour without a
   token; wait, or add one (see [Your GitHub token](#your-github-token)).
 - **"GitHub didn't take the token"**: it has expired or was mistyped:
