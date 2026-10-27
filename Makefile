@@ -66,7 +66,7 @@ CORE    := conn tls util futil inflate secret charset ctime bidi ecdsp rsa030
 ATARI   := libc tos plat_tos net_tos sting gem dsprsa dspec crash bigbuf
 UI      := main win draw lists dialogs font about theme \
            dsp dsp_ec fontsel help av alert dialog field mbar aboutbox iconify clip clipedit dd popup \
-           panebar notify
+           panebar notify aboutline
 
 OBJDIR  := build
 OBJS    := $(OBJDIR)/crt0.o $(OBJDIR)/sting_s.o $(OBJDIR)/nf.o $(OBJDIR)/crash_s.o $(OBJDIR)/mont030.o \

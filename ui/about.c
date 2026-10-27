@@ -2,13 +2,15 @@
  * Copyright (C) 2026 AERA | Erez Yaary */
 /*
  * about.c - EUpdate's About box: the AERA programs' shared one
- * (common/ui/aboutbox.c), with the network, what GitHub still allows
- * this hour, and the memory it runs in; and the iconified window.
+ * (common/ui/aboutbox.c), with its three status lines in the family's
+ * words (aboutline.c; the guidelines, 1.3): the connection, what GitHub
+ * still allows this hour, and the memory; and the iconified window.
  */
 #include <string.h>
 #include <stdio.h>
 #include "ui.h"
 #include "aboutbox.h"
+#include "aboutline.h"
 #include "iconify.h"
 #include "icon.h"
 #include "icon16.h"
@@ -20,17 +22,21 @@ extern const char app_version[];
 
 void dlg_about(void)
 {
-	static char net[80], gh[60];
+	static char net[80], gh[60], mem[80];
 	ABOUT a = { "EUpdate", app_version, "GitHub releases for the Atari Falcon and TT",
-		    { net, gh, about_ram() }, { "Git logo by Jason Long, CC BY 3.0", 0, 0 },
+		    { net, gh, mem }, { "Git logo by Jason Long, CC BY 3.0", 0, 0 },
 		    icon_bits, icon16_px, icon16_rgb, icon256_px, icon256_rgb };
-	snprintf(net, sizeof(net), "%s  \xF9  TLS on the %s",
-		 strcmp(net_stack(), "none") ? net_stack() : "no network", falcon_dsp_state());
+	/* 1: the connection: online while EUpdate talks to GitHub (the DSP's
+	   part is in EUPDATE.LOG) */
+	about_net_line(net, sizeof(net), net_stack(), ABOUT_DIRECT, running ? ABOUT_ONLINE : ABOUT_READY);
+	/* 2: EUpdate's own: what GitHub still allows this hour */
 	if (gh_rate_left >= 0)
-		snprintf(gh, sizeof(gh), "GitHub answers %ld more this hour%s", gh_rate_left,
+		snprintf(gh, sizeof(gh), "GitHub: %ld requests left this hour%s", gh_rate_left,
 			 opt.token[0] ? " (token)" : "");
 	else
 		snprintf(gh, sizeof(gh), "%s", opt.token[0] ? "With a GitHub token" : "Without a GitHub token");
+	/* 3: the memory */
+	about_mem_line(mem, sizeof(mem));
 	about_show(&a);
 }
 
