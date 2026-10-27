@@ -314,12 +314,16 @@ static GRECT div_h(void)
 
 /* ---------------- drawing ---------------- */
 
+/* a pane's own bar, at the window's right edge: a pixel past the work
+   area, so that its frame there is the line the AES draws beside it
+   (its slider column's, or the window's), never a second line (the
+   guidelines, 5.7). That pixel is the AES's: a redraw's clip keeps it */
 static GRECT sb_rect(WIN *w)
 {
 	GRECT r;
 	r.x = w->box.x + w->box.w - sbw;
 	r.y = w->work.y;
-	r.w = w == aes_pane ? 0 : sbw;		/* the AES's, beside the window */
+	r.w = w == aes_pane ? 0 : sbw + 1;	/* none: the AES's, beside the window */
 	r.h = w->work.h;
 	return r;
 }

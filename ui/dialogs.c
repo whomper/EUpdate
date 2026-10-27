@@ -232,12 +232,24 @@ static void make_eyes(void)
 	}
 }
 
+/* a field in a thin frame: every field typed into has one (the
+   guidelines, 5.7) */
+static short d_field(short x, short y, char *buf, short show, short cap, char kind)
+{
+	short i = d_edit(x, y, buf, show, cap, kind);
+	TEDINFO *t = (TEDINFO *)tree[i].ob_spec;
+	tree[i].ob_type = G_FBOXTEXT;
+	t->te_thickness = -1;
+	t->te_color = 0x1180;
+	return i;
+}
+
 /* a password field showing show characters of real, which holds cap */
 static short d_pass(short x, short y, char *real, short show, short cap)
 {
 	PWFIELD *p = &pwf[npw];
 	BITBLK *b = &eye_blk[npw];
-	short f = d_edit(x, y, real, show, cap, 'X');
+	short f = d_field(x, y, real, show, cap, 'X');
 	p->obj = f;
 	p->clear = 0;
 	p->lf = lf_of(tree, f);
@@ -451,16 +463,6 @@ static void tick_draw(short k)
 	dlg_draw(tree, tick_box[k]);
 }
 
-/* a field in a thin frame */
-static short d_field(short x, short y, char *buf, short show, short cap, char kind)
-{
-	short i = d_edit(x, y, buf, show, cap, kind);
-	TEDINFO *t = (TEDINFO *)tree[i].ob_spec;
-	tree[i].ob_type = G_FBOXTEXT;
-	t->te_thickness = -1;
-	t->te_color = 0x1180;
-	return i;
-}
 
 /* rows of a part, with some air between them: row n of a part starting
    at line y is n lines and n gaps down (6 pixels with the 16-pixel font) */
@@ -784,7 +786,8 @@ static void part_files(short x, short y)
 	rows_at(y);
 	d_tick(x, ROW(0), "Shorten long names to 8+3", T_SHORTEN);
 	d_add(G_STRING, 0, 0, (long)"for TOS: EFTP-1.45.zip -> EFTP-1_4.ZIP", x + 3, ROW(1), 38, 1);
-	d_add(G_STRING, 0, 0, (long)"(off with MiNT or MagiC and long names)", x + 3, ROW(2), 39, 1);
+	d_add(G_STRING, 0, 0, (long)"(off with MiNT or MagiC", x + 3, ROW(2), 23, 1);
+	d_add(G_STRING, 0, 0, (long)"and long names)", x + 3, ROW(3), 15, 1);
 }
 
 static void part_github(short x, short y)
