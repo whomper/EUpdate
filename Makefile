@@ -128,12 +128,13 @@ $(OBJDIR)/%.o: common/atari/%.c $(HDRS) | $(OBJDIR)
 $(OBJDIR)/%.o: common/ui/%.c $(HDRS) | $(OBJDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 $(OBJDIR)/dspec.o: common/dsp/ec_prog.h
-# the stack, 24 KB: a family update on Falcon-4:16 reaches 11 KB (TLS's
+# the stack, 20 KB: a family update on Falcon-4:16 reaches 11 KB (TLS's
 # handshake), the window and dialogs 3 KB. It is the program's own memory,
 # taken before the VDI opens its workstation: NVDI with four accessories
-# in 4 MB needs what the old 48 KB took.
+# in 4 MB needs what the old 48 KB took, and the program stays smaller
+# than 1.13, which passed there.
 $(OBJDIR)/crt0.o: common/atari/crt0.S | $(OBJDIR)
-	$(CC) -m68030 -DSTACK_SIZE=24576 -c -o $@ $<
+	$(CC) -m68030 -DSTACK_SIZE=20480 -c -o $@ $<
 $(OBJDIR)/sting_s.o: common/atari/sting.S | $(OBJDIR)
 	$(CC) -m68030 -c -o $@ $<
 $(OBJDIR)/crash_s.o: common/atari/crash.S | $(OBJDIR)
