@@ -115,9 +115,18 @@ def main():
         for _ in range(4):                     # back into the folder's name, a letter in there
             r.key(K["LEFT"])
         r.type("Q")
-        r.shot("follow_edit")
-        r.key(K["ESC"])                        # Esc cancels
+        edited = r.shot("follow_edit")
+        # the guidelines 3.5: Esc empties the field the cursor is in and
+        # the dialog stays; Undo cancels it
+        r.key(K["ESC"])
+        time.sleep(1)
+        emptied = r.shot("follow_esc")
+        r.key(K["UNDO"])
         time.sleep(1.5)
+        undone = r.shot("follow_undo")
+        same = lambda a, b: open(a, "rb").read() == open(b, "rb").read()
+        check(not same(edited, emptied) and not same(emptied, undone),
+              "in Follow, Esc empties the folder's field and Undo cancels")
         r.key(K["BACKSPACE"])
         time.sleep(1.5)
         r.shot("back")
@@ -136,7 +145,7 @@ def main():
         r.ctrl("i")
         time.sleep(2)
         r.shot("info")
-        r.key(K["ESC"])
+        r.key(K["UNDO"])
         time.sleep(1)
         before = r.shot("before_settings")
         settings = changed(r, before, "settings", lambda: r.key(0x33, ctrl=True), again=False)   # ^,

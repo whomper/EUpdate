@@ -63,7 +63,7 @@ def main():
         time.sleep(12)
         r.move(330, 30)
         shutil.copy(r.shot("follow"), os.path.join(DOCS, "follow.png"))
-        r.key(K["ESC"])
+        r.key(K["UNDO"])
     finally:
         r.stop()
         m.stop()

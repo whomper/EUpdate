@@ -31,7 +31,7 @@ SHIFTED = {"!": "1", "@": "2", "#": "3", "$": "4", "%": "5", "^": "6", "&": "7",
            "(": "9", ")": "0", "_": "-", "+": "=", ":": ";", '"': "'", "<": ",", ">": ".",
            "?": "/", "{": "[", "}": "]", "|": "\\", "~": "`"}
 
-K = dict(RETURN=0x1c, ESC=0x01, TAB=0x0f, BACKSPACE=0x0e, DELETE=0x53, UP=0x48, DOWN=0x50,
+K = dict(RETURN=0x1c, ESC=0x01, UNDO=0x61, TAB=0x0f, BACKSPACE=0x0e, DELETE=0x53, UP=0x48, DOWN=0x50,
          LEFT=0x4b, RIGHT=0x4d, HOME=0x47, HELP=0x62, F10=0x44, CTRL=0x1d, SHIFT=0x2a, ALT=0x38)
 
 

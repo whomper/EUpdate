@@ -269,7 +269,7 @@ static short first_editable(void)
 	return 0;
 }
 
-/* what Esc and Undo press (the guidelines, 3.5): Cancel, else the only
+/* what Undo presses, and Esc with no field (the guidelines, 3.5): Cancel, else the only
    button that ends the dialog (OK in a box that only says something); 0
    when neither is there, and then they do nothing */
 static short esc_button(void)
@@ -296,10 +296,11 @@ static void field_enter(short obj, short *idx)
 		objc_edit(tree, obj, 0, idx, ED_INIT);
 }
 
-/* form_do, with fields longer than they show (passwords among them), the
-   clipboard (^C ^X ^V), and Esc and Undo for Cancel (the AERA
-   guidelines, 3.5): never anything that acts, and never clearing the
-   field the cursor is in, as form_do's Esc does */
+/* form_do, with fields longer than they show (passwords among them) and
+   the clipboard (^C ^X ^V). Esc empties the field the cursor is in, as
+   form_do's does, and the dialog stays; Undo, and Esc where no field has
+   the cursor, are Cancel, never anything that acts (the AERA
+   guidelines, 3.5) */
 static short form_loop(short start)
 {
 	short next = start ? start : first_editable(), edit = 0, idx = 0, cont = 1;
@@ -314,21 +315,25 @@ static short form_loop(short start)
 		}
 		lf = edit ? lf_of(tree, edit) : 0;
 		/* in a window (MiNT, MagiC) the AES's messages for it are taken
-		   there, the closer comes back as Esc (the guidelines, 3.5) */
+		   there, the closer comes back as Undo (the guidelines, 3.5) */
 		dlg_evnt(MU_KEYBD | MU_BUTTON, 2, 1, 1, 0, m, &e);
 		if (e.which & MU_KEYBD) {
-			short scan = KEY_SCAN(e.kreturn);
-			short nav = scan == 0x1c || scan == 0x72 || scan == 0x0f || scan == 0x48 || scan == 0x50;
+			short scan, nav, ch;
+			if (dlg_esc(e.kreturn) && !dlg_undo(e.kreturn))
+				e.kreturn = 0x011b;	/* ^[ too: the key objc_edit empties a field on */
+			scan = KEY_SCAN(e.kreturn);
+			nav = scan == 0x1c || scan == 0x72 || scan == 0x0f || scan == 0x48 || scan == 0x50;
 			/* the Hebrew keyboard (F10) types into the fields too, not
 			   into a password */
-			short ch = lf && lf->mask ? KEY_ASCII(e.kreturn) : key_char(e.kstate, e.kreturn);
-			if (scan == 0x01 || scan == 0x61) {	/* Esc, Undo */
+			ch = scan == 0x01 ? 0x1b : lf && lf->mask ? KEY_ASCII(e.kreturn) : key_char(e.kstate, e.kreturn);
+			if (dlg_cancel_key(e.kreturn, edit > 0)) {
+				/* Undo, or Esc with no field: Cancel, the fields as they were */
 				if (esc_button()) {
 					next = esc_button();	/* as if it were clicked */
 					cont = 0;
 				}
 			} else if (lf && !nav && lf_key(lf, e.kreturn, ch, e.kstate, &idx)) {
-				/* the long field took it */
+				/* the long field took it (Esc empties it) */
 			} else if (edit && !lf && clip_key(e.kreturn)) {
 				clip_edit(tree, edit, &idx, e.kreturn);
 			} else {

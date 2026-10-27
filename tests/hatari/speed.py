@@ -139,14 +139,14 @@ def main():
         r.key(0x33, ctrl=True)                 # ^,
         measure(con, "Settings opened (^,)", 150)
         r.shot("settings")
-        r.key(K["ESC"])
-        measure(con, "Settings closed (Esc), the window uncovered", 300)
+        r.key(K["UNDO"])
+        measure(con, "Settings closed (Undo), the window uncovered", 300)
         r.ctrl("f")
         measure(con, "Find opened (^F)", 150)
         each(con, "a letter typed in Find's field", 50, lambda: r.type("e", 0), 6, 0.4)
         r.shot("find")
-        r.key(K["ESC"])
-        measure(con, "Find closed (Esc), the window uncovered", 300)
+        r.key(K["UNDO"])
+        measure(con, "Find closed (Undo), the window uncovered", 300)
         r.move(60, 129)                        # a row: its tip
         measure(con, "a row's tip shown", 150, 2.5)
         r.move(*REST)

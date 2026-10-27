@@ -299,7 +299,8 @@ fixed-width GDOS font under NVDI or SpeedoGDOS.
 | ^, | Settings |
 | Left, Right | in a dialog's field, the cursor; with Shift, to the start or the end (ClrHome too) |
 | F10 | the Hebrew keyboard |
-| Esc | stops what EUpdate is doing; in a dialog, Cancel |
+| Esc | stops what EUpdate is doing; in a dialog's text field, empties it; in a dialog without one, Cancel |
+| Undo | in a dialog, Cancel (so does the dialog window's closer) |
 | Help | this guide |
 | ^W, ^Q | quit |
 
