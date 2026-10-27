@@ -26,9 +26,10 @@ void dlg_about(void)
 	ABOUT a = { "EUpdate", app_version, "GitHub releases for the Atari Falcon and TT",
 		    { net, gh, mem }, { "Git logo by Jason Long, CC BY 3.0", 0, 0 },
 		    icon_bits, icon16_px, icon16_rgb, icon256_px, icon256_rgb };
-	/* 1: the connection: online while EUpdate talks to GitHub (the DSP's
-	   part is in EUPDATE.LOG) */
-	about_net_line(net, sizeof(net), net_stack(), ABOUT_DIRECT, running ? ABOUT_ONLINE : ABOUT_READY);
+	/* 1: the connection: online while EUpdate talks to GitHub, ready
+	   between; with no network neither (the DSP's part is in EUPDATE.LOG) */
+	about_net_line(net, sizeof(net), net_stack(), ABOUT_DIRECT,
+		       !strcmp(net_stack(), "none") ? 0 : running ? ABOUT_ONLINE : ABOUT_READY);
 	/* 2: EUpdate's own: what GitHub still allows this hour */
 	if (gh_rate_left >= 0)
 		snprintf(gh, sizeof(gh), "GitHub: %ld requests left this hour%s", gh_rate_left,
