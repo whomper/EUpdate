@@ -32,7 +32,6 @@ static void defaults(void)
 	opt.hours = 24;
 	opt.shorten = 1;
 	opt.colour = 1;
-	opt.dialogs3d = 1;
 	opt.dsp = 1;
 	opt.falcon = 1;
 	opt.font_id = 1;
@@ -149,7 +148,6 @@ static void set_opt(const char *k, const char *v)
 	else if (!strcmp(k, "log")) opt.log = n != 0;
 	else if (!strcmp(k, "colour")) opt.colour = n != 0;
 	else if (!strcmp(k, "hebrew")) opt.hebrew = n != 0;
-	else if (!strcmp(k, "dialogs3d")) opt.dialogs3d = n != 0;
 	else if (!strcmp(k, "dsp")) opt.dsp = n != 0;
 	else if (!strcmp(k, "main")) shorts(v, &opt.main_x, 4);
 	else if (!strcmp(k, "pane")) opt.pane_h = n;
@@ -284,8 +282,6 @@ int store_save(void)
 		opt.log);
 	put_fmt(&b, "1 = colours on screens with 16 or more", "COLOUR", "%d", opt.colour);
 	put_fmt(&b, "1 = start with the Hebrew keyboard (F10 switches)", "HEBREW", "%d", opt.hebrew);
-	put_fmt(&b, "1 = dialogs in the 3D look where the AES has one (TOS 4, MagiC, XaAES, EmuTOS in colour); 0 = flat",
-		"DIALOGS3D", "%d", opt.dialogs3d);
 	put_fmt(&b, "1 = the DSP does the sums of the secure connections; 0 = the 68030 does", "DSP", "%d",
 		opt.dsp);
 	put_fmt(&b, "the window: x,y,width,height in pixels; 0,0,0,0 = let EUpdate place it", "MAIN",

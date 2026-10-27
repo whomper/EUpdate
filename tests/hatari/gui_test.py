@@ -148,7 +148,7 @@ def main():
         r.type(server_token())
         time.sleep(0.5)
         r.shot("settings_github")
-        r.click(140, 281)                      # Look: the 3D dialogs tick
+        r.click(140, 281)                      # Look
         time.sleep(1)
         r.shot("settings_look")
         r.click(140, 321)

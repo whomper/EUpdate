@@ -799,7 +799,6 @@ static void command(short cmd)
 			set_logging();
 			falcon_dsp_init();
 			falcon_dsp_ec_init();
-			dlg_3d_on = opt.dialogs3d;	/* the next dialog follows it */
 			store_save();
 			theme_init();
 			win_redraw_all();
@@ -1063,7 +1062,6 @@ int main(void)
 	secret_warn = warn_plain;	/* before anything is saved */
 	pf_init();			/* one look at the directory a file */
 	store_init(dir);
-	dlg_3d_on = opt.dialogs3d;	/* before the first dialog */
 	str_copy(gh_token, opt.token, sizeof(gh_token));
 	str_copy(gh_base, opt.api, sizeof(gh_base));
 	snprintf(http_user_agent, sizeof(http_user_agent), "EUpdate/%s (Atari)", app_version);

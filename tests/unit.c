@@ -576,7 +576,7 @@ static void test_store(void)
 	rm_rf(dir);
 	pf_mkdir(dir);
 	store_init(dir);
-	CHECK(nrepos == 0 && opt.check == CHECK_START && opt.shorten == 1 && opt.dialogs3d == 1);
+	CHECK(nrepos == 0 && opt.check == CHECK_START && opt.shorten == 1);
 	r = repo_add("whomper/EFTP");
 	CHECK(r && !repo_add("WHOMPER/eftp"));
 	str_copy(r->folder, "C:\\NET\\EFTP", sizeof(r->folder));
@@ -594,7 +594,6 @@ static void test_store(void)
 	CHECK(repo_current(r));
 	opt.check = CHECK_EVERY;
 	opt.hours = 6;
-	opt.dialogs3d = 0;
 	str_copy(opt.token, "ghp_secret;with stuff", sizeof(opt.token));
 	CHECK(store_save() == 0);
 	{
@@ -609,8 +608,8 @@ static void test_store(void)
 		CHECK(strstr(text, "LATESTDATE=\r\n\r\n[REPO]\r\nREPO=whomper/ECal\r\n\r\n") != 0);
 		CHECK(strstr(text, "\r\n\r\n[OPTIONS]\r\n; check") != 0);
 		CHECK(!strstr(text, "\r\n\r\n\r\n") && !strstr(text, "\r\n[REPO]\r\n\r\n"));
-		/* guidelines 5.6: the 3D look's setting, its note above */
-		CHECK(strstr(text, "0 = flat\r\nDIALOGS3D=0\r\n\r\n") != 0);
+		/* guidelines 5.6: no setting for the 3D look any more */
+		CHECK(!strstr(text, "DIALOGS3D"));
 		free(text);
 	}
 	while (nrepos)
@@ -618,7 +617,7 @@ static void test_store(void)
 	opt.check = 0;
 	opt.token[0] = 0;
 	store_init(dir);
-	CHECK(nrepos == 2 && opt.check == CHECK_EVERY && opt.hours == 6 && opt.dialogs3d == 0);
+	CHECK(nrepos == 2 && opt.check == CHECK_EVERY && opt.hours == 6);
 	CHECK(!strcmp(opt.token, "ghp_secret;with stuff"));
 	CHECK(!strcmp(repos[0]->folder, "C:\\NET\\EFTP") && !strcmp(repos[0]->files, "*.PRG,*.HYP"));
 	CHECK(repos[0]->unzip == 1 && !strcmp(repos[1]->have, "v2.21"));
@@ -627,10 +626,12 @@ static void test_store(void)
 	while (nrepos)
 		repo_delete(repos[0]);
 	{
-		/* an INF as 1.1 wrote it, with no empty lines, still reads */
+		/* an INF as 1.1 wrote it, with no empty lines, still reads;
+		   1.17's DIALOGS3D= is read without it, and the next save
+		   leaves it out (guidelines 5.6) */
 		static const char old11[] =
 			"; EUpdate settings\r\n\r\n[OPTIONS]\r\n; the hours between checks (1-168)\r\nHOURS=12\r\n"
-			"FETCH=0\r\n\r\n; one [REPO] part per repository followed, up to 64\r\n[REPO]\r\n"
+			"FETCH=0\r\nDIALOGS3D=0\r\n\r\n; one [REPO] part per repository followed, up to 64\r\n[REPO]\r\n"
 			"; owner/name on GitHub\r\nREPO=whomper/EMail\r\nFOLDER=C:\\NET\r\n"
 			"RULE=*.ACC;C:\\\r\nHAVE=v3.10\r\nHAVEDATE=2026-10-01\r\n"
 			"\r\n; one [REPO] part per repository followed, up to 64\r\n[REPO]\r\n"
@@ -643,6 +644,13 @@ static void test_store(void)
 		CHECK(!strcmp(repos[0]->full, "whomper/EMail") && !strcmp(repos[0]->folder, "C:\\NET"));
 		CHECK(!strcmp(repos[0]->rule[0].folder, "C:\\") && !strcmp(repos[0]->have_date, "2026-10-01"));
 		CHECK(!strcmp(repos[1]->full, "whomper/EWeb") && !strcmp(repos[1]->have, "v0.27"));
+		CHECK(store_save() == 0);
+		{
+			long n;
+			char *text = load(path, &n);
+			CHECK(text && !strstr(text, "DIALOGS3D") && strstr(text, "HOURS=12\r\n"));
+			free(text);
+		}
 		while (nrepos)
 			repo_delete(repos[0]);
 	}

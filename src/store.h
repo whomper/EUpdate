@@ -54,8 +54,6 @@ typedef struct {
 	short log;		/* write EUPDATE.LOG */
 	short colour;		/* colours, on screens with 16 or more */
 	short hebrew;		/* Hebrew keyboard on at start */
-	short dialogs3d;	/* dialogs in the AES's 3D look, where it has one
-				   (common's dlg_3d_on) */
 	short dsp;		/* the DSP does TLS's sums */
 	short falcon;		/* TLS on this Atari: always, as there is no gateway
 				   (common/ui/dsp.c reads it) */

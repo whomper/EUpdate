@@ -392,7 +392,7 @@ static short d_do(const char *name, short edit)
  * words), framed fields and choice buttons that open a list. */
 
 enum {
-	T_FETCH, T_SHORTEN, T_COLOUR, T_HEB, T_3D, T_LOG, T_DSP, T_UNZIP, T_NOW,
+	T_FETCH, T_SHORTEN, T_COLOUR, T_HEB, T_LOG, T_DSP, T_UNZIP, T_NOW,
 	/* choices, one of a group: when to check; what Find looks for */
 	T_NEVER, T_START, T_EVERY, T_REPOS, T_OWNERS, NT
 };
@@ -682,7 +682,7 @@ int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 		d_band(64, is_new ? band : band + 1);
 	}
 	rows_at(2);
-	if (dlg_3d_ok() && dlg_3d_on)
+	if (dlg_3d_ok())
 		row_gap = (short)(gl_hchar / 2);	/* raised buttons, one under another */
 	d_text(2, ROW(0), fl_l1);
 	d_text(2, ROW(1), fl_l2);
@@ -796,18 +796,11 @@ static void part_github(short x, short y)
 
 static void part_look(short x, short y)
 {
-	short k;
 	rows_at(y);
 	d_tick(x, ROW(0), "Use colours", T_COLOUR);
 	d_add(G_STRING, 0, 0, (long)"on screens with 16 colours or more:", x + 3, ROW(1), 35, 1);
 	d_add(G_STRING, 0, 0, (long)"new in orange, current in teal", x + 3, ROW(2), 30, 1);
 	d_tick(x, ROW(3), "Start with the Hebrew keyboard", T_HEB);
-	k = d_tick(x, ROW(4), "3D dialogs", T_3D);
-	d_add(G_STRING, 0, 0, (long)"where the AES draws them: TOS 4,", x + 3, ROW(5), 32, 1);
-	d_add(G_STRING, 0, 0, (long)"MagiC, XaAES, EmuTOS in colour", x + 3, ROW(6), 30, 1);
-	if (!dlg_3d_ok())		/* this AES has no 3D look */
-		tree[tick_box[k]].ob_state = tree[tick_lbl[k]].ob_state = tree[nobj - 2].ob_state =
-			tree[nobj - 1].ob_state = DISABLED;
 }
 
 static void part_advanced(short x, short y)
@@ -835,7 +828,6 @@ int dlg_settings(void)
 	s_on[T_SHORTEN] = opt.shorten;
 	s_on[T_COLOUR] = opt.colour;
 	s_on[T_HEB] = opt.hebrew;
-	s_on[T_3D] = opt.dialogs3d;
 	s_on[T_LOG] = opt.log;
 	s_on[T_DSP] = opt.dsp;
 	d_begin(SX + 42, 16);
@@ -900,7 +892,6 @@ int dlg_settings(void)
 	opt.shorten = s_on[T_SHORTEN];
 	opt.colour = s_on[T_COLOUR];
 	opt.hebrew = s_on[T_HEB];
-	opt.dialogs3d = s_on[T_3D];
 	opt.log = s_on[T_LOG];
 	opt.dsp = s_on[T_DSP];
 	str_copy(opt.token, str_trim(s_token), sizeof(opt.token));
