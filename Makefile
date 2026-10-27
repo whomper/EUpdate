@@ -133,7 +133,7 @@ $(OBJDIR)/dspec.o: common/dsp/ec_prog.h
 # taken before the VDI opens its workstation: NVDI with four accessories
 # in 4 MB needs what the old 48 KB took, and the program stays smaller
 # than 1.13, which passed there.
-$(OBJDIR)/crt0.o: common/atari/crt0.S | $(OBJDIR)
+$(OBJDIR)/crt0.o: common/atari/crt0.S Makefile | $(OBJDIR)
 	$(CC) -m68030 -DSTACK_SIZE=20480 -c -o $@ $<
 $(OBJDIR)/sting_s.o: common/atari/sting.S | $(OBJDIR)
 	$(CC) -m68030 -c -o $@ $<
