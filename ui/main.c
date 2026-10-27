@@ -25,6 +25,7 @@
 #include "aboutbox.h"
 #include "mbar.h"
 #include "dialog.h"
+#include "notify.h"
 
 extern const char app_version[];
 
@@ -207,7 +208,7 @@ static void idle(void)
 		return;
 	which = evnt_multi_(MU_MESAG | MU_KEYBD | MU_BUTTON | MU_TIMER, 1, 1, 1, 0, msg, &ev);
 	gem_at = pf_ms();
-	if (which & MU_MESAG) {
+	if ((which & MU_MESAG) && !notify_message(msg)) {
 		DROP d;
 		switch (msg[0]) {
 		case MN_SELECTED:
@@ -500,6 +501,19 @@ static int failed_one(const REPO *r)
 	return 1;
 }
 
+/* what the last check found new, for a notification: "ECal v2.29,
+   EMail v1.62", and how many */
+static char news_text[120];
+static int news_n;
+
+static void news_add(const REPO *r, const GHREL *rel)
+{
+	const char *name = strchr(r->full, '/') + 1;
+	long n = (long)strlen(news_text);
+	if (news_n++ < 3 && n + strlen(name) + strlen(rel->tag) + 4 < sizeof(news_text))
+		snprintf(news_text + n, sizeof(news_text) - n, "%s%s %s", n ? ", " : "", name, rel->tag);
+}
+
 /* asks GitHub for each one's latest release; fetch: and downloads what
    is new */
 void check_repos(int which, int fetch)
@@ -507,6 +521,8 @@ void check_repos(int which, int fetch)
 	static REPO *list[MAXREPO];
 	GHREL rel;
 	int n = pick(which, list), i, news = 0, got = 0, failed = 0;
+	news_text[0] = 0;
+	news_n = 0;
 	if (!n || !job_begin())
 		return;
 	for (i = 0; i < n && !conn_stop; i++) {
@@ -516,6 +532,7 @@ void check_repos(int which, int fetch)
 			failed += failed_one(r);
 		if (k > 0) {
 			news++;
+			news_add(r, &rel);
 			if (fetch) {
 				if (up_install(r, &rel))
 					got++;
@@ -689,6 +706,44 @@ void unfollow_selected(void)
 
 /* ---------------- the schedule ---------------- */
 
+/* what a check by the schedule found, as a notification where BGEM.NG
+   runs (the guidelines, 4.5): news nobody asked for just then. Open
+   shows the list; the same news is never told twice. Elsewhere
+   notify_send gives 0, and the status line says it, as before */
+static void tell_news(int fetched)
+{
+	static char told[sizeof(news_text)];
+	char text[160], title[32];
+	if (!news_n || !strcmp(told, news_text))
+		return;
+	str_copy(told, news_text, sizeof(told));
+	snprintf(title, sizeof(title), fetched ? "Updated" : news_n > 1 ? "New releases" : "A new release");
+	if (news_n > 3)
+		snprintf(text, sizeof(text), "%s|and %d more", news_text, news_n - 3);
+	else
+		str_copy(text, news_text, sizeof(text));
+	notify_send(title, text, "Open|Later", 1);
+}
+
+/* a notification's button: Open (1) brings the window, the list in it */
+static void on_notify(short id, short button)
+{
+	if (id != 1 || button != 1)
+		return;
+	if (main_iconified) {
+		short m[8] = { WM_UNICONIFY, 0, 0, 0, 0, 0, 0, 0 };
+		m[3] = main_h;
+		m[4] = opt.main_x;
+		m[5] = opt.main_y;
+		m[6] = opt.main_w;
+		m[7] = opt.main_h;
+		win_message(m);
+	}
+	main_open();
+	win_focus(&w_repos);
+	menu_update();
+}
+
 /* a check is due: at the start, then every opt.hours while EUpdate runs
    (CHECK_EVERY). A clock set back counts as due */
 static void schedule(void)
@@ -696,8 +751,10 @@ static void schedule(void)
 	long since = store_now() - opt.last_check;
 	if (running || !nrepos || opt.check != CHECK_EVERY)
 		return;
-	if (since < 0 || since >= (long)opt.hours * 60)
+	if (since < 0 || since >= (long)opt.hours * 60) {
 		check_repos(J_ALL, opt.fetch);
+		tell_news(opt.fetch);
+	}
 }
 
 /* ---------------- commands ---------------- */
@@ -1062,6 +1119,8 @@ int main(void)
 	crash_install(dir, "EUpdate", app_version);
 	help_init();			/* memory the help viewer may read */
 	av_init("EUPDATE");		/* the desktop's AV server, if there is one */
+	notify_init("EUPDATE ");	/* BGEM.NG's notifications, where it runs (4.5) */
+	notify_clicked = on_notify;
 	crash_cleanup = crash_quit;
 	crash_report = conn_log_append;	/* the report in EUPDATE.LOG too */
 	secret_warn = warn_plain;	/* before anything is saved */
@@ -1150,7 +1209,7 @@ int main(void)
 		} else if (hovering && pf_ms() - hover_at >= 700UL) {
 			tip_show();
 		}
-		if (which & MU_MESAG) {
+		if ((which & MU_MESAG) && !notify_message(msg)) {	/* BGEM.NG's: its own */
 			const char *va;
 			switch (msg[0]) {
 			case MN_SELECTED:

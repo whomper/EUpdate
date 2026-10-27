@@ -236,6 +236,12 @@ Atari starts, install it as an application that starts with the desktop
 iconify its window: the icon says how many repositories have a new
 release.
 
+Under MiNT with XaAES and BGEM.NG, what a check every N hours finds is
+also a notification at the desktop's edge, "New releases" with their
+names (or "Updated", when EUpdate downloads them): **Open** brings
+EUpdate's window to the front, **Later** leaves it. The same news is
+told once.
+
 ## Your GitHub token
 
 Without a token GitHub answers 60 questions an hour from your address,
