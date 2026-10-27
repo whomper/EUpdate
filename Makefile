@@ -66,7 +66,7 @@ CORE    := conn tls util futil inflate secret charset ctime bidi ecdsp rsa030
 ATARI   := libc tos plat_tos net_tos sting gem dsprsa dspec crash bigbuf
 UI      := main win draw lists dialogs font about theme \
            dsp dsp_ec fontsel help av alert dialog field mbar aboutbox iconify clip clipedit dd popup \
-           panebar notify aboutline
+           panebar notify aboutline cpucheck
 
 OBJDIR  := build
 OBJS    := $(OBJDIR)/crt0.o $(OBJDIR)/sting_s.o $(OBJDIR)/nf.o $(OBJDIR)/crash_s.o $(OBJDIR)/mont030.o \
@@ -121,6 +121,10 @@ $(OBJDIR)/%.o: atari/%.c $(HDRS) | $(OBJDIR)
 	$(CC) $(CFLAGS) $(OWNWARN) -c -o $@ $<
 $(OBJDIR)/%.o: ui/%.c $(HDRS) | $(OBJDIR)
 	$(CC) $(CFLAGS) $(OWNWARN) -c -o $@ $<
+# the first code, built for the 68000: on an ST it says EUpdate needs a
+# Falcon or TT, before anything of the 68030's runs (ui/cpucheck.c)
+$(OBJDIR)/cpucheck.o: ui/cpucheck.c | $(OBJDIR)
+	$(CC) $(subst -m68030,-m68000,$(CFLAGS)) $(OWNWARN) -c -o $@ $<
 $(OBJDIR)/%.o: common/src/%.c $(HDRS) | $(OBJDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 $(OBJDIR)/%.o: common/atari/%.c $(HDRS) | $(OBJDIR)

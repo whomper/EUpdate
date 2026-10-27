@@ -145,6 +145,9 @@ docs/       the user guide (GUIDE.md, the source of EUPDATE.HYP) and pictures
   (unpacked, a rule obeyed, `EUPDATE.INF` written), Get info, a 93-character token typed into
   Settings and reaching the server whole, and the About box. `tests/hatari/screenshots.py` makes the pictures in
   `docs/`.
+- `tests/hatari/st_test.py WORK`: `EUPDATE.PRG` started on an ST (`ST:mono`) says it needs a Falcon
+  or a TT, and Quit brings the desktop back (`ui/cpucheck.c`, the program's first code, is built for
+  the 68000).
 - `tests/hatari/family_test.py WORK`: as on Erez's Falcon: the AERA family updated from their real
   latest releases (`tests/github/fetch_family.py`, served by `tests/family_server.py` as GitHub
   serves them: a certificate chain like GitHub's, the files from a second host at signed addresses,

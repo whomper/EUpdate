@@ -101,7 +101,8 @@ information, your assessment and what he should do, nothing more.
   finds in `tests/fuzz/found/TARGET`. After a change to the GEM side, `tests/hatari/gui_test.py
   WORK` (Falcon:16; TT and Falcon:256 too for drawing) and look at its screenshots; when the
   window changes, `tests/hatari/screenshots.py WORK` for `docs/` and `helpfront.py thumb` for
-  `docs/help/WINDOW.IMG`.
+  `docs/help/WINDOW.IMG`. After a change to the start (`ui/cpucheck.c`, `main()`, crt0, the
+  Makefile's flags), `tests/hatari/st_test.py WORK`: on an ST, the alert and the desktop again.
 - **Speed:** EUpdate runs only on a TT or Falcon, so its slow machine is `Falcon-4:16`, with and
   without NVDI. `make prof && tests/hatari/speed.py WORK` times what the user does (the window
   drawn, rows, scrolling, the dialogs); `PRG=build/prof/EUPDATE.PRG tests/hatari/family_test.py

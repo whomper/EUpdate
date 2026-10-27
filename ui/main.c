@@ -1062,7 +1062,9 @@ static void warn_plain(const char *keyfile)
 		 "Is the disk locked or full?][ OK ]", keyfile);
 }
 
-int main(void)
+/* after cpucheck.c's main, which has seen a 68020 or better */
+int eupdate_main(void);
+int eupdate_main(void)
 {
 	short work_out[57], msg[8], d;
 	char dir[200];
@@ -1077,12 +1079,6 @@ int main(void)
 	   open (the guidelines, 3.5) */
 	dlg_title = "EUpdate";
 	dlg_redraw_hook = dialog_redraw;
-	/* TLS needs a 68020 or better: built for the 68030, EUpdate runs on a Falcon or TT */
-	if (get_cookie(0x5F435055L) < 20) {	/* _CPU */
-		form_alert(1, "[3][EUpdate needs a 68020 or|better: a Falcon or a TT.][ Quit ]");
-		appl_exit();
-		return 1;
-	}
 	vdi_h = graf_handle(&gl_wchar, &gl_hchar, &d, &d);
 	cw = gl_wchar;
 	ch = gl_hchar;
