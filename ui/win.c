@@ -943,7 +943,7 @@ int win_mouse(short mx, short my, short button, short clicks, short kstate)
 
 static const char *const btip[NBUT] = {
 	"Ask GitHub for the latest releases of the repositories (^R)",
-	"Download the newer releases: of those selected, else of all (^U)",
+	"Download the newer releases: of those selected, else of all (^D)",
 	"Find repositories by name, or owners and their repositories (^F)",
 	"Stop (Esc)",
 };

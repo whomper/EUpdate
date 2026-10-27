@@ -53,9 +53,9 @@ file by file or all together in the zip:
    the folder it is started from.
 2. Load STinG (or run MiNT with MiNTnet).
 3. Start EUpdate: it follows the AERA programs (`DEFAULTS.INF`). **Check** (^R) shows their
-   releases and **Update** (^U) downloads them; **Get info** (^I) changes where one goes, and
-   **Unfollow** (Del) drops the ones you don't want. To follow more, choose **File > Find on
-   GitHub** (^F) and double-click a repository. Press **Help** for the guide.
+   releases and **Update** (^D) downloads them; **Get info** (^I) changes where one goes, and
+   **Unfollow** (Del) drops the ones you don't want. To follow more, choose **Repository > Find
+   on GitHub** (^F) and double-click a repository. Press **Help** for the guide.
 
 EUpdate can keep itself up to date: follow `whomper/EUpdate` into its own folder.
 

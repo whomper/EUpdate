@@ -282,7 +282,7 @@ static void repos_rclick(WIN *w, short mx, short my)
 {
 	static const char *const items[] = {
 		"Get info...          ^I", "-",
-		"Check for a release  ^R", "Update               ^U", "Download again", "-",
+		"Check for a release  ^R", "Update               ^D", "Download again", "-",
 		"Copy name            ^C", "-", "Unfollow            Del"
 	};
 	static const short cmds[] = { C_INFO, 0, C_CHECK, C_UPDATE, C_AGAIN, 0, C_COPY, 0, C_UNFOLLOW };

@@ -132,7 +132,7 @@ def main():
         r.shot("back")
         # Update the one with a new release: unpacked, README.TXT left out (its rule)
         r.click(60, 129)
-        r.ctrl("u")
+        r.ctrl("d")                            # Update (^U closes, the guidelines 3.2)
         time.sleep(25)
         r.shot("updated")
         check(os.path.exists(os.path.join(hd, "NET", "EUPDATE", "EUPDATE.PRG")) and

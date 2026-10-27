@@ -42,10 +42,9 @@ static const MBAR_ITEM m_desk[] = {
 	{ "About EUpdate...", 0, C_ABOUT },
 	{ 0, 0, 0 }
 };
+/* File: the program; what is done to repositories, Follow (its New) and
+   Find among it, is in Repository (the guidelines, 3.1) */
 static const MBAR_ITEM m_file[] = {
-	{ "Find on GitHub...", "^F", C_FIND },
-	{ "Follow...", "^N", C_FOLLOW },
-	{ "-", 0, 0 },
 	{ "Quit", "^Q", C_QUIT },
 	{ 0, 0, 0 }
 };
@@ -56,9 +55,12 @@ static const MBAR_ITEM m_edit[] = {
 	{ 0, 0, 0 }
 };
 static const MBAR_ITEM m_repo[] = {
+	{ "Find on GitHub...", "^F", C_FIND },
+	{ "Follow...", "^N", C_FOLLOW },
+	{ "-", 0, 0 },
 	{ "Check for releases", "^R", C_CHECK },
-	{ "Update", "^U", C_UPDATE },
-	{ "Update all that are new", "\x01^U", C_UPDNEW },
+	{ "Update", "^D", C_UPDATE },
+	{ "Update all that are new", "\x01^D", C_UPDNEW },
 	{ "Download again", 0, C_AGAIN },
 	{ "-", 0, 0 },
 	{ "Get info...", "^I", C_INFO },
@@ -844,11 +846,14 @@ static int shortcut(short kstate, short key)
 		case 0x21: cmd = C_FIND; break;		/* F */
 		case 0x31: cmd = C_FOLLOW; break;	/* N */
 		case 0x10: cmd = C_QUIT; break;		/* Q */
-		case 0x11: cmd = C_QUIT; break;		/* W: closes the one window */
+		/* U closes the window, which in EUpdate, a program of one
+		   window, is quitting; W tops the next window, and with one
+		   there is none (the guidelines, 3.2) */
+		case 0x16: cmd = C_QUIT; break;		/* U */
 		case 0x2e: cmd = C_COPY; break;		/* C */
 		case 0x1e: cmd = C_SELALL; break;	/* A */
 		case 0x13: cmd = C_CHECK; break;	/* R */
-		case 0x16: cmd = kstate & (K_LSHIFT | K_RSHIFT) ? C_UPDNEW : C_UPDATE; break;	/* U */
+		case 0x20: cmd = kstate & (K_LSHIFT | K_RSHIFT) ? C_UPDNEW : C_UPDATE; break;	/* D: download */
 		case 0x17: cmd = C_INFO; break;		/* I */
 		case 0x33: cmd = C_SETTINGS; break;	/* , */
 		}

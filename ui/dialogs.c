@@ -909,7 +909,7 @@ void dlg_keys(void)
 {
 	static const char *lines[] = {
 		"^F  find on GitHub         ^N  follow owner/name",
-		"^R  check for releases     ^U  update (the new ones)",
+		"^R  check for releases     ^D  update (the new ones)",
 		"Return, double-click: Get info; in Find, follow",
 		"   a repository or list an owner's repositories",
 		"Backspace  back to the owners   Tab  the other list",
@@ -919,7 +919,8 @@ void dlg_keys(void)
 		"^C  copy the names         (in dialogs ^C ^X ^V)",
 		"^,  Settings               F10 Hebrew keyboard",
 		"While EUpdate works: Esc or Stop ends it",
-		"^W, ^Q  quit               Help  the user guide"
+		"In a dialog: Esc empties the field, Undo cancels",
+		"^U, ^Q  quit               Help  the user guide"
 	};
 	short i, n = (short)(sizeof(lines) / sizeof(lines[0]));
 	d_begin(56, n + 6);

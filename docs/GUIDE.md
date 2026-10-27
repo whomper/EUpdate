@@ -108,7 +108,7 @@ place and size, and the divider, in `EUPDATE.INF`.
 
 ## Finding repositories
 
-**File > Find on GitHub** (^F) asks what to look for, and where:
+**Repository > Find on GitHub** (^F) asks what to look for, and where:
 
 - **Repositories with it in their names**: GitHub's best matches, the
   most starred first, with their stars, when they last changed and what
@@ -117,8 +117,8 @@ place and size, and the divider, in `EUPDATE.INF`.
   Double-click one (or Return) for their repositories, the last changed
   first; Backspace goes back to the owners.
 
-Double-click a repository to follow it. If you know its name, **File >
-Follow** (^N) takes `owner/name`, or its address
+Double-click a repository to follow it. If you know its name,
+**Repository > Follow** (^N) takes `owner/name`, or its address
 (`https://github.com/whomper/EFTP`).
 
 Text typed in Hebrew (F10) is looked for too.
@@ -201,10 +201,10 @@ EUpdate itself keeps its TLS built in: the program that fetches a good
 - **Repository > Check for releases** (^R, or **Check**): asks GitHub
   for the latest release of each repository (of those selected, when
   some are). Nothing is downloaded.
-- **Repository > Update** (^U, or **Update**): for each repository
+- **Repository > Update** (^D, or **Update**): for each repository
   selected, or each that has a newer release when none is, asks for the
   latest release and downloads it if it is newer than yours.
-- **Repository > Update all that are new** (Shift+^U).
+- **Repository > Update all that are new** (Shift+^D).
 - **Repository > Download again**: the latest release of those selected,
   whether you have it or not (after you deleted a file, or changed the
   rules).
@@ -286,8 +286,8 @@ fixed-width GDOS font under NVDI or SpeedoGDOS.
 | ^F | find on GitHub |
 | ^N | follow a repository by its name |
 | ^R | check for releases |
-| ^U | update (the selected ones, else all that are new) |
-| Shift+^U | update all that are new |
+| ^D | update (the selected ones, else all that are new) |
+| Shift+^D | update all that are new |
 | ^I | get info |
 | Delete | unfollow |
 | ^A | select all |
@@ -301,8 +301,9 @@ fixed-width GDOS font under NVDI or SpeedoGDOS.
 | F10 | the Hebrew keyboard |
 | Esc | stops what EUpdate is doing; in a dialog's text field, empties it; in a dialog without one, Cancel |
 | Undo | in a dialog, Cancel (so does the dialog window's closer) |
-| Help | this guide |
-| ^W, ^Q | quit |
+| Help | this guide, in the help viewer that runs; under MiNT or MagiC, `STGUIDE=` in the environment names yours, and EUpdate starts it when none runs (else EHypView or ST-Guide) |
+| ^U, ^Q | quit (^U closes the window, and EUpdate has one) |
+| ^W | the next window: EUpdate has only one, so nothing |
 
 ## When something goes wrong
 
