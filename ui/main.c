@@ -949,15 +949,13 @@ static void wait_release(void)
 	}
 }
 
-/* the folder EUPDATE.PRG was started from */
+/* the folder EUPDATE.PRG is in, from its command (common's app_dir(),
+   the guidelines 6.1): started by another program, TOS 1.04 and 4.04
+   make the desktop's folder current, not EUpdate's */
 static void work_dir(char *out, int size)
 {
-	char path[160];
-	short drv = (short)Dgetdrv();
-	path[0] = 0;
-	Dgetpath(path, 0);
-	snprintf(out, size, "%c:%s", 'A' + drv, path);
-	if (out[strlen(out) - 1] == '\\')
+	str_copy(out, app_dir(), size);
+	if (out[0] && out[strlen(out) - 1] == '\\')
 		out[strlen(out) - 1] = 0;
 }
 

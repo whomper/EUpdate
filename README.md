@@ -150,6 +150,10 @@ docs/       the user guide (GUIDE.md, the source of EUPDATE.HYP) and pictures
 - `tests/hatari/st_test.py WORK`: `EUPDATE.PRG` started on an ST (`ST:mono`) says it needs a Falcon
   or a TT, and Quit brings the desktop back (common's `cpucheck.c`, the program's first code, is built for
   the 68000).
+- `tests/hatari/appdir_test.py WORK`: EUpdate started by another program (common's
+  `tests/appdir` launcher, from a real FAT floppy) and as from the desktop finds its own files in
+  its own folder, not the current one (common's `app_dir()`; TOS 1.04 and 4.04 start a program
+  in the desktop's folder).
 - `tests/hatari/noovl_test.py WORK`: with no `TLS.OVL` beside `EUPDATE.PRG`, the check at the
   start says so in an alert and in `EUPDATE.LOG`, asks GitHub nothing, and EUpdate goes on.
 - `tests/hatari/family_test.py WORK`: as on Erez's Falcon: the AERA family updated from their real

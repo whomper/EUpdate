@@ -103,7 +103,9 @@ information, your assessment and what he should do, nothing more.
   WORK` (Falcon:16; TT and Falcon:256 too for drawing) and look at its screenshots; when the
   window changes, `tests/hatari/screenshots.py WORK` for `docs/` and `helpfront.py thumb` for
   `docs/help/WINDOW.IMG`. After a change to the start (common's `cpucheck.c`, `app_main()`, crt0, the
-  Makefile's flags), `tests/hatari/st_test.py WORK`: on an ST, the alert and the desktop again. After a change to how TLS.OVL
+  Makefile's flags), `tests/hatari/st_test.py WORK`: on an ST, the alert and the desktop again; after
+  a change to where EUpdate finds its files, `tests/hatari/appdir_test.py WORK` (on Erez's TOS 4.04
+  where the session has it: EmuTOS hides the bug). After a change to how TLS.OVL
   is loaded, `tests/hatari/noovl_test.py WORK`.
 - **Speed:** EUpdate runs only on a TT or Falcon, so its slow machine is `Falcon-4:16`, with and
   without NVDI. `make prof && tests/hatari/speed.py WORK` times what the user does (the window
