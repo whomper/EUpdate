@@ -15,7 +15,10 @@ in C:\\. Then EUPDATE.PRG started as from the desktop (C:\\APP\\EUPDATE.PRG,
 Hatari's --auto): C:\\APP\\EUPDATE.KEY. The bug shows only on Atari's
 TOS (machines.py's AERA_TOS); EmuTOS sets the folder either way.
 
-    appdir_test.py WORK [MACHINE]     (MACHINE: Falcon:16; mtools)
+    appdir_test.py WORK [MACHINE]     (MACHINE: Falcon-4:16; mtools)
+
+Falcon-4, not Falcon: EUPDATE.PRG asks for TT RAM (PRGFLAGS 7), and with
+no _FRB TOS 4.04 can't load it from the floppy into the 128 MB Falcon's.
 """
 import os
 import shutil
@@ -29,7 +32,7 @@ sys.path.insert(0, os.path.join(TOP, "common", "tools"))
 import machines  # noqa: E402
 
 work = os.path.abspath(sys.argv[1])
-spec = sys.argv[2] if len(sys.argv) > 2 else "Falcon:16"
+spec = sys.argv[2] if len(sys.argv) > 2 else "Falcon-4:16"
 WAIT = float(os.environ.get("WAIT", "60"))
 fails = 0
 
@@ -49,6 +52,11 @@ def hatari(w, hd, auto, floppy=None):
     args = ["hatari", "--fast-boot", "yes", "--log-level", "warn"] + m.args() + ["--auto", auto]
     if floppy:
         args += ["--disk-a", floppy]
+        # with a floppy in A: Hatari's desktop file has no screen mode, and
+        # the Falcon comes up in ST low (320 wide), where EUpdate won't
+        # start: a mono monitor gives 640x400 (the hub, common's run.py)
+        if "--monitor" in args:
+            args[args.index("--monitor") + 1] = "mono"
     p = subprocess.Popen(args, env=m.env(), stdout=open(os.path.join(w, "hatari.log"), "w"),
                          stderr=subprocess.STDOUT)
     time.sleep(WAIT)
