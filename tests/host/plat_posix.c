@@ -120,6 +120,14 @@ int net_open(const char *host, unsigned short port, char *err, int errlen)
 	struct addrinfo hints, *res, *ai;
 	char ps[8];
 	int fd = -1;
+	static int opened;
+	/* EUPD_OPEN_FAILS=n: the first n connections can't be opened, as
+	   STinG's first lookup of a name can fail (make itest) */
+	const char *fails = getenv("EUPD_OPEN_FAILS");
+	if (fails && opened++ < atoi(fails)) {
+		snprintf(err, errlen, "can't find %s", host);
+		return -1;
+	}
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;

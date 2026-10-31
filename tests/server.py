@@ -134,7 +134,16 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
 
+    dropped = 0
+
     def do_GET(self):
+        # DROP_FIRST=n: the first n requests get no answer, the connection
+        # closed after the handshake and the request (a check's first row
+        # on Erez's Falcon, 31 Oct 2026)
+        if Handler.dropped < int(os.environ.get("DROP_FIRST", "0")):
+            Handler.dropped += 1
+            self.close_connection = True
+            return
         path, _, query = self.path.partition("?")
         auth = self.headers.get("Authorization")
         if os.environ.get("AUTH_LOG"):

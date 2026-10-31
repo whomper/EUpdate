@@ -392,9 +392,10 @@ static int is_redirect(int s)
 }
 
 /* one request and its answer on kept[k]; 1 when an answer came. *again
-   when the kept line turned out to be closed before anything came */
+   (only when may_again) when the line failed before anything came: a
+   kept one closed meanwhile, or a new one's first request lost */
 static int exchange(int k, const URLP *p, int flags, const char *auth, SBUF *body, long max,
-		    HTTPRESP *rs, HEAD *h, int reused, int *again, char *err, int errlen)
+		    HTTPRESP *rs, HEAD *h, int may_again, int *again, char *err, int errlen)
 {
 	CONN *c = kept[k].c;
 	SBUF req, line, packed;
@@ -422,13 +423,13 @@ static int exchange(int k, const URLP *p, int flags, const char *auth, SBUF *bod
 		sb_printf(&req, "Authorization: %s\r\n", auth);
 	sb_adds(&req, "\r\n");
 	if (!req.s || !conn_write(c, req.s, req.len)) {
-		*again = req.s && reused && !conn_stop;	/* the kept line had gone */
+		*again = req.s && may_again && !conn_stop;	/* the line had gone */
 		goto out;
 	}
 	/* the status line; 1xx answers are passed over */
 	for (tries = 0; tries < 4; tries++) {
 		if (get_line(c, &line) < 0) {
-			*again = reused && !tries && !conn_stop;
+			*again = may_again && !tries && !conn_stop;
 			goto out;
 		}
 		if (strncmp(line.s, "HTTP/1.", 7) || line.len < 12 || line.s[8] != ' ' ||
@@ -480,7 +481,7 @@ static int exchange(int k, const URLP *p, int flags, const char *auth, SBUF *bod
 		sink_to = 0;
 	}
 out:
-	if (!ok && !*again)
+	if (!ok)
 		str_copy(err, c->err[0] ? c->err : "out of memory", errlen);
 	if (!ok || closed || h->close)
 		drop(k);
@@ -502,6 +503,13 @@ typedef struct {
 	char abs[MAXURL];
 } GETW;
 
+static void retry_log(const char *err)
+{
+	char m[160];
+	snprintf(m, sizeof(m), "%s: once more, on a new connection", err);
+	conn_log("HTTP", " -- ", m, strlen(m));
+}
+
 static int get(GETW *w, const char *url, int flags, const char *auth, const char *auth_host,
 	       SBUF *body, long max, HTTPRESP *rs, char *err, int errlen)
 {
@@ -516,14 +524,26 @@ static int get(GETW *w, const char *url, int flags, const char *auth, const char
 		int k, reused, again, tries;
 		/* the token: to its host, and never on where a redirect leads */
 		const char *a = !hops && auth && auth_host && !strcmp(p->host, auth_host) ? auth : 0;
+		/* a request that fails before any answer is made once more, on a
+		   new connection: the kept one was closed meanwhile, or this
+		   one was the first of a job (Erez, 31 Oct 2026: a check's
+		   first row failed on his Falcon, the rows after it came; the
+		   first connection is the first to ask STinG for GitHub's
+		   address, and its chain is checked in full, not from
+		   SIGS.DAT). Not when stopped, nor for a certificate refused */
 		for (tries = 0; tries < 2; tries++) {
 			k = take(p, &reused, err, errlen);
-			if (k < 0)
-				return 0;
-			if (exchange(k, p, flags, a, body, max, rs, h, reused, &again, err, errlen))
+			if (k < 0) {
+				if (tries || conn_stop || strstr(err, "certificate"))
+					return 0;
+				retry_log(err);
+				continue;
+			}
+			if (exchange(k, p, flags, a, body, max, rs, h, reused || !tries, &again, err, errlen))
 				break;
 			if (!again)
 				return 0;
+			retry_log(err);
 		}
 		if (tries == 2) {
 			str_copy(err, "the server closed the connection", errlen);

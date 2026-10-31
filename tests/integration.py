@@ -26,11 +26,12 @@ def check(cond, what):
     fails += not cond
 
 
-def cli(base, ca, *args, token=None):
+def cli(base, ca, *args, token=None, env=None):
     cmd = [CLI, "-b", base, "-c", ca, "-l", os.path.join(W, "EUPDATE.LOG")]
     if token:
         cmd += ["-t", token]
-    r = subprocess.run(cmd + list(args), capture_output=True, text=True, timeout=60)
+    r = subprocess.run(cmd + list(args), capture_output=True, text=True, timeout=60,
+                       env=dict(os.environ, **(env or {})))
     return r.returncode, r.stdout, r.stderr
 
 
@@ -63,6 +64,22 @@ def refused():
     check(rc == 1 and "server name" in err.lower(), "a certificate for another name: refused (%s)" % err.strip().splitlines()[-1])
     sent = open(auth).read() if os.path.exists(auth) else ""
     check("good-token" not in sent, "and the token reached neither")
+
+
+def first_fails(ca):
+    """a job's first connection fails, and the rows after it work (Erez,
+    31 Oct 2026): the request is made once more, on a new connection"""
+    print("-- the first connection fails")
+    rc, out, err = cli("https://localhost:18733", ca, "latest", "whomper/EUpdate")
+    check(rc == 0 and out.startswith("v1.1\t"), "no answer to the first request: asked once more (%s)" %
+          (err.strip().splitlines() or ["ok"])[-1])
+    rc, out, err = cli("https://localhost:18733", ca, "latest", "whomper/EUpdate", env={"EUPD_OPEN_FAILS": "1"})
+    check(rc == 0 and out.startswith("v1.1\t"), "the first connection not opened: opened once more (%s)" %
+          (err.strip().splitlines() or ["ok"])[-1])
+    rc, out, err = cli("https://localhost:18733", ca, "latest", "whomper/EUpdate", env={"EUPD_OPEN_FAILS": "2"})
+    check(rc == 1 and "can't find" in err, "and not a third time")
+    log = open(os.path.join(W, "EUPDATE.LOG"), errors="replace").read()
+    check("once more, on a new connection" in log, "the log says why")
 
 
 def run(base, ca):
@@ -104,18 +121,24 @@ def main():
     plain = subprocess.Popen([sys.executable, os.path.join(H, "server.py"), "18731"], stdout=subprocess.PIPE)
     tls = subprocess.Popen([sys.executable, os.path.join(H, "server.py"), "18732", "srv.pem", "srv.key"],
                            stdout=subprocess.PIPE, env=dict(os.environ, AUTH_LOG=os.path.join(W, "auth.log")))
+    # the first request it is sent gets no answer
+    flaky = subprocess.Popen([sys.executable, os.path.join(H, "server.py"), "18733", "srv.pem", "srv.key"],
+                             stdout=subprocess.PIPE, env=dict(os.environ, DROP_FIRST="1"))
     try:
         plain.stdout.readline()
         tls.stdout.readline()
+        flaky.stdout.readline()
         run("http://127.0.0.1:18731", os.path.join(W, "ca.pem"))
         os.remove(os.path.join(W, "auth.log")) if os.path.exists(os.path.join(W, "auth.log")) else None
         refused()
         run("https://localhost:18732", os.path.join(W, "ca.pem"))
         log = open(os.path.join(W, "EUPDATE.LOG"), errors="replace").read()
         check("good-token" not in log, "the token is not in the log")
+        first_fails(os.path.join(W, "ca.pem"))
     finally:
         plain.kill()
         tls.kill()
+        flaky.kill()
     print("%d failed" % fails)
     sys.exit(fails != 0)
 
