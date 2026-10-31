@@ -56,7 +56,7 @@ You copy the first five; EUpdate makes the others when it needs them.
 
 With no `EUPDATE.INF` yet, EUpdate reads `DEFAULTS.INF` and follows the
 AERA programs: ECal, EContact, EMail, EFTP, EHypView, ClaudeST, EWeb,
-each into its own folder in `C:\AERA` (`C:\AERA\ECAL` and so on), and
+EPDF, each into its own folder in `C:\AERA` (`C:\AERA\ECAL` and so on), and
 EUpdate itself in its own folder. The desk accessories go to `C:\`, where
 TOS loads them, and EWeb's ST edition is left out. Nothing is downloaded
 yet: **Check** shows their latest releases, and **Update** brings them

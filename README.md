@@ -9,7 +9,7 @@ folders of your choice, shows which are current, and updates them with a click o
 **Highlights**
 
 - **The AERA programs, ready to follow:** on its first start EUpdate follows ECal, EContact,
-  EMail, EFTP, EHypView, ClaudeST, EWeb and itself (`DEFAULTS.INF`), each into `C:\AERA\`, the
+  EMail, EFTP, EHypView, ClaudeST, EWeb, EPDF and itself (`DEFAULTS.INF`), each into `C:\AERA\`, the
   desk accessories to `C:\`; a Check shows what is new, and Update brings them in.
 - **Find on GitHub:** repositories by name, the most starred first; or owners, people and
   organisations, and then their repositories.
@@ -189,4 +189,4 @@ It includes, under their own licences (compatible with the GPL):
 
 ---
 
-Part of **AERA** for Atari: [ECal](https://github.com/whomper/ECal) · [EContact](https://github.com/whomper/EContact) · [EMail](https://github.com/whomper/EMail) · [EFTP](https://github.com/whomper/EFTP) · [EHypView](https://github.com/whomper/EHypView) · [ClaudeST](https://github.com/whomper/ClaudeST) · [EWeb](https://github.com/whomper/EWeb) · [EUpdate](https://github.com/whomper/EUpdate) · 8-bit: [EDOS](https://github.com/whomper/EDOS) · [EFTP_XL](https://github.com/whomper/EFTP_XL) · Pi: [AERA-Gateway](https://github.com/whomper/AERA-Gateway)
+Part of **AERA** for Atari: [ECal](https://github.com/whomper/ECal) · [EContact](https://github.com/whomper/EContact) · [EMail](https://github.com/whomper/EMail) · [EFTP](https://github.com/whomper/EFTP) · [EHypView](https://github.com/whomper/EHypView) · [ClaudeST](https://github.com/whomper/ClaudeST) · [EWeb](https://github.com/whomper/EWeb) · [EUpdate](https://github.com/whomper/EUpdate) · [EPDF](https://github.com/whomper/EPDF) · 8-bit: [EDOS](https://github.com/whomper/EDOS) · [EFTP_XL](https://github.com/whomper/EFTP_XL) · Pi: [AERA-Gateway](https://github.com/whomper/AERA-Gateway)

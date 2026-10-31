@@ -2,4 +2,4 @@ blank_issues_enabled: true
 contact_links:
   - name: All AERA Atari programs
     url: https://github.com/whomper
-    about: ECal, EContact, EMail, EFTP, EHypView, ClaudeST, EWeb, EUpdate, EDOS and EFTP_XL
+    about: ECal, EContact, EMail, EFTP, EHypView, ClaudeST, EWeb, EUpdate, EPDF, EDOS and EFTP_XL

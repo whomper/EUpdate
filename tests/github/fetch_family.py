@@ -18,7 +18,7 @@ import urllib.error
 import urllib.request
 
 OWNER = "whomper"
-FAMILY = ["ECal", "EContact", "EMail", "EFTP", "EHypView", "ClaudeST", "EWeb", "EUpdate"]
+FAMILY = ["ECal", "EContact", "EMail", "EFTP", "EHypView", "ClaudeST", "EWeb", "EPDF", "EUpdate"]
 # what each app's make dist publishes, VER for its version
 NAMES = {
     "ECal": "ECAL.ACC ECALST.ACC ECAL.PRG ECAL.HYP ECAL.REF ECAL.RSC ECAL.ICN ECALMK.ICN ECAL-VER.zip",
@@ -31,6 +31,8 @@ NAMES = {
     "ClaudeST": "CLAUDEST.PRG CLAUDEST.HYP CLAUDEST.REF CLAUDEST.RSC CLAUDEST.ICN CLAUDSMK.ICN CLAUDEST-VER.zip",
     "EWeb": "EWEB.PRG EWEBST.PRG EWEB.FNT EWEB.HYP NSBENCH.TTP NSBENCH.TXT EWGET.TTP EWGET.TXT SAMPLE.HTM "
             "NEWS.HTM NEWS.CSS PICBENCH.TTP PICBENCH.TXT PHOTO.JPG EWEB-VER.zip",
+    "EPDF": "EPDF.PRG EPDF.HYP EPDF.REF NOTICES.TXT EPDF.RSC EPDFNV.RSC EPDF.ICN EPDFMK.ICN EPDFDOC.RSC "
+            "EPDFDNV.RSC EPDF-VER.zip",
     "EUpdate": "EUPDATE.PRG EUPDATE.HYP EUPDATE.RSC EUPDATE.ICN EUPDMK.ICN EUPDATE-VER.zip",
 }
 COMMON = "CACERT.PEM ROOTS.DAT TLS.OVL"   # TLS.OVL from each app's first release with it (7.4)

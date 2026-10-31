@@ -1,6 +1,6 @@
 # Notes for working on EUpdate
 
-EUpdate is one of the AERA Atari apps (ECal, EContact, EMail, EFTP, EHypView, ClaudeST, EWeb). They are meant to
+EUpdate is one of the AERA Atari apps (ECal, EContact, EMail, EFTP, EHypView, ClaudeST, EWeb, EPDF). They are meant to
 look and behave as one family.
 
 ## For every AERA app

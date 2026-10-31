@@ -67,6 +67,13 @@ UNZIP=1
 RULE=EWEBST.PRG;-
 
 [REPO]
+REPO=whomper/EPDF
+
+FOLDER=C:\AERA\EPDF
+
+UNZIP=1
+
+[REPO]
 REPO=whomper/EUpdate
 
 FOLDER=.

@@ -34,7 +34,8 @@ PORT = 18760
 CACHE = os.path.join(os.path.expanduser("~"), ".cache", "aera", "releases")
 # Erez's list (22 Oct 2026); ECal and EContact current, the others not yet downloaded
 FOLLOW = (("ECal", True), ("EContact", True), ("EUpdate", False), ("ClaudeST", False), ("EHypView", False),
-          ("EWeb", False), ("EMail", False), ("EFTP", False))
+          ("EWeb", False), ("EMail", False), ("EFTP", False),
+          ("EPDF", False))
 # the rules EUpdate suggests for them on a Falcon (update.c, up_suggest)
 SKIP = {"ECal": "ECALST.ACC", "EContact": "ECONTST.ACC", "EMail": "EMAILST.PRG", "EFTP": "EFTPST.PRG",
         "EWeb": "EWEBST.PRG"}

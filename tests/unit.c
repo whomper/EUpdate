@@ -669,17 +669,18 @@ static void test_store(void)
 		snprintf(path, sizeof(path), "%s/EUPDATE.INF", dir);
 		pf_remove(path);
 		store_init(dir);
-		CHECK(nrepos == 8 && !strcmp(repos[0]->full, "whomper/ECal"));
+		CHECK(nrepos == 9 && !strcmp(repos[0]->full, "whomper/ECal"));
 		CHECK(!strcmp(repos[0]->folder, "C:\\AERA\\ECAL") && repos[0]->unzip == 1);
 		CHECK(!strcmp(repos[0]->rule[0].names, "*.ACC") && !strcmp(repos[0]->rule[0].folder, "C:\\"));
 		CHECK(!strcmp(repos[6]->full, "whomper/EWeb") && !strcmp(repos[6]->rule[0].folder, "-"));
-		CHECK(!strcmp(repos[7]->full, "whomper/EUpdate") && !strcmp(repos[7]->folder, dir));
-		CHECK(!strncmp(repos[7]->have, "v", 1) && !repos[2]->have[0] && !repos[2]->rule[0].names[0]);
+		CHECK(!strcmp(repos[7]->full, "whomper/EPDF") && !strcmp(repos[7]->folder, "C:\\AERA\\EPDF"));
+		CHECK(!strcmp(repos[8]->full, "whomper/EUpdate") && !strcmp(repos[8]->folder, dir));
+		CHECK(!strncmp(repos[8]->have, "v", 1) && !repos[2]->have[0] && !repos[2]->rule[0].names[0]);
 		CHECK(store_save() == 0);	/* from now on EUPDATE.INF */
 		while (nrepos)
 			repo_delete(repos[0]);
 		store_init(dir);
-		CHECK(nrepos == 8 && !strcmp(repos[7]->folder, dir));
+		CHECK(nrepos == 9 && !strcmp(repos[8]->folder, dir));
 		while (nrepos)
 			repo_delete(repos[0]);
 	}
