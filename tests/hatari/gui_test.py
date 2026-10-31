@@ -142,6 +142,12 @@ def main():
               "its rule left README.TXT out")
         inf = open(os.path.join(hd, "EUPDATE.INF"), errors="replace").read()
         check("HAVE=v1.1" in inf, "it has v1.1 now, in EUPDATE.INF")
+        # ^C: the row chosen, as one line, in the clipboard (common's clip.c)
+        r.ctrl("c")
+        time.sleep(2)
+        scrap = os.path.join(hd, "CLIPBRD", "SCRAP.TXT")
+        check(os.path.exists(scrap) and open(scrap, "rb").read() == b"whomper/EUpdate\r\n",
+              "^C: whomper/EUpdate in C:\\CLIPBRD\\SCRAP.TXT")
         r.ctrl("i")
         time.sleep(2)
         r.shot("info")
