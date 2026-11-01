@@ -6,7 +6,7 @@ real latest releases of each app (tests/github/fetch_family.py's CACHE),
 answered as GitHub's API answers them, and their files from a second
 server, as GitHub sends them on to release-assets.githubusercontent.com.
 
-    family_server.py API_PORT FILES_PORT CACHE CERT KEY
+    family_server.py API_PORT FILES_PORT CACHE CERT KEY [ECCERT ECKEY]
 
 Run twice: once on API_PORT (the API), once on FILES_PORT (the files);
 each answers both, the rig points EUpdate at the first. As GitHub's:
@@ -16,7 +16,8 @@ each answers both, the rig points EUpdate at the first. As GitHub's:
     API's during every long download, Erez's log of 22 Oct 2026);
   - answers come gzip'ed when asked, with X-RateLimit-Remaining;
   - TLS with a chain like GitHub's (the rig makes it: a leaf signed by an
-    intermediate of RSA-4096).
+    intermediate of RSA-4096), and, as GitHub has, an ECDSA P-256 leaf
+    for a hello that offers ECDSA.
 """
 import gzip
 import json
@@ -113,6 +114,8 @@ def main():
     srv = ThreadingHTTPServer(("127.0.0.1", api_port), Handler)
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ctx.load_cert_chain(cert, key)
+    if len(sys.argv) > 7:           # an ECDSA one too, as GitHub has: the hello chooses
+        ctx.load_cert_chain(sys.argv[6], sys.argv[7])
     srv.socket = ctx.wrap_socket(srv.socket, server_side=True)
     print("ready", flush=True)
     srv.serve_forever()

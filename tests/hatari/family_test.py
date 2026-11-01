@@ -58,6 +58,15 @@ def certs():
          "-out", "leaf.pem", "-extfile", "leaf.cnf")
     with open(os.path.join(work, "chain.pem"), "w") as f:
         f.write(open(os.path.join(work, "leaf.pem")).read() + open(os.path.join(work, "int.pem")).read())
+    # and an ECDSA P-256 leaf, as GitHub has both: which one a hello gets
+    # shows in the log (Erez's stock Falcon, 1 Nov 2026: GitHub's ECDSA
+    # signature took its DSP 5.5 s, and every handshake ran out of time)
+    ossl("ecparam", "-name", "prime256v1", "-genkey", "-noout", "-out", "ecleaf.key")
+    ossl("req", "-new", "-key", "ecleaf.key", "-subj", "/CN=127.0.0.1", "-out", "ecleaf.csr")
+    ossl("x509", "-req", "-in", "ecleaf.csr", "-CA", "int.pem", "-CAkey", "int.key", "-CAcreateserial", "-days", "2",
+         "-out", "ecleaf.pem", "-extfile", "leaf.cnf")
+    with open(os.path.join(work, "ecchain.pem"), "w") as f:
+        f.write(open(os.path.join(work, "ecleaf.pem")).read() + open(os.path.join(work, "int.pem")).read())
 
 
 def port_taken(port):
@@ -103,7 +112,8 @@ def main():
                 f.write("RULE=*.ACC;C:\\\r\n")
     chain, key = os.path.join(work, "chain.pem"), os.path.join(work, "leaf.key")
     srv = [subprocess.Popen([sys.executable, os.path.join(TOP, "tests", "family_server.py"), str(port), str(PORT + 1),
-                             CACHE, chain, key], stdout=subprocess.DEVNULL) for port in (PORT, PORT + 1)]
+                             CACHE, chain, key, os.path.join(work, "ecchain.pem"), os.path.join(work, "ecleaf.key")],
+                            stdout=subprocess.DEVNULL) for port in (PORT, PORT + 1)]
     wait_port(PORT)
     wait_port(PORT + 1)
     os.environ.setdefault("AERA_WITH_ACCS", ",".join(ACCS))
@@ -142,6 +152,11 @@ def main():
             check("EFTPST.PRG replaced by EFTP.PRG" in log, "and the log says so")
         else:
             check(st, "EFTP %s still has its ST edition: the hand-copied one kept" % tags["EFTP"])
+        # the hello asks for RSA certificates, DSP or not: GitHub's ECDSA
+        # signature took a stock Falcon's DSP 5.5 s (common's conn.c)
+        log = open(os.path.join(hd, "EUPDATE.LOG"), errors="replace").read()
+        check("RSA-2048 signature" in log and "ECDSA" not in log,
+              "GitHub's RSA certificate asked for, not its ECDSA one")
     finally:
         r.stop()
         m.stop()
