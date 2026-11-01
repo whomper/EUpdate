@@ -329,6 +329,11 @@ static int job_begin(void)
 		while (n++ < 16 && (evnt_multi_(MU_MESAG | MU_TIMER, 0, 0, 0, 0, msg, &ev) & MU_MESAG))
 			win_message(msg);
 	}
+	/* the machine and its free memory, before TLS.OVL takes its 148 KB:
+	   the line a failed load is read with (a 4 MB Falcon with NVDI and
+	   three accessories at their first boot had too little: the hub,
+	   1 Nov 2026) */
+	log_machine();
 	/* the TLS, TLS.OVL beside EUPDATE.PRG (the guidelines 7.4): loaded at
 	   the first job once the window is drawn, and what is wrong said then */
 	{
@@ -346,7 +351,6 @@ static int job_begin(void)
 	menu_update();
 	icon_window(0);
 	conn_log_hold(1);
-	log_machine();
 	return 1;
 }
 
