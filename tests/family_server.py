@@ -9,7 +9,9 @@ server, as GitHub sends them on to release-assets.githubusercontent.com.
     family_server.py API_PORT FILES_PORT CACHE CERT KEY [ECCERT ECKEY]
 
 Run twice: once on API_PORT (the API), once on FILES_PORT (the files);
-each answers both, the rig points EUpdate at the first. As GitHub's:
+each answers both, the rig points EUpdate at the first. The files'
+server listens on FILES_HOST (127.0.0.1 unless set), as GitHub's are on
+a host of their own. As GitHub's:
   - a file's download is a 302 to the other server, at a signed address
     of more than 900 characters, refused (400) if it comes back cut short;
   - an idle connection is closed after a few seconds (GitHub closes the
@@ -51,6 +53,9 @@ def load(cache):
                                                    (repo, tag, f)})
         rel[repo] = (tag, assets)
     return rel, files
+
+
+FILES_HOST = os.environ.get("FILES_HOST", "127.0.0.1")
 
 
 def main():
@@ -99,7 +104,7 @@ def main():
             if len(p) >= 4 and p[0] == "repos" and p[3] == "releases":
                 if len(p) == 6 and p[4] == "assets":
                     return self.send(302, b"", "text/html", extra=(
-                        ("Location", "https://127.0.0.1:%d/dl/%s?%s" % (files_port, p[5], SIGNED)),))
+                        ("Location", "https://%s:%d/dl/%s?%s" % (FILES_HOST, files_port, p[5], SIGNED)),))
                 if p[2] in rel:
                     tag, assets = rel[p[2]]
                     return self.send(200, {"url": "u", "tag_name": tag, "name": "%s %s" % (p[2], tag[1:]),
@@ -111,7 +116,10 @@ def main():
                 return self.send(200 if p[2] in rel else 404, {"full_name": "%s/%s" % (p[1], p[2])})
             self.send(404, {"message": "Not Found"})
 
-    srv = ThreadingHTTPServer(("127.0.0.1", api_port), Handler)
+    # the files on a host of their own, as GitHub's are (FILES_HOST=127.0.0.2):
+    # a TLS session is kept by the server's name, and with both on
+    # 127.0.0.1 each would be offered the other's
+    srv = ThreadingHTTPServer((FILES_HOST if api_port == files_port else "127.0.0.1", api_port), Handler)
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ctx.load_cert_chain(cert, key)
     if len(sys.argv) > 7:           # an ECDSA one too, as GitHub has: the hello chooses

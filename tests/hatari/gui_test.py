@@ -65,10 +65,10 @@ def changed(r, base, name, act, tries=5, again=True):
     return shot
 
 
-def wait_port(port):
+def wait_port(port, host="127.0.0.1"):
     for _ in range(50):
         try:
-            socket.create_connection(("127.0.0.1", port), 0.2).close()
+            socket.create_connection((host, port), 0.2).close()
             return
         except OSError:
             time.sleep(0.1)

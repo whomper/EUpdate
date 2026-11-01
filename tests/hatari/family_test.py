@@ -31,6 +31,7 @@ from gui_test import wait_port, check, TOP
 work = os.path.abspath(sys.argv[1])
 spec = sys.argv[2] if len(sys.argv) > 2 else "Falcon:16"
 PORT = 18760
+FILES_HOST = "127.0.0.2"      # GitHub's files are on a host of their own
 CACHE = os.path.join(os.path.expanduser("~"), ".cache", "aera", "releases")
 # Erez's list (22 Oct 2026); ECal and EContact current, the others not yet downloaded
 FOLLOW = (("ECal", True), ("EContact", True), ("EUpdate", False), ("ClaudeST", False), ("EHypView", False),
@@ -47,7 +48,7 @@ def certs():
     def ossl(*a):
         subprocess.run(["openssl"] + list(a), check=True, capture_output=True, cwd=work)
     open(os.path.join(work, "ca.cnf"), "w").write("basicConstraints=critical,CA:TRUE\nkeyUsage=critical,keyCertSign,cRLSign\n")
-    open(os.path.join(work, "leaf.cnf"), "w").write("subjectAltName=DNS:127.0.0.1,IP:127.0.0.1\nbasicConstraints=CA:FALSE\n")
+    open(os.path.join(work, "leaf.cnf"), "w").write("subjectAltName=DNS:127.0.0.1,IP:127.0.0.1,DNS:127.0.0.2,IP:127.0.0.2\nbasicConstraints=CA:FALSE\n")
     ossl("req", "-x509", "-newkey", "rsa:4096", "-nodes", "-days", "2", "-subj", "/CN=Test Root", "-keyout", "root.key",
          "-out", "root.pem", "-addext", "basicConstraints=critical,CA:TRUE", "-addext", "keyUsage=critical,keyCertSign,cRLSign")
     ossl("req", "-newkey", "rsa:4096", "-nodes", "-subj", "/CN=Test Intermediate", "-keyout", "int.key", "-out", "int.csr")
@@ -113,9 +114,10 @@ def main():
     chain, key = os.path.join(work, "chain.pem"), os.path.join(work, "leaf.key")
     srv = [subprocess.Popen([sys.executable, os.path.join(TOP, "tests", "family_server.py"), str(port), str(PORT + 1),
                              CACHE, chain, key, os.path.join(work, "ecchain.pem"), os.path.join(work, "ecleaf.key")],
-                            stdout=subprocess.DEVNULL) for port in (PORT, PORT + 1)]
+                            stdout=subprocess.DEVNULL, env=dict(os.environ, FILES_HOST=FILES_HOST))
+           for port in (PORT, PORT + 1)]
     wait_port(PORT)
-    wait_port(PORT + 1)
+    wait_port(PORT + 1, FILES_HOST)
     os.environ.setdefault("AERA_WITH_ACCS", ",".join(ACCS))
     m = rig.machine(spec, work)
     r = rig.Rig(work, m, display=os.environ.get("XDISPLAY", ":99"),
