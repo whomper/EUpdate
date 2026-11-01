@@ -471,6 +471,7 @@ static void band_show(OBJECT *tree, short i)
 	dw[i].band = 0;
 }
 
+#ifdef DLG_CPU
 /* ---------------- a dialog drawn partly by the CPU ----------------
  * On TOS's own screen, where text.c's drawing goes into it and beats the
  * AES (scr_cpu_wins(): TOS's VDI, the system font, interleaved planes, a
@@ -496,8 +497,8 @@ int dlg_fast_part = 4;
 static long fast_count;
 #ifdef DLG_FAST_TIMES
 unsigned long dlg_fast_t[4];		/* DLGCMP's: the walk, the root, objc_draw, the CPU's objects */
-unsigned long dlg_fast_kt[8];		/* and the CPU's objects by kind (K_), time and */
-long dlg_fast_kn[8];			/* how many */
+unsigned long dlg_fast_kt[9];		/* and the CPU's objects by kind (K_), time and */
+long dlg_fast_kn[9];			/* how many */
 #define FT(k) (dlg_fast_t[k] += tos_ms() - ft0, ft0 = tos_ms())
 #else
 #define FT(k)
@@ -506,7 +507,8 @@ long dlg_fast_kn[8];			/* how many */
 #define FAST_SHOWN 64			/* more objects shown: objc_draw alone */
 #define FAST_MASK3D 0x0600		/* FL3DMASK */
 
-enum { K_AES, K_STRING, K_BOXTEXT, K_NOTHING, K_BOX, K_BUTTON, K_IMAGE };
+enum { K_AES, K_STRING, K_BOXTEXT, K_NOTHING, K_BOX, K_BUTTON, K_IMAGE, K_FIELD, K_BOXCHAR };
+#define FIELD_MAX 128		/* the longest field template the CPU draws */
 
 typedef struct {
 	short i, x, y;			/* the object, where it is */
@@ -640,14 +642,36 @@ static void box_paint(short x, short y, short w, short h, short th, short bpen, 
 	}
 }
 
+/* a field's text as the AES shows it: the template, each '_' taken by
+   the next character of the text while there is one ("@" first: none);
+   right-justified, the text takes the last of them (DLGCMP) */
+static void field_text(const TEDINFO *e, char *d)
+{
+	const char *t = e->te_ptext, *m = e->te_ptmplt;
+	short skip = 0;
+	if (*t == '@')
+		t = "";
+	if (e->te_just == 1) {
+		for (; *m; m++)
+			skip += *m == '_';
+		skip -= (short)strlen(t);
+		m = e->te_ptmplt;
+	}
+	for (; *m; m++)
+		*d++ = *m != '_' ? *m : skip > 0 ? (skip--, '_') : *t ? *t++ : '_';
+	*d = 0;
+}
+
 /* what the CPU can draw of object i (not the root): K_STRING, K_BOXTEXT,
-   K_BOX, K_BUTTON, K_IMAGE, or K_AES */
+   K_FIELD, K_BOX, K_BOXCHAR, K_BUTTON, K_IMAGE, or K_AES. A box with objects in it
+   is the CPU's only while all of them are (fast_draw: an AES object
+   after it that meets it, its own included, gives it to the AES) */
 static int fast_kind(OBJECT *tree, short i, short ch)
 {
 	OBJECT *o = &tree[i];
 	short t = o->ob_type & 0xff;
 	unsigned short st = o->ob_state;
-	if ((o->ob_flags & FAST_MASK3D) || o->ob_head >= 0 || (st & (CROSSED | CHECKED)))
+	if ((o->ob_flags & FAST_MASK3D) || (o->ob_head >= 0 && t != G_BOX) || (st & (CROSSED | CHECKED)))
 		return K_AES;
 	if (t == G_BOX) {
 		short th = (signed char)(o->ob_spec >> 16), bpen = (short)((o->ob_spec >> 12) & 0x0f);
@@ -664,8 +688,8 @@ static int fast_kind(OBJECT *tree, short i, short ch)
 	}
 	if (o->ob_height < ch)
 		return K_AES;
-	if (t == G_STRING)		/* a line high, as checked */
-		return !st && o->ob_spec && o->ob_height == ch ? K_STRING : K_AES;
+	if (t == G_STRING)		/* a line high, as checked; selected turned over */
+		return !(st & ~SELECTED) && o->ob_spec && o->ob_height == ch ? K_STRING : K_AES;
 	if (t == G_BUTTON) {
 		/* flat: a frame outside, 1 and 1 more for EXIT and DEFAULT, the
 		   word centred; selected turned over, disabled greyed */
@@ -684,6 +708,26 @@ static int fast_kind(OBJECT *tree, short i, short ch)
 		    !e->te_ptext || (long)strlen(e->te_ptext) * 8 > o->ob_width)
 			return K_AES;
 		return K_BOXTEXT;
+	}
+	if (t == G_BOXCHAR) {
+		/* a box with a character in it (a list's arrows), flat; disabled
+		   greyed as a button */
+		short th = (signed char)(o->ob_spec >> 16), bpen = (short)((o->ob_spec >> 12) & 0x0f);
+		if ((st & ~(SELECTED | DISABLED)) || st == (SELECTED | DISABLED) || th > 0 || box_pen(o->ob_spec) < 0 ||
+		    !box_ok(th, bpen, st) || ((o->ob_spec >> 8) & 0x0f) > 1)
+			return K_AES;
+		return K_BOXCHAR;
+	}
+	if (t == G_FBOXTEXT) {
+		/* a field, as a G_BOXTEXT of its text in its template */
+		const TEDINFO *e = (const TEDINFO *)o->ob_spec;
+		short c = e->te_color;
+		if ((st & ~SELECTED) || e->te_font != 3 || e->te_thickness > 0 || box_pen(c) < 0 || ((c >> 8) & 0x0f) > 1 ||
+		    !box_ok(e->te_thickness, (short)((c >> 12) & 0x0f), st) || e->te_just < 0 || e->te_just > 2 ||
+		    !e->te_ptext || !e->te_ptmplt || strlen(e->te_ptmplt) >= FIELD_MAX ||
+		    (long)strlen(e->te_ptmplt) * 8 > o->ob_width)
+			return K_AES;
+		return K_FIELD;
 	}
 	return K_AES;
 }
@@ -773,7 +817,7 @@ static void cpu_object(OBJECT *o, short kind, short x, short y, short ch, short 
 	switch (kind) {
 	case K_STRING:
 		word_at(x, y, o->ob_width, o->ob_height, 0, (const char *)o->ob_spec, 1, ch, 0);
-		return;
+		break;
 	case K_BOX:
 		{
 			short f = box_pen(o->ob_spec);
@@ -781,14 +825,21 @@ static void cpu_object(OBJECT *o, short kind, short x, short y, short ch, short 
 				  (short)((o->ob_spec >> 12) & 0x0f), f == ground ? -1 : f, o->ob_state & (OUTLINED | SHADOWED));
 		}
 		break;
-	case K_BOXTEXT: {
+	case K_BOXTEXT:
+	case K_FIELD: {
 		const TEDINFO *e = (const TEDINFO *)o->ob_spec;
 		short c = e->te_color;
+		static char f[FIELD_MAX];
+		const char *t = e->te_ptext;
+		if (kind == K_FIELD) {
+			field_text(e, f);
+			t = f;
+		}
 		box_paint(x, y, o->ob_width, o->ob_height, e->te_thickness, (short)((c >> 12) & 0x0f),
 			  box_pen(c) == ground ? -1 : box_pen(c), 0);
 		/* MD_REPLACE over the box's own pen 0 is MD_TRANS: the cells'
 		   ground is that pen already */
-		word_at(x, y, o->ob_width, o->ob_height, e->te_just, e->te_ptext, (short)((c >> 8) & 0x0f), ch,
+		word_at(x, y, o->ob_width, o->ob_height, e->te_just, t, (short)((c >> 8) & 0x0f), ch,
 			(c & 0x80) && box_pen(c) != 0);
 		break;
 	}
@@ -796,6 +847,19 @@ static void cpu_object(OBJECT *o, short kind, short x, short y, short ch, short 
 		short th = (short)(-1 - ((o->ob_flags & EXIT) != 0) - ((o->ob_flags & DEFAULT) != 0));
 		box_paint(x, y, o->ob_width, o->ob_height, th, 1, ground == 0 ? -1 : 0, 0);
 		word_at(x, y, o->ob_width, o->ob_height, 3, (const char *)o->ob_spec, 1, ch, 0);
+		if (o->ob_state & DISABLED)
+			scr_grey_off(p);
+		break;
+	}
+	case K_BOXCHAR: {
+		short f = box_pen(o->ob_spec);
+		char c[2];
+		c[0] = (char)(o->ob_spec >> 24);
+		c[1] = 0;
+		box_paint(x, y, o->ob_width, o->ob_height, (signed char)(o->ob_spec >> 16), (short)((o->ob_spec >> 12) & 0x0f),
+			  f == ground ? -1 : f, 0);
+		word_at(x, y, o->ob_width, o->ob_height, 2, c, (short)((o->ob_spec >> 8) & 0x0f), ch,
+			(o->ob_spec & 0x80) && f != 0);
 		if (o->ob_state & DISABLED)
 			scr_grey_off(p);
 		break;
@@ -966,6 +1030,26 @@ long dlg_fast_count(void)
 {
 	return fast_count;
 }
+#else
+
+/* without -DDLG_CPU (accessories, programs for the 68030 only): every
+   dialog objc_draw's, none of the CPU's drawing linked in (EMAILCHK.ACC
+   grew 5.7 KB with it, 1 Nov 2026: the accessories' first-boot memory) */
+int dlg_fast_on = 0;
+int dlg_fast_part = 4;
+
+static void fast_draw(OBJECT *tree, short cx, short cy, short cw, short cch, int hidden)
+{
+	(void)hidden;
+	objc_draw(tree, 0, 8, cx, cy, cw, cch);
+}
+
+long dlg_fast_count(void)
+{
+	return 0;
+}
+
+#endif /* DLG_CPU */
 
 static short open_any(OBJECT *tree, void (*draw)(short, short, short, short),
 		      short *x, short *y, short *w, short *h)
@@ -1135,10 +1219,88 @@ void dlg_draw(OBJECT *tree, short obj)
 		objc_draw(tree, 0, 8, x, y, w, h);
 }
 
+#ifdef DLG_CLICK
+#include "click.h"
+
+/* a message that comes while a row is held, as dlg_evnt would take it:
+   the dialog window's own redraw drawn, the app's other windows' given to
+   dlg_redraw_hook (in a window only: on TOS the dialog is over them),
+   the rest kept for when the dialog is gone */
+static void held_msg(short *msg)
+{
+	short k, i = ndw - 1;
+	for (k = 0; k <= i && dw[k].h != msg[3]; k++)
+		;
+	if (msg[0] == WM_REDRAW && k <= i && dw[k].h > 0) {
+		wind_update(END_UPDATE);
+		win_paint(k, msg[4], msg[5], msg[6], msg[7]);
+		wind_update(BEG_UPDATE);
+	} else if (msg[0] == WM_REDRAW && dlg_redraw_hook && dlg_in_window()) {
+		wind_update(END_UPDATE);
+		dlg_redraw_hook(msg);
+		wind_update(BEG_UPDATE);
+	} else if (msg[0] == WM_REDRAW) {
+		keep_redraw(msg);
+	} else if (!(k <= i && dw[k].h > 0)) {
+		keep_msg(msg);
+	}
+}
+
+/* a row's first press, handed back at once: its release still to come */
+static struct {
+	int on;
+	GRECT r;
+	short x, y;
+} held;
+
+int dlg_touch_up(void)
+{
+	short m[8];
+	AEVENT e;
+	int r;
+	if (!held.on)
+		return -1;
+	held.on = 0;
+	r = press_track(&held.r, held.x, held.y, 0, held_msg, 0, 0);
+	if (r == PRESS_DRAG)
+		evnt_multi_(MU_BUTTON, 1, 1, 0, 0, m, &e);	/* moved off: just its release */
+	return r;
+}
+
+void dlg_touch(OBJECT *tree, short *next, short x, short y)
+{
+	short o = (short)(*next & 0x7fff);
+	GRECT r;
+	if (o <= 0 || !(tree[o].ob_flags & TOUCHEXIT))
+		return;
+	*next = o;
+	objc_offset(tree, o, &r.x, &r.y);
+	r.w = tree[o].ob_width;
+	r.h = tree[o].ob_height;
+	if (!press_double(o, x, y)) {
+		held.on = 1;		/* the caller acts on the press; touch_up waits */
+		held.r = r;
+		held.x = x;
+		held.y = y;
+	} else {
+		int t = press_track(&r, x, y, 0, held_msg, 0, 0);
+		short m[8];
+		AEVENT e;
+		if (t == PRESS_IN)
+			*next = (short)(o | 0x8000);
+		else if (t == PRESS_DRAG)	/* no drag in a dialog: its release, not a press elsewhere */
+			evnt_multi_(MU_BUTTON, 1, 1, 0, 0, m, &e);
+	}
+}
+#endif
+
 short dlg_evnt(short flags, short clicks, short mask, short state,
 	       unsigned long timer, short *msg, AEVENT *e)
 {
 	short i, k, top, d1;
+#ifdef DLG_CLICK
+	dlg_touch_up();
+#endif
 	if (!dlg_in_window())
 		return evnt_multi_(flags, clicks, mask, state, timer, msg, e);
 	i = ndw - 1;
@@ -1225,7 +1387,7 @@ short dlg_do(OBJECT *tree, short start, short cancel)
 				objc_edit(tree, edit, 0, &idx, ED_INIT);
 		}
 		lf = lf_of && edit > 0 ? lf_of(tree, edit) : 0;
-		dlg_evnt(MU_KEYBD | MU_BUTTON, 2, 1, 1, 0, m, &e);
+		dlg_evnt(MU_KEYBD | MU_BUTTON, DLG_CLICKS, 1, 1, 0, m, &e);
 		if (e.which & MU_KEYBD) {
 			if (dlg_esc(e.kreturn) && !dlg_undo(e.kreturn))
 				e.kreturn = 0x011b;	/* ^[ too: the key objc_edit empties a field on */
@@ -1253,6 +1415,10 @@ short dlg_do(OBJECT *tree, short start, short cancel)
 				next = 0;
 			} else {
 				cont = form_button(tree, next, e.breturn, &next);
+#ifdef DLG_CLICK
+				if (!cont)
+					dlg_touch(tree, &next, e.mx, e.my);
+#endif
 			}
 		}
 		if ((!cont || (next > 0 && next != edit)) && edit > 0)
