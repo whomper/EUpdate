@@ -11,6 +11,7 @@
 #include "util.h"
 #include "unzip.h"
 #include "update.h"
+#include "conn.h"
 
 void (*up_status)(const char *msg);
 void (*up_replaced)(const REPO *r, const char *old, const char *now);
@@ -368,6 +369,7 @@ static int file_begin(void *ud, const char *name, long size)
 	if (r)
 		return r;
 	say("Writing %s...%s", j->path, "");
+	unzip_ms_read = unzip_ms_unpack = unzip_ms_crc = unzip_ms_put = 0;
 	j->fh = pf_wopen(j->path);
 	j->size = size;
 	j->got = 0;
@@ -381,7 +383,10 @@ static int file_begin(void *ud, const char *name, long size)
 static int file_put(void *ud, const unsigned char *p, long n)
 {
 	JOB *j = ud;
-	if (pf_wwrite(j->fh, p, n) != n) {	/* a turn every 32 KB (pf_save_turn) */
+	unsigned long t = pf_ms();
+	long w = pf_wwrite(j->fh, p, n);	/* a turn every 32 KB (pf_save_turn) */
+	unzip_ms_put += pf_ms() - t;
+	if (w != n) {
 		cant_write(j);
 		return 1;
 	}
@@ -393,7 +398,19 @@ static int file_put(void *ud, const unsigned char *p, long n)
 static int file_end(void *ud, int whole)
 {
 	JOB *j = ud;
-	int keep = whole && j->got == j->size, r = pf_wclose(j->fh, j->path, keep);
+	int keep, r;
+	unsigned long t = pf_ms();
+	keep = whole && j->got == j->size;
+	r = pf_wclose(j->fh, j->path, keep);
+	unzip_ms_put += pf_ms() - t;		/* the rename too */
+	{
+		/* where its time went, for a report of a slow update (Erez,
+		   1 Nov 2026: "saving takes forever") */
+		char m[200];
+		snprintf(m, sizeof(m), "%s: %ld bytes; unpacking %lu ms, CRC %lu, writing %lu, reading the archive %lu",
+			 j->path, j->got, unzip_ms_unpack, unzip_ms_crc, unzip_ms_put, unzip_ms_read);
+		conn_log("EUPD", " -- ", m, strlen(m));
+	}
 	j->fh = -1;
 	if (!keep)
 		return 0;

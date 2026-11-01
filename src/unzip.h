@@ -35,6 +35,11 @@ int unzip_to(const unsigned char *zip, long n, const UNZIP_TO *to, void *ud, cha
    in memory */
 int unzip_file(const char *path, const UNZIP_TO *to, void *ud, char *err, int errlen);
 
+/* a file's time, ms, by what it went on, for EUPDATE.LOG: the archive
+   read back from the disk, unpacking (with GEM's turns) and the CRC
+   here; the writing is the sink's to count (update.c) */
+extern unsigned long unzip_ms_read, unzip_ms_unpack, unzip_ms_crc, unzip_ms_put;
+
 unsigned long crc32(const unsigned char *p, long n);
 unsigned long crc32_more(unsigned long crc, const unsigned char *p, long n);	/* crc32 of what came, and p */
 

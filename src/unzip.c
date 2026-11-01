@@ -32,22 +32,57 @@ void sb_big_free(SBUF *b)
 	sb_init(b);
 }
 
-static unsigned long crc_tab[256];
+/* CRC-32 four bytes at a time (zlib's way for a big-endian CPU): the
+   CRC is kept byte-swapped, a longword of the data XORed into it, and
+   four tables give the four bytes' share. Byte by byte, the CRC was a
+   quarter of an update's unpacking in the rig (23 of 94 s; EWEB.FNT's
+   7 s against its inflate's 3: Erez, 1 Nov 2026, "saving takes forever").
+   tab[0] is the usual table, byte-swapped; tab[k] a byte further on */
+typedef unsigned int u32c;		/* 32 bits on the Atari and here */
+static u32c crc_tab[4][256];
+
+static u32c swap32(u32c v)
+{
+	return (v >> 24) | ((v >> 8) & 0xFF00U) | ((v << 8) & 0xFF0000U) | (v << 24);
+}
+
+static void crc_tables(void)
+{
+	u32c t[4][256], i, k, v;
+	for (i = 0; i < 256; i++) {
+		for (v = i, k = 0; k < 8; k++)
+			v = v & 1 ? 0xEDB88320U ^ (v >> 1) : v >> 1;
+		t[0][i] = v;
+	}
+	for (i = 0; i < 256; i++)
+		for (k = 1; k < 4; k++)
+			t[k][i] = (t[k - 1][i] >> 8) ^ t[0][t[k - 1][i] & 0xFF];
+	for (k = 0; k < 4; k++)
+		for (i = 0; i < 256; i++)
+			crc_tab[k][i] = swap32(t[k][i]);
+}
 
 unsigned long crc32_more(unsigned long crc, const unsigned char *p, long n)
 {
-	unsigned long c = crc ^ 0xFFFFFFFFUL;
-	if (!crc_tab[1]) {
-		unsigned long i, k, v;
-		for (i = 0; i < 256; i++) {
-			for (v = i, k = 0; k < 8; k++)
-				v = v & 1 ? 0xEDB88320UL ^ (v >> 1) : v >> 1;
-			crc_tab[i] = v;
-		}
+	u32c s = swap32((u32c)crc ^ 0xFFFFFFFFU), w;
+	if (!crc_tab[0][1])
+		crc_tables();
+	while (n > 0 && ((unsigned long)p & 3)) {
+		s = crc_tab[0][(s >> 24) ^ *p++] ^ (s << 8);
+		n--;
+	}
+	for (; n >= 4; n -= 4, p += 4) {
+		memcpy(&w, p, 4);		/* one move.l on the 68030 */
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+		w = swap32(w);			/* the tests' computer */
+#endif
+		s ^= w;
+		s = crc_tab[3][s >> 24] ^ crc_tab[2][(s >> 16) & 0xFF] ^ crc_tab[1][(s >> 8) & 0xFF] ^
+		    crc_tab[0][s & 0xFF];
 	}
 	while (n-- > 0)
-		c = crc_tab[(c ^ *p++) & 0xFF] ^ (c >> 8);
-	return c ^ 0xFFFFFFFFUL;
+		s = crc_tab[0][(s >> 24) ^ *p++] ^ (s << 8);
+	return (unsigned long)(swap32(s) ^ 0xFFFFFFFFU);
 }
 
 unsigned long crc32(const unsigned char *p, long n)
@@ -84,6 +119,8 @@ static int get(SRC *s, long off, void *buf, long n)
 	return pf_seek(s->h, off) == off && pf_read(s->h, buf, n) == n;
 }
 
+unsigned long unzip_ms_read, unzip_ms_unpack, unzip_ms_crc, unzip_ms_put;
+
 #define PIECE 32768L		/* what a file is handed on in */
 #define STEP  1024L		/* what is unpacked between two turns */
 
@@ -96,11 +133,16 @@ typedef struct {
 static int feed(void *u, unsigned char *buf, long n)
 {
 	FEED *f = u;
+	unsigned long t;
+	int ok;
 	if (n > f->left)
 		n = f->left;
 	if (n <= 0)
 		return 0;
-	if (!get(f->s, f->at, buf, n))
+	t = pf_ms();
+	ok = get(f->s, f->at, buf, n);
+	unzip_ms_read += pf_ms() - t;
+	if (!ok)
 		return -1;
 	f->at += n;
 	f->left -= n;
@@ -113,7 +155,7 @@ static int feed(void *u, unsigned char *buf, long n)
 static int member(SRC *s, long data, unsigned long csize, unsigned long usize, unsigned method,
 		  unsigned long crc, const UNZIP_TO *to, void *ud, unsigned char *piece)
 {
-	unsigned long c = 0;
+	unsigned long c = 0, t;
 	if (method == 0) {
 		unsigned long done = 0;
 		if (csize != usize)
@@ -121,9 +163,13 @@ static int member(SRC *s, long data, unsigned long csize, unsigned long usize, u
 		while (done < usize) {
 			long k = usize - done > (unsigned long)PIECE ? PIECE : (long)(usize - done);
 			const unsigned char *p = s->mem ? s->mem + data + done : piece;
+			t = pf_ms();
 			if (!s->mem && !get(s, data + (long)done, piece, k))
 				return 0;
+			unzip_ms_read += pf_ms() - t;
+			t = pf_ms();
 			c = crc32_more(c, p, k);
+			unzip_ms_crc += pf_ms() - t;
 			if (to->put(ud, p, k))
 				return -2;
 			done += k;
@@ -146,18 +192,23 @@ static int member(SRC *s, long data, unsigned long csize, unsigned long usize, u
 			/* a piece filled STEP at a time, with a turn for GEM between:
 			   a stock Falcon unpacks 32 KB in about a second */
 			long have = 0;
+			unsigned long r0 = unzip_ms_read;
+			t = pf_ms();
 			while (have < PIECE && (k = inflate_read(z, piece + have, STEP)) > 0) {
 				have += k;
 				if (pf_idle)
 					pf_idle();
 			}
+			unzip_ms_unpack += pf_ms() - t - (unzip_ms_read - r0);
 			if (k < 0)
 				r = 0;
 			total += have;
 			if (r == 1 && total > usize)
 				r = 0;
 			if (r == 1 && have) {
+				t = pf_ms();
 				c = crc32_more(c, piece, have);
+				unzip_ms_crc += pf_ms() - t;
 				if (to->put(ud, piece, have))
 					r = -2;
 			}

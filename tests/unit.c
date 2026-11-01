@@ -372,6 +372,31 @@ static void test_zip(void)
 	free(z);
 
 	CHECK(crc32((const unsigned char *)"123456789", 9) == 0xCBF43926UL);
+	{
+		/* four bytes at a time against a bit at a time: every length to
+		   70 at every alignment, and one CRC carried over pieces */
+		static unsigned char buf[300];
+		unsigned long i, k, ok = 1, a, len, c, whole;
+		for (i = 0; i < sizeof(buf); i++)
+			buf[i] = (unsigned char)(i * 37 + (i >> 3) * 11 + 5);
+		for (a = 0; a < 4; a++)
+			for (len = 0; len <= 70; len++) {
+				unsigned long v = 0xFFFFFFFFUL;
+				for (i = 0; i < len; i++) {
+					v ^= buf[a + i];
+					for (k = 0; k < 8; k++)
+						v = v & 1 ? 0xEDB88320UL ^ (v >> 1) : v >> 1;
+				}
+				if (crc32(buf + a, (long)len) != (v ^ 0xFFFFFFFFUL))
+					ok = 0;
+			}
+		CHECK(ok);
+		whole = crc32(buf, sizeof(buf));
+		c = crc32_more(0, buf, 7);
+		c = crc32_more(c, buf + 7, 130);
+		c = crc32_more(c, buf + 137, (long)sizeof(buf) - 137);
+		CHECK(c == whole);
+	}
 
 	opt.shorten = 1;
 	disk_name("EFTP-1.45.zip", name, sizeof(name));
