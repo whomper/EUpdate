@@ -39,6 +39,7 @@ void sb_big_free(SBUF *b)
    7 s against its inflate's 3: Erez, 1 Nov 2026, "saving takes forever").
    tab[0] is the usual table, byte-swapped; tab[k] a byte further on */
 typedef unsigned int u32c;		/* 32 bits on the Atari and here */
+typedef u32c __attribute__((may_alias)) u32a;	/* a longword read where the data is */
 static u32c crc_tab[4][256];
 
 static u32c swap32(u32c v)
@@ -72,7 +73,9 @@ unsigned long crc32_more(unsigned long crc, const unsigned char *p, long n)
 		n--;
 	}
 	for (; n >= 4; n -= 4, p += 4) {
-		memcpy(&w, p, 4);		/* one move.l on the 68030 */
+		w = *(const u32a *)p;		/* p is on a longword: one move.l (memcpy is a
+						   call here: -fno-builtin; it made the CRC
+						   twice as slow as byte by byte) */
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 		w = swap32(w);			/* the tests' computer */
 #endif
