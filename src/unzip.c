@@ -125,7 +125,6 @@ static int get(SRC *s, long off, void *buf, long n)
 unsigned long unzip_ms_read, unzip_ms_unpack, unzip_ms_crc, unzip_ms_put;
 
 #define PIECE 32768L		/* what a file is handed on in */
-#define STEP  1024L		/* what is unpacked between two turns */
 
 /* a deflated file's packed bytes for the inflate, no more than it has */
 typedef struct {
@@ -178,8 +177,10 @@ static int member(SRC *s, long data, unsigned long csize, unsigned long usize, u
 			done += k;
 		}
 	} else {
-		/* deflated: through common's streaming inflate (a 32 KB window),
-		   a piece at a time, never the whole file */
+		/* deflated: through common's inflate_piece, a piece of up to
+		   32 KB at a time where it lies in the inflate's own buffer
+		   (also its window: each byte stored once), never the whole
+		   file; GEM's turn every 1 KB or so of it */
 		FEED f;
 		INFLATE *z;
 		unsigned long total = 0;
@@ -188,31 +189,26 @@ static int member(SRC *s, long data, unsigned long csize, unsigned long usize, u
 		f.s = s;
 		f.at = data;
 		f.left = (long)csize;
-		z = inflate_open(feed, &f);
+		z = inflate_open_piece(feed, &f);
 		if (!z)
 			return -1;
 		do {
-			/* a piece filled STEP at a time, with a turn for GEM between:
-			   a stock Falcon unpacks 32 KB in about a second */
-			long have = 0;
+			const unsigned char *pc;
 			unsigned long r0 = unzip_ms_read;
 			t = pf_ms();
-			while (have < PIECE && (k = inflate_read(z, piece + have, STEP)) > 0) {
-				have += k;
-				if (pf_idle)
-					pf_idle();
-			}
+			k = inflate_piece(z, &pc, PIECE, pf_idle);
 			unzip_ms_unpack += pf_ms() - t - (unzip_ms_read - r0);
 			if (k < 0)
 				r = 0;
-			total += have;
+			else
+				total += (unsigned long)k;
 			if (r == 1 && total > usize)
 				r = 0;
-			if (r == 1 && have) {
+			if (r == 1 && k > 0) {
 				t = pf_ms();
-				c = crc32_more(c, piece, have);
+				c = crc32_more(c, pc, k);
 				unzip_ms_crc += pf_ms() - t;
-				if (to->put(ud, piece, have))
+				if (to->put(ud, pc, k))
 					r = -2;
 			}
 		} while (r == 1 && k > 0);
