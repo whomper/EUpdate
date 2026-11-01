@@ -30,7 +30,8 @@
  * An accessory under TOS using press_track keeps asking for two and uses
  * evnt_multi's count (breturn): after press_track's wait for the release
  * as an event, a one-click accessory lost a double click's second press
- * most times (ECal, TOS 1.04, 1 Nov 2026; a fix on trial, hub/press-poll).
+ * most times (ECal, TOS 1.04, 1 Nov 2026; waiting by graf_mkstate didn't
+ * cure it).
  * A double click begun while the app is inside a stretch can lose its
  * second press either way: short stretches keep that window small.
  *
