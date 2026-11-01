@@ -1034,6 +1034,46 @@ int scr_bits(short x, short y, const unsigned char *b, short wb, short rows, sho
 	if (cy2 > sf_h - 1)
 		cy2 = (short)(sf_h - 1);
 	base = logbase();	/* Logbase */
+	if (!shift && x >= cx1 && x + wb * 8 - 1 <= cx2) {
+		/* on a byte and its width all inside the clip: each byte straight
+		   into its planes, no masks, no byte to the right (a list's 32 x
+		   32 row icons: byte by byte with the clip's masks this was slower
+		   than TOS's vrt_cpyfm; EFTP, 1 Nov 2026) */
+		short b0 = (short)(x >> 3), r0 = 0, r1 = rows;
+		const unsigned char *src;
+		unsigned char *row;
+
+		/* the rows the clip leaves, the pointers stepped by adding (a
+		   long multiply is a library call on a 68000) */
+		if (y < cy1)
+			r0 = (short)(cy1 - y);
+		if (y + rows - 1 > cy2)
+			r1 = (short)(cy2 - y + 1);
+		if (r0 >= r1)
+			return 1;
+		src = b + (long)r0 * wb;
+		row = base + (long)(y + r0) * bpl;
+		for (r = r0; r < r1; r++, src += wb, row += bpl) {
+			/* byte k's place: the next byte of a word, or the first of
+			   the next word of the plane, step bytes on */
+			short off = (short)((b0 >> 1) * step + (b0 & 1));
+			for (k = 0; k < wb; k++) {
+				unsigned char v = src[k], *d = row + off;
+				short p;
+
+				off += ((b0 + k) & 1) ? (short)(step - 1) : 1;
+				if (!v)
+					continue;
+				if (pen)
+					for (p = 0; p < step; p += 2)
+						d[p] |= v;
+				else
+					for (p = 0; p < step; p += 2)
+						d[p] &= (unsigned char)~v;
+			}
+		}
+		return 1;
+	}
 	for (r = 0; r < rows; r++) {
 		short yy = (short)(y + r);
 
