@@ -58,7 +58,7 @@ UI      := main win draw lists dialogs font about theme \
            panebar notify aboutline cpucheck
 
 OBJDIR  := build
-OBJS    := $(OBJDIR)/crt0.o $(OBJDIR)/sting_s.o $(OBJDIR)/nf.o $(OBJDIR)/crash_s.o \
+OBJS    := $(OBJDIR)/crt0.o $(OBJDIR)/sting_s.o $(OBJDIR)/nf.o $(OBJDIR)/crash_s.o $(OBJDIR)/inflate_fast.o \
            $(addprefix $(OBJDIR)/,$(addsuffix .o,$(OWN) $(CORE) $(ATARI) $(UI)))
 HDRS    := $(wildcard src/*.h atari/*.h ui/*.h common/src/*.h common/atari/*.h \
            common/atari/include/*.h common/ui/*.h common/dsp/*.h)
@@ -121,6 +121,13 @@ $(OBJDIR)/crash_s.o: common/atari/crash.S | $(OBJDIR)
 	$(CC) -m68030 -c -o $@ $<
 $(OBJDIR)/nf.o: common/atari/nf.S | $(OBJDIR)
 	$(CC) -m68030 -c -o $@ $<
+# the unzip's hot loop in assembly (common's inflate_piece, INFLATE_ASM):
+# programs unpack some 1.8 times as fast on a stock Falcon (Erez, 1 Nov
+# 2026, "saving takes forever"); the host's tests keep the C
+$(OBJDIR)/inflate_fast.o: common/atari/inflate_fast.S | $(OBJDIR)
+	$(CC) -m68030 -c -o $@ $<
+$(OBJDIR)/inflate.o: common/src/inflate.c $(HDRS) | $(OBJDIR)
+	$(CC) $(CFLAGS) -DINFLATE_ASM -c -o $@ $<
 
 $(OBJDIR) binary:
 	mkdir -p $@
