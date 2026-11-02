@@ -90,6 +90,14 @@ void pf_big_free(void *p)
 	free(p);
 }
 
+/* EUPD_BIG_AVAIL: the free memory the tests pretend there is (a small
+   Atari: a download then goes to the disk in big pieces) */
+long pf_big_avail(void)
+{
+	const char *e = getenv("EUPD_BIG_AVAIL");
+	return e ? atol(e) : 64L * 1024 * 1024;
+}
+
 void pf_entropy(unsigned char *buf, int n)
 {
 	int fd = open("/dev/urandom", O_RDONLY), got = 0;

@@ -393,6 +393,98 @@ int gh_download_file(const char *full, const GHASSET *a, const char *file, char 
 	return 1;
 }
 
+typedef struct {
+	char *buf;
+	long cap, len, n;	/* its size, what is in it, the whole so far */
+	int h;			/* the file, once it is needed, or -1 */
+	const char *file;
+} TOBUF;
+
+static int buf_flush(TOBUF *t)
+{
+	if (t->h < 0 && (t->h = pf_open(t->file, PF_WRITE)) < 0)
+		return 1;
+	if (t->len && pf_write(t->h, t->buf, t->len) != t->len)
+		return 1;
+	t->len = 0;
+	return 0;
+}
+
+static int to_buf(void *u, const char *p, long n)
+{
+	TOBUF *t = u;
+	while (n > 0) {
+		long k = t->cap - t->len;
+		if (!k) {
+			if (buf_flush(t))
+				return 1;
+			k = t->cap;
+		}
+		if (k > n)
+			k = n;
+		memcpy(t->buf + t->len, p, (size_t)k);
+		t->len += k;
+		t->n += k;
+		p += k;
+		n -= k;
+	}
+	return 0;
+}
+
+int gh_download_mem(const char *full, const GHASSET *a, const char *file, long room, char **mem,
+		    char *err, int errlen)
+{
+	char path[160];
+	SBUF b;
+	TOBUF t;
+	int st, ok = 1;
+	*mem = 0;
+	if (!gh_valid_full(full)) {
+		str_copy(err, "not a repository's name", errlen);
+		return 0;
+	}
+	memset(&t, 0, sizeof(t));
+	t.h = -1;
+	t.file = file;
+	/* the whole file when it fits, else as much as there is room for */
+	t.cap = a->size > 0 && a->size <= room ? a->size : room;
+	if (t.cap < 32768L)
+		t.cap = 32768L;
+	while (!(t.buf = pf_big_alloc(t.cap)) && t.cap > 32768L)
+		t.cap /= 2;
+	if (!t.buf) {
+		str_copy(err, "not enough memory for the download", errlen);
+		return 0;
+	}
+	sb_init(&b);
+	snprintf(path, sizeof(path), "/repos/%s/releases/assets/%ld", full, a->id);
+	http_sink(to_buf, &t);
+	st = ask(path, HTTP_OCTET, &b, a->size, err, errlen);
+	http_sink(0, 0);
+	sb_free(&b);
+	if (st == 404) {
+		str_copy(err, "the file is gone from GitHub", errlen);
+		ok = 0;
+	} else if (st < 0) {
+		ok = 0;
+	} else if (t.n != a->size) {
+		str_copy(err, "the file came short", errlen);
+		ok = 0;
+	}
+	if (ok && t.h < 0) {
+		*mem = t.buf;			/* all of it, in memory */
+		return 1;
+	}
+	if (ok && buf_flush(&t)) {		/* the rest, after the last write */
+		snprintf(err, errlen, "can't write %.60s: is the disk full or locked?", file);
+		ok = 0;
+	}
+	if (t.h >= 0)
+		pf_close(t.h);
+	pf_big_free(t.buf);
+	return ok;
+}
+
 int gh_download(const char *full, const GHASSET *a, SBUF *out, long max, char *err, int errlen)
 {
 	char path[160];

@@ -65,6 +65,14 @@ int gh_latest(const char *full, GHREL *rel, char *err, int errlen);
 int gh_download(const char *full, const GHASSET *a, SBUF *out, long max, char *err, int errlen);
 /* the same into a file as it comes, never held whole */
 int gh_download_file(const char *full, const GHASSET *a, const char *file, char *err, int errlen);
+/* the same into memory: a buffer of room bytes (32 KB at least), and
+   when it is full it goes to file in one write, and the download goes
+   on into it again. *mem: the whole file when it fitted (pf_big_free
+   it; file untouched), else 0 and the file is in file. No disk between
+   those writes (Erez, 2 Nov 2026: a write every 32 KB stalled each
+   download) */
+int gh_download_mem(const char *full, const GHASSET *a, const char *file, long room, char **mem,
+		    char *err, int errlen);
 
 /* "owner/name": 1 if it is one (a GitHub login, a repository's name) */
 int gh_valid_full(const char *full);

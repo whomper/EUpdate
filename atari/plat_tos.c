@@ -55,6 +55,15 @@ void pf_big_free(void *p)
 		Mfree(p);
 }
 
+long pf_big_avail(void)
+{
+	long st = (long)Mxalloc(-1L, 0), tt;
+	if (st == -32)
+		return (long)Malloc(-1L);	/* TOS 1.x: no Mxalloc */
+	tt = (long)Mxalloc(-1L, 1);
+	return st > tt ? st : tt;
+}
+
 long pf_read(int h, void *buf, long n)
 {
 	char *st = st_piece(buf), *p = buf;

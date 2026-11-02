@@ -519,6 +519,11 @@ int up_put_file(REPO *r, const char *name, const char *src, char *err, int errle
 	return ok;
 }
 
+/* what the unpacking takes beside a release's file held in memory: the
+   inflate's 64 KB buffer and its tables, the 32 KB piece, the heap's
+   growth and the files' writes, with room to spare */
+#define UP_RESERVE (200L * 1024)
+
 int up_install(REPO *r, const GHREL *rel)
 {
 	short which[GH_MAXASSET];
@@ -541,19 +546,30 @@ int up_install(REPO *r, const GHREL *rel)
 		const GHASSET *a = &rel->asset[which[i]];
 		char dl[260];
 		int ok;
+		char *mem;
+		long room = pf_big_avail() - UP_RESERVE;
 		say("Downloading %s from %s...", a->name, r->full);
-		/* to the disk as it comes, in its folder, then from there into
-		   place: a release's zip is never held whole (a stock Falcon with
-		   4 MB had 510 KB free, and EMail's zip is 460 KB) */
+		/* into memory, with no disk at all while it comes (Erez, 2 Nov
+		   2026: a write every 32 KB stalled each download), then unpacked
+		   from there into place. Where the memory is short (a stock
+		   Falcon with 4 MB had 510 KB free, and EMail's zip is 460 KB):
+		   as much as there is room for, written to a file in its folder
+		   in one go when full, and unpacked from the file */
 		{
 			static const char sep[2] = { PF_SEP, 0 };
 			size_t fl = strlen(r->folder);
-			snprintf(dl, sizeof(dl), "%s%sEUPDDL.$$$", r->folder,
+			snprintf(dl, sizeof(dl), "%s%seupddl.$$$", r->folder,
 				 fl && r->folder[fl - 1] == PF_SEP ? "" : sep);
 		}
-		ok = gh_download_file(r->full, a, dl, r->note, sizeof(r->note)) &&
-		     up_put_file(r, a->name, dl, r->note, sizeof(r->note));
-		pf_remove(dl);
+		ok = gh_download_mem(r->full, a, dl, room, &mem, r->note, sizeof(r->note));
+		if (ok && mem) {
+			ok = up_put(r, a->name, (const unsigned char *)mem, a->size, r->note, sizeof(r->note));
+			pf_big_free(mem);
+		} else {
+			ok = ok && up_put_file(r, a->name, dl, r->note, sizeof(r->note));
+			if (pf_size(dl) >= 0)
+				pf_remove(dl);
+		}
 		if (!ok) {
 			inst.on = 0;
 			return 0;

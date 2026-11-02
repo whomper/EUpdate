@@ -273,7 +273,9 @@ static void job_progress(long got, long total)
 	if (got - logged >= 256L * 1024) {
 		logged = got;
 		snprintf(m, sizeof(m), "%s of %s", a, b);
-		log_step(m);
+		/* kept with the job's lines, not written out now: no disk while
+		   a download comes (Erez, 2 Nov 2026) */
+		conn_log("EUPD", " -- ", m, (long)strlen(m));
 	}
 }
 

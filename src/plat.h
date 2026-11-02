@@ -46,6 +46,8 @@ extern long (*pf_size_open)(int h);
    there is no room for n bytes in one piece */
 void *pf_big_alloc(long n);
 void  pf_big_free(void *p);
+/* the biggest buffer pf_big_alloc could give now, in bytes */
+long  pf_big_avail(void);
 
 char *pf_load(const char *path, long *len);
 int   pf_save(const char *path, const void *data, long len);

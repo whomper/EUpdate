@@ -726,6 +726,54 @@ static void test_store(void)
 	rm_rf(dir);
 }
 
+/* ---------------- a download into memory (Erez, 2 Nov 2026) ---------------- */
+
+/* no disk while a download comes: in memory when it fits; else a buffer
+   as big as there is room for, written to the file in one go each time
+   it is full */
+static void test_download_mem(void)
+{
+	static const char file[] = "build/unit-dl.$$$";
+	long n = 100000, k, i;
+	char *body = malloc(n), *ans = malloc(n + 100), *mem, err[120], *back;
+	GHASSET a;
+	memset(&a, 0, sizeof(a));
+	a.id = 7;
+	a.size = n;
+	str_copy(a.name, "eweb-0.62.zip", sizeof(a.name));
+	for (i = 0; i < n; i++)
+		body[i] = (char)(i * 7 + (i >> 9));
+	k = snprintf(ans, 100, "HTTP/1.1 200 OK\r\nContent-Length: %ld\r\n\r\n", n);
+	memcpy(ans + k, body, n);
+	str_copy(gh_base, "http://api.test", sizeof(gh_base));
+	pf_remove(file);
+
+	/* room for it all: in memory, no file made */
+	fuzz_net_set((unsigned char *)ans, k + n);
+	CHECK(gh_download_mem("whomper/EWeb", &a, file, 200000, &mem, err, sizeof(err)) && mem);
+	CHECK(mem && !memcmp(mem, body, n) && pf_size(file) < 0);
+	pf_big_free(mem);
+	http_close_all();
+
+	/* room for 32 KB: the file in four writes, every byte in it */
+	fuzz_net_set((unsigned char *)ans, k + n);
+	CHECK(gh_download_mem("whomper/EWeb", &a, file, 32768, &mem, err, sizeof(err)) && !mem);
+	back = pf_load(file, &k);
+	CHECK(back && k == n && !memcmp(back, body, n));
+	free(back);
+	pf_remove(file);
+	http_close_all();
+
+	/* cut short: refused, and nothing in memory to free */
+	fuzz_net_set((unsigned char *)ans, 60000);
+	CHECK(!gh_download_mem("whomper/EWeb", &a, file, 200000, &mem, err, sizeof(err)) && !mem);
+	http_close_all();
+	pf_remove(file);
+	str_copy(gh_base, "https://api.github.com", sizeof(gh_base));
+	free(body);
+	free(ans);
+}
+
 int main(void)
 {
 	pf_init();
@@ -734,6 +782,7 @@ int main(void)
 	test_gh();
 	test_zip();
 	test_tlsovl();
+	test_download_mem();
 	test_store();
 	printf("%d checks, %d failed\n", checks, fails);
 	return fails != 0;
