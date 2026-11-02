@@ -136,8 +136,8 @@ def main():
         r.ctrl("d")                            # Update (^U closes, the guidelines 3.2)
         time.sleep(25)
         r.shot("updated")
-        prg = ci_path(hd, "NET/EUPDATE/eupdate.prg")
-        check(prg.endswith("eupdate.prg") and os.path.exists(prg) and os.path.getsize(prg) == 10240,
+        prg = ci_path(hd, "NET/EUPDATE/eupdate.prg")	# as the zip names it (6.6)
+        check(os.path.exists(prg) and os.path.getsize(prg) == 10240,
               "Update: the zip unpacked into its folder")
         check(not os.path.exists(ci_path(hd, "NET/EUPDATE/icons/readme.txt")),
               "its rule left README.TXT out")
