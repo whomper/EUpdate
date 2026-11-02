@@ -180,26 +180,43 @@ void up_suggest(REPO *r, const GHREL *rel, int st_machine)
 
 /* ---------------- names on the Atari's disk ---------------- */
 
-/* a name for the disk: with SHORTEN 8+3 in lowercase (6.6: what the
-   AERA programs open, and on MiNT's ext2 the case is part of the name;
-   TOS's FAT takes any case), else the release's own */
+#define BAD_CH "\"*+,./:;<=>?[\\]|"	/* not in a TOS name */
+
+/* a name that TOS takes as it is: 1-8 characters, a dot and 1-3 more */
+static int is_83(const char *name)
+{
+	const char *dot = strchr(name, '.'), *s;
+	long b = dot ? dot - name : (long)strlen(name), e = dot ? (long)strlen(dot + 1) : 0;
+	if (b < 1 || b > 8 || (dot && (e < 1 || e > 3 || strchr(dot + 1, '.'))))
+		return 0;
+	for (s = name; *s; s++)
+		if ((unsigned char)*s <= ' ' || (s != dot && strchr(BAD_CH, *s)))
+			return 0;
+	return 1;
+}
+
+/* a name for the disk. A name from the release is used as it came
+   (6.6): as it is without SHORTEN, and with it when it is 8+3 already
+   (EFTP.PRG stays EFTP.PRG, eweb.prg eweb.prg: a program may open its
+   files in either case, and on MiNT's ext2 the case is part of the
+   name). A name EUpdate shortens is its own, and in lowercase */
 void disk_name(const char *name, char *out, int size)
 {
 	const char *dot = strrchr(name, '.'), *s;
 	int n = 0, k;
-	if (!opt.shorten) {
+	if (!opt.shorten || is_83(name)) {
 		str_copy(out, name, size);
 		return;
 	}
 	if (dot == name)
 		dot = 0;		/* ".profile": a name, no extension */
 	for (s = name, k = 0; *s && s != dot && k < 8 && n < size - 1; s++, k++)
-		out[n++] = (unsigned char)*s <= ' ' || strchr("\"*+,./:;<=>?[\\]|", *s) ? '_' :
+		out[n++] = (unsigned char)*s <= ' ' || strchr(BAD_CH, *s) ? '_' :
 			   (char)tolower((unsigned char)*s);
 	if (dot && dot[1] && n < size - 1) {
 		out[n++] = '.';
 		for (s = dot + 1, k = 0; *s && k < 3 && n < size - 1; s++, k++)
-			out[n++] = (unsigned char)*s <= ' ' || strchr("\"*+,./:;<=>?[\\]|", *s) ? '_' :
+			out[n++] = (unsigned char)*s <= ' ' || strchr(BAD_CH, *s) ? '_' :
 				   (char)tolower((unsigned char)*s);
 	}
 	if (!n)

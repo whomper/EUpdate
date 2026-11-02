@@ -407,13 +407,15 @@ static void test_zip(void)
 	CHECK(!strcmp(name, "_hidden"));
 	disk_name("a b+c.tar.gz", name, sizeof(name));
 	CHECK(!strcmp(name, "a_b_c_ta.gz"));
-	/* 6.6: a name already 8+3 in lowercase as the release spells it, one
-	   in capitals (an older release's) in lowercase, what the programs
-	   open; a long one shortened as before, in lowercase */
+	/* 6.6: a name already 8+3 as the release spells it, in either case
+	   (a name from outside); one EUpdate shortens, its own, in lowercase,
+	   shortened as before */
 	disk_name("eweb.prg", name, sizeof(name));
 	CHECK(!strcmp(name, "eweb.prg"));
 	disk_name("EFTP.PRG", name, sizeof(name));
-	CHECK(!strcmp(name, "eftp.prg"));
+	CHECK(!strcmp(name, "EFTP.PRG"));
+	disk_name("A.B.C", name, sizeof(name));
+	CHECK(!strcmp(name, "a_b.c"));
 	disk_name("eweb-0.62.zip", name, sizeof(name));
 	CHECK(!strcmp(name, "eweb-0_6.zip"));
 	opt.shorten = 0;
@@ -432,7 +434,7 @@ static void test_zip(void)
 	pf_mkdir(dir);
 	z = load("tests/data/good.zip", &n);
 	CHECK(up_put(&r, "EUpdate-1.0.zip", (unsigned char *)z, n, err, sizeof(err)));
-	CHECK(pf_size("build/unit-zip/eupdate.prg") == 10240 && pf_size("build/unit-zip/icons/readme.txt") == 4400);
+	CHECK(pf_size("build/unit-zip/EUPDATE.PRG") == 10240 && pf_size("build/unit-zip/icons/README.TXT") == 4400);
 	r.unzip = 0;
 	CHECK(up_put(&r, "EUpdate-1.0.zip", (unsigned char *)z, n, err, sizeof(err)));
 	CHECK(pf_size("build/unit-zip/eupdate-.zip") == n);
@@ -449,8 +451,8 @@ static void test_zip(void)
 	rm_rf(dir);
 	pf_mkdir(dir);
 	CHECK(up_put_file(&r, "EUpdate-1.0.zip", "tests/data/good.zip", err, sizeof(err)));
-	CHECK(pf_size("build/unit-zip/eupdate.prg") == 10240 && pf_size("build/unit-zip/icons/readme.txt") == 4400);
-	CHECK(pf_size("build/unit-zip/eupdate.pr$") < 0 && pf_size("build/unit-zip/icons/readme.tx$") < 0);
+	CHECK(pf_size("build/unit-zip/EUPDATE.PRG") == 10240 && pf_size("build/unit-zip/icons/README.TXT") == 4400);
+	CHECK(pf_size("build/unit-zip/EUPDATE.PR$") < 0 && pf_size("build/unit-zip/icons/README.TX$") < 0);
 	z = load("tests/data/good.zip", &n);
 	memset(&s, 0, sizeof(s));
 	{
@@ -462,19 +464,19 @@ static void test_zip(void)
 		fclose(f);
 	}
 	free(z);
-	z = load("build/unit-zip/eupdate.prg", &n);
+	z = load("build/unit-zip/EUPDATE.PRG", &n);
 	CHECK(!up_put_file(&r, "EUpdate-1.0.zip", "build/unit-zip/BAD.ZIP", err, sizeof(err)) && strstr(err, "damaged"));
 	{
 		long m;
-		char *now = load("build/unit-zip/eupdate.prg", &m);
+		char *now = load("build/unit-zip/EUPDATE.PRG", &m);
 		CHECK(m == n && !memcmp(now, z, n));
 		free(now);
 	}
 	free(z);
-	CHECK(pf_size("build/unit-zip/eupdate.pr$") < 0);
+	CHECK(pf_size("build/unit-zip/EUPDATE.PR$") < 0);
 	r.unzip = 0;
 	CHECK(up_put_file(&r, "CACERT.PEM", "tests/data/good.zip", err, sizeof(err)));
-	CHECK(pf_size("build/unit-zip/cacert.pem") == pf_size("tests/data/good.zip"));
+	CHECK(pf_size("build/unit-zip/CACERT.PEM") == pf_size("tests/data/good.zip"));
 	r.unzip = 1;
 
 	/* rules: a file elsewhere by its name alone, one left out */
@@ -486,8 +488,8 @@ static void test_zip(void)
 	str_copy(r.rule[1].folder, "build/unit-zip/A/ROOT", sizeof(r.rule[1].folder));	/* made, both */
 	z = load("tests/data/good.zip", &n);
 	CHECK(up_put(&r, "EUpdate-1.0.zip", (unsigned char *)z, n, err, sizeof(err)));
-	CHECK(pf_size("build/unit-zip/A/ROOT/eupdate.prg") == 10240 && pf_size("build/unit-zip/eupdate.prg") < 0);
-	CHECK(pf_size("build/unit-zip/icons/readme.txt") < 0);
+	CHECK(pf_size("build/unit-zip/A/ROOT/EUPDATE.PRG") == 10240 && pf_size("build/unit-zip/EUPDATE.PRG") < 0);
+	CHECK(pf_size("build/unit-zip/icons/README.TXT") < 0);
 	free(z);
 	rm_rf(dir);
 }
@@ -543,8 +545,9 @@ static void test_tlsovl(void)
 	/* an ST edition by hand beside the accessory: replaced once the
 	   release has no ST edition; switched off (.ACX), left; the program
 	   and TLS.OVL in their places. EUpdate writes and looks for lowercase
-	   names (6.6; FAT takes any case, and on ext2 it is a fresh start),
-	   whatever the case of the release's assets (these in capitals) */
+	   names it makes (6.6; FAT takes any case, and on ext2 it is a fresh
+	   start); the release's own 8+3 names (these in capitals) as they
+	   came */
 	rm_rf(dir);
 	pf_mkdir(dir);
 	pf_mkdir("build/unit-st/ROOT");
@@ -562,9 +565,9 @@ static void test_tlsovl(void)
 	say(two);
 	CHECK(up_install(&r, &e) && !strcmp(r.have, "v3.0"));
 	http_close_all();
-	CHECK(pf_size("build/unit-st/ROOT/ecal.acc") == 4 && pf_size("build/unit-st/ECAL/tls.ovl") == 4);
+	CHECK(pf_size("build/unit-st/ROOT/ECAL.ACC") == 4 && pf_size("build/unit-st/ECAL/TLS.OVL") == 4);
 	CHECK(pf_size("build/unit-st/ROOT/ecalst.acc") < 0 && pf_size("build/unit-st/ROOT/ecalst.acx") == 3);
-	CHECK(!strcmp(replaced_old, "ecalst.acc") && !strcmp(replaced_now, "ecal.acc"));
+	CHECK(!strcmp(replaced_old, "ecalst.acc") && !strcmp(replaced_now, "ECAL.ACC"));
 
 	/* a release that still has its ST edition (left out here): kept */
 	CHECK(pf_save("build/unit-st/ROOT/ecalst.acc", "old", 3) == 0);
@@ -593,7 +596,7 @@ static void test_tlsovl(void)
 		fuzz_net_set((unsigned char *)ans, k + n);
 		CHECK(up_install(&r, &e));
 		http_close_all();
-		CHECK(pf_size("build/unit-st/ROOT/ecal.acc") == 256 && pf_size("build/unit-st/ECAL/tls.ovl") == 256);
+		CHECK(pf_size("build/unit-st/ROOT/ECAL.ACC") == 256 && pf_size("build/unit-st/ECAL/TLS.OVL") == 256);
 		CHECK(pf_size("build/unit-st/ROOT/ecalst.acc") < 0 && !strcmp(replaced_old, "ecalst.acc"));
 		free(ans);
 		free(z);
