@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Copyright (C) 2026 AERA | Erez Yaary
 """The speed rig (the guidelines' "Speed: the stock machines set it"):
-build/prof/EUPDATE.PRG (make prof: -DAES_PROFILE=20) on a stock Falcon,
+build/prof/eupdate.prg (make prof: -DAES_PROFILE=20) on a stock Falcon,
 the longest stretch between event calls of each thing the user does,
 from the AESGAP lines on the emulator's console. Fails when one is over
 its time.
@@ -11,7 +11,7 @@ its time.
 
 With Erez's TOS 4.04 where this machine has it, and under NVDI with
 AERA_WITH_NVDI=1 (common/tools/machines.py). The check and the
-downloads are timed by family_test.py with PRG=build/prof/EUPDATE.PRG.
+downloads are timed by family_test.py with PRG=build/prof/eupdate.prg.
 """
 import os
 import re
@@ -21,6 +21,7 @@ import time
 
 import rig
 from rig import K
+from machines import ci_path      # EUpdate writes lowercase names (6.6); Hatari keeps the case
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOP = os.path.normpath(os.path.join(HERE, "..", ".."))
@@ -34,11 +35,11 @@ results = []
 def drive_c():
     hd = os.path.join(work, "hd")
     os.makedirs(hd, exist_ok=True)
-    shutil.copy(os.path.join(TOP, "build", "prof", "EUPDATE.PRG"), hd)
-    for f in ("TLS.OVL", "CACERT.PEM", "ROOTS.DAT"):
+    shutil.copy(os.path.join(TOP, "build", "prof", "eupdate.prg"), hd)
+    for f in ("tls.ovl", "cacert.pem", "roots.dat"):
         shutil.copy(os.path.join(TOP, "binary", f), hd)
     # more repositories than the window shows, as they are after a check
-    with open(os.path.join(hd, "EUPDATE.INF"), "w", newline="") as f:
+    with open(os.path.join(hd, "eupdate.inf"), "w", newline="") as f:
         f.write("[OPTIONS]\r\nCHECK=0\r\nLOG=1\r\nAPIBASE=http://127.0.0.1:1\r\nFOLDER=C:\\NET\r\n")
         for i in range(NREPOS):
             f.write("[REPO]\r\nREPO=whomper/Repo%02d\r\nFOLDER=C:\\NET\\REPO%02d\r\nUNZIP=1\r\n"
@@ -153,7 +154,7 @@ def main():
         r.shot("end")
         r.ctrl("q")                            # quit: the longest waits in EUPDATE.LOG
         time.sleep(4)
-        log = open(os.path.join(work, "hd", "EUPDATE.LOG"), errors="replace").read()
+        log = open(ci_path(os.path.join(work, "hd"), "eupdate.log"), errors="replace").read()
         line = [l for l in log.split("\n") if "the longest waits:" in l]
         print("%s EUPDATE.LOG at quit: %s" % ("ok  " if line else "FAIL", line[-1].split(" -- ")[-1] if line
                                               else "no line of the longest waits"), flush=True)

@@ -124,7 +124,7 @@ int up_chosen(const REPO *r, const GHREL *rel, short *which)
 		if ((r->files[0] ? listed(r->files, name) : !zips || is_zip(name)) && !left_out(r, name)) {
 			which[n++] = i;
 			prog |= is_program(name);
-		} else if (!strcasecmp(name, "TLS.OVL") && !left_out(r, name)) {
+		} else if (!strcasecmp(name, "tls.ovl") && !left_out(r, name)) {
 			ovl = i;
 		}
 	}
@@ -180,6 +180,9 @@ void up_suggest(REPO *r, const GHREL *rel, int st_machine)
 
 /* ---------------- names on the Atari's disk ---------------- */
 
+/* a name for the disk: with SHORTEN 8+3 in lowercase (6.6: what the
+   AERA programs open, and on MiNT's ext2 the case is part of the name;
+   TOS's FAT takes any case), else the release's own */
 void disk_name(const char *name, char *out, int size)
 {
 	const char *dot = strrchr(name, '.'), *s;
@@ -192,12 +195,12 @@ void disk_name(const char *name, char *out, int size)
 		dot = 0;		/* ".profile": a name, no extension */
 	for (s = name, k = 0; *s && s != dot && k < 8 && n < size - 1; s++, k++)
 		out[n++] = (unsigned char)*s <= ' ' || strchr("\"*+,./:;<=>?[\\]|", *s) ? '_' :
-			   (char)toupper((unsigned char)*s);
+			   (char)tolower((unsigned char)*s);
 	if (dot && dot[1] && n < size - 1) {
 		out[n++] = '.';
 		for (s = dot + 1, k = 0; *s && k < 3 && n < size - 1; s++, k++)
 			out[n++] = (unsigned char)*s <= ' ' || strchr("\"*+,./:;<=>?[\\]|", *s) ? '_' :
-				   (char)toupper((unsigned char)*s);
+				   (char)tolower((unsigned char)*s);
 	}
 	if (!n)
 		out[n++] = '_';
@@ -260,10 +263,10 @@ static void seen(const char *name)
 /* the AERA ST editions that end with TLS.OVL (the guidelines 7.4), and
    the program each one's machine takes now */
 static const char *const st_edition[][2] = {
-	{ "ECALST.ACC", "ECAL.ACC" },
-	{ "ECONTST.ACC", "ECONTACT.ACC" },
-	{ "EMAILST.PRG", "EMAIL.PRG" },
-	{ "EFTPST.PRG", "EFTP.PRG" },
+	{ "ecalst.acc", "ecal.acc" },
+	{ "econtst.acc", "econtact.acc" },
+	{ "emailst.prg", "email.prg" },
+	{ "eftpst.prg", "eftp.prg" },
 };
 
 /* an ST edition on the disk beside the program that now takes its place,

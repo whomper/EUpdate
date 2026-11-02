@@ -58,8 +58,8 @@ def main():
     os.makedirs(work)
     m = rig.machine(spec, work)
     os.makedirs(os.path.join(work, "hd"), exist_ok=True)
-    shutil.copy(os.environ.get("PRG", os.path.join(TOP, "binary", "EUPDATE.PRG")),
-                os.path.join(work, "hd", "EUPDATE.PRG"))
+    shutil.copy(os.environ.get("PRG", os.path.join(TOP, "binary", "eupdate.prg")),
+                os.path.join(work, "hd", "eupdate.prg"))
     print("on", m.describe(), flush=True)
     r = rig.Rig(work, m, display=os.environ.get("XDISPLAY", ":99"))
     try:

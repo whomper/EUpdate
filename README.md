@@ -100,11 +100,11 @@ Enterprise server, `APIBASE=` in `EUPDATE.INF`.
 
 ```sh
 sudo apt install gcc-m68k-linux-gnu python3   # Debian/Ubuntu; no MiNTLib needed
-make            # binary/EUPDATE.PRG, TLS.OVL (common's), CACERT.PEM, ROOTS.DAT
+make            # binary/eupdate.prg, tls.ovl (common's), cacert.pem, roots.dat
 make test       # the core on this computer, with AddressSanitizer and UBSan
 make itest      # eupd-cli against a GitHub of the tests' own (tests/server.py), HTTP and TLS
 make fuzz       # the parsers under libFuzzer (clang)
-make dist       # dist/EUPDATE-x.y.zip, as on the Releases page
+make dist       # dist/eupdate-x.y.zip, as on the Releases page
 make help HCP=/path/to/hcp   # EUPDATE.HYP from docs/GUIDE.md (common/tools/build-hcp.sh builds hcp)
 ```
 

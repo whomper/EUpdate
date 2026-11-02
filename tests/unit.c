@@ -400,13 +400,13 @@ static void test_zip(void)
 
 	opt.shorten = 1;
 	disk_name("EFTP-1.45.zip", name, sizeof(name));
-	CHECK(!strcmp(name, "EFTP-1_4.ZIP"));
+	CHECK(!strcmp(name, "eftp-1_4.zip"));
 	disk_name("readme", name, sizeof(name));
-	CHECK(!strcmp(name, "README"));
+	CHECK(!strcmp(name, "readme"));
 	disk_name(".hidden", name, sizeof(name));
-	CHECK(!strcmp(name, "_HIDDEN"));
+	CHECK(!strcmp(name, "_hidden"));
 	disk_name("a b+c.tar.gz", name, sizeof(name));
-	CHECK(!strcmp(name, "A_B_C_TA.GZ"));
+	CHECK(!strcmp(name, "a_b_c_ta.gz"));
 	opt.shorten = 0;
 	disk_name("EFTP-1.45.zip", name, sizeof(name));
 	CHECK(!strcmp(name, "EFTP-1.45.zip"));
@@ -423,15 +423,15 @@ static void test_zip(void)
 	pf_mkdir(dir);
 	z = load("tests/data/good.zip", &n);
 	CHECK(up_put(&r, "EUpdate-1.0.zip", (unsigned char *)z, n, err, sizeof(err)));
-	CHECK(pf_size("build/unit-zip/EUPDATE.PRG") == 10240 && pf_size("build/unit-zip/ICONS/README.TXT") == 4400);
+	CHECK(pf_size("build/unit-zip/eupdate.prg") == 10240 && pf_size("build/unit-zip/icons/readme.txt") == 4400);
 	r.unzip = 0;
 	CHECK(up_put(&r, "EUpdate-1.0.zip", (unsigned char *)z, n, err, sizeof(err)));
-	CHECK(pf_size("build/unit-zip/EUPDATE-.ZIP") == n);
+	CHECK(pf_size("build/unit-zip/eupdate-.zip") == n);
 	free(z);
 	r.unzip = 1;
 	z = load("tests/data/evil.zip", &n);
 	CHECK(!up_put(&r, "evil.zip", (unsigned char *)z, n, err, sizeof(err)) && strstr(err, "won't write"));
-	CHECK(pf_size("build/EVIL.PRG") < 0);
+	CHECK(pf_size("build/evil.prg") < 0);
 	free(z);
 	CHECK(!up_put(&r, "..", (unsigned char *)"x", 1, err, sizeof(err)));
 
@@ -440,8 +440,8 @@ static void test_zip(void)
 	rm_rf(dir);
 	pf_mkdir(dir);
 	CHECK(up_put_file(&r, "EUpdate-1.0.zip", "tests/data/good.zip", err, sizeof(err)));
-	CHECK(pf_size("build/unit-zip/EUPDATE.PRG") == 10240 && pf_size("build/unit-zip/ICONS/README.TXT") == 4400);
-	CHECK(pf_size("build/unit-zip/EUPDATE.PR$") < 0 && pf_size("build/unit-zip/ICONS/README.TX$") < 0);
+	CHECK(pf_size("build/unit-zip/eupdate.prg") == 10240 && pf_size("build/unit-zip/icons/readme.txt") == 4400);
+	CHECK(pf_size("build/unit-zip/eupdate.pr$") < 0 && pf_size("build/unit-zip/icons/readme.tx$") < 0);
 	z = load("tests/data/good.zip", &n);
 	memset(&s, 0, sizeof(s));
 	{
@@ -453,19 +453,19 @@ static void test_zip(void)
 		fclose(f);
 	}
 	free(z);
-	z = load("build/unit-zip/EUPDATE.PRG", &n);
+	z = load("build/unit-zip/eupdate.prg", &n);
 	CHECK(!up_put_file(&r, "EUpdate-1.0.zip", "build/unit-zip/BAD.ZIP", err, sizeof(err)) && strstr(err, "damaged"));
 	{
 		long m;
-		char *now = load("build/unit-zip/EUPDATE.PRG", &m);
+		char *now = load("build/unit-zip/eupdate.prg", &m);
 		CHECK(m == n && !memcmp(now, z, n));
 		free(now);
 	}
 	free(z);
-	CHECK(pf_size("build/unit-zip/EUPDATE.PR$") < 0);
+	CHECK(pf_size("build/unit-zip/eupdate.pr$") < 0);
 	r.unzip = 0;
 	CHECK(up_put_file(&r, "CACERT.PEM", "tests/data/good.zip", err, sizeof(err)));
-	CHECK(pf_size("build/unit-zip/CACERT.PEM") == pf_size("tests/data/good.zip"));
+	CHECK(pf_size("build/unit-zip/cacert.pem") == pf_size("tests/data/good.zip"));
 	r.unzip = 1;
 
 	/* rules: a file elsewhere by its name alone, one left out */
@@ -477,8 +477,8 @@ static void test_zip(void)
 	str_copy(r.rule[1].folder, "build/unit-zip/A/ROOT", sizeof(r.rule[1].folder));	/* made, both */
 	z = load("tests/data/good.zip", &n);
 	CHECK(up_put(&r, "EUpdate-1.0.zip", (unsigned char *)z, n, err, sizeof(err)));
-	CHECK(pf_size("build/unit-zip/A/ROOT/EUPDATE.PRG") == 10240 && pf_size("build/unit-zip/EUPDATE.PRG") < 0);
-	CHECK(pf_size("build/unit-zip/ICONS/README.TXT") < 0);
+	CHECK(pf_size("build/unit-zip/A/ROOT/eupdate.prg") == 10240 && pf_size("build/unit-zip/eupdate.prg") < 0);
+	CHECK(pf_size("build/unit-zip/icons/readme.txt") < 0);
 	free(z);
 	rm_rf(dir);
 }
@@ -533,12 +533,14 @@ static void test_tlsovl(void)
 
 	/* an ST edition by hand beside the accessory: replaced once the
 	   release has no ST edition; switched off (.ACX), left; the program
-	   and TLS.OVL in their places */
+	   and TLS.OVL in their places. EUpdate writes and looks for lowercase
+	   names (6.6; FAT takes any case, and on ext2 it is a fresh start),
+	   whatever the case of the release's assets (these in capitals) */
 	rm_rf(dir);
 	pf_mkdir(dir);
 	pf_mkdir("build/unit-st/ROOT");
-	CHECK(pf_save("build/unit-st/ROOT/ECALST.ACC", "old", 3) == 0);
-	CHECK(pf_save("build/unit-st/ROOT/ECALST.ACX", "off", 3) == 0);
+	CHECK(pf_save("build/unit-st/ROOT/ecalst.acc", "old", 3) == 0);
+	CHECK(pf_save("build/unit-st/ROOT/ecalst.acx", "off", 3) == 0);
 	memset(&r, 0, sizeof(r));
 	str_copy(r.full, "whomper/ECal", sizeof(r.full));
 	str_copy(r.folder, "build/unit-st/ECAL", sizeof(r.folder));
@@ -551,12 +553,12 @@ static void test_tlsovl(void)
 	say(two);
 	CHECK(up_install(&r, &e) && !strcmp(r.have, "v3.0"));
 	http_close_all();
-	CHECK(pf_size("build/unit-st/ROOT/ECAL.ACC") == 4 && pf_size("build/unit-st/ECAL/TLS.OVL") == 4);
-	CHECK(pf_size("build/unit-st/ROOT/ECALST.ACC") < 0 && pf_size("build/unit-st/ROOT/ECALST.ACX") == 3);
-	CHECK(!strcmp(replaced_old, "ECALST.ACC") && !strcmp(replaced_now, "ECAL.ACC"));
+	CHECK(pf_size("build/unit-st/ROOT/ecal.acc") == 4 && pf_size("build/unit-st/ECAL/tls.ovl") == 4);
+	CHECK(pf_size("build/unit-st/ROOT/ecalst.acc") < 0 && pf_size("build/unit-st/ROOT/ecalst.acx") == 3);
+	CHECK(!strcmp(replaced_old, "ecalst.acc") && !strcmp(replaced_now, "ecal.acc"));
 
 	/* a release that still has its ST edition (left out here): kept */
-	CHECK(pf_save("build/unit-st/ROOT/ECALST.ACC", "old", 3) == 0);
+	CHECK(pf_save("build/unit-st/ROOT/ecalst.acc", "old", 3) == 0);
 	replaced_old[0] = 0;
 	e = release_of(then, 3);
 	r.rule[1] = r.rule[0];		/* the suggested rules' order: "-" first */
@@ -565,7 +567,7 @@ static void test_tlsovl(void)
 	say(two);
 	CHECK(up_install(&r, &e));
 	http_close_all();
-	CHECK(pf_size("build/unit-st/ROOT/ECALST.ACC") == 3 && !replaced_old[0]);
+	CHECK(pf_size("build/unit-st/ROOT/ecalst.acc") == 3 && !replaced_old[0]);
 
 	/* as a release comes, in its zip (tests/data/onefor.zip: ECAL.ACC,
 	   TLS.OVL, ECAL.HYP, icons/ECAL.RSC), by the suggested rules */
@@ -582,8 +584,8 @@ static void test_tlsovl(void)
 		fuzz_net_set((unsigned char *)ans, k + n);
 		CHECK(up_install(&r, &e));
 		http_close_all();
-		CHECK(pf_size("build/unit-st/ROOT/ECAL.ACC") == 256 && pf_size("build/unit-st/ECAL/TLS.OVL") == 256);
-		CHECK(pf_size("build/unit-st/ROOT/ECALST.ACC") < 0 && !strcmp(replaced_old, "ECALST.ACC"));
+		CHECK(pf_size("build/unit-st/ROOT/ecal.acc") == 256 && pf_size("build/unit-st/ECAL/tls.ovl") == 256);
+		CHECK(pf_size("build/unit-st/ROOT/ecalst.acc") < 0 && !strcmp(replaced_old, "ecalst.acc"));
 		free(ans);
 		free(z);
 	}
@@ -624,7 +626,7 @@ static void test_store(void)
 	{
 		long n;
 		char path[100], *text;
-		snprintf(path, sizeof(path), "%s/EUPDATE.INF", dir);
+		snprintf(path, sizeof(path), "%s/eupdate.inf", dir);
 		text = load(path, &n);
 		CHECK(!strstr(text, "ghp_secret"));	/* encrypted */
 		CHECK(strstr(text, "REPO=whomper/ECal") != 0);
@@ -662,7 +664,7 @@ static void test_store(void)
 			"\r\n; one [REPO] part per repository followed, up to 64\r\n[REPO]\r\n"
 			"REPO=whomper/EWeb\r\nHAVE=v0.27\r\n";
 		char path[100];
-		snprintf(path, sizeof(path), "%s/EUPDATE.INF", dir);
+		snprintf(path, sizeof(path), "%s/eupdate.inf", dir);
 		CHECK(pf_save(path, old11, sizeof(old11) - 1) == 0);
 		store_init(dir);
 		CHECK(opt.hours == 12 && opt.fetch == 0 && nrepos == 2);
@@ -683,22 +685,22 @@ static void test_store(void)
 		/* DEFAULTS.INF beside EUPDATE.PRG: read only while there is no
 		   EUPDATE.INF; "." is EUpdate's own folder */
 		long n;
-		char path[100], *text = load("DEFAULTS.INF", &n);
-		snprintf(path, sizeof(path), "%s/DEFAULTS.INF", dir);
+		char path[100], *text = load("defaults.inf", &n);
+		snprintf(path, sizeof(path), "%s/defaults.inf", dir);
 		CHECK(text && pf_save(path, text, n) == 0);
 		free(text);
 		store_init(dir);
 		CHECK(nrepos == 2);		/* EUPDATE.INF is there: no defaults */
 		while (nrepos)
 			repo_delete(repos[0]);
-		snprintf(path, sizeof(path), "%s/EUPDATE.INF", dir);
+		snprintf(path, sizeof(path), "%s/eupdate.inf", dir);
 		pf_remove(path);
 		store_init(dir);
 		CHECK(nrepos == 9 && !strcmp(repos[0]->full, "whomper/ECal"));
-		CHECK(!strcmp(repos[0]->folder, "C:\\AERA\\ECAL") && repos[0]->unzip == 1);
+		CHECK(!strcmp(repos[0]->folder, "C:\\aera\\ecal") && repos[0]->unzip == 1);
 		CHECK(!strcmp(repos[0]->rule[0].names, "*.ACC") && !strcmp(repos[0]->rule[0].folder, "C:\\"));
 		CHECK(!strcmp(repos[6]->full, "whomper/EWeb") && !strcmp(repos[6]->rule[0].folder, "-"));
-		CHECK(!strcmp(repos[7]->full, "whomper/EPDF") && !strcmp(repos[7]->folder, "C:\\AERA\\EPDF"));
+		CHECK(!strcmp(repos[7]->full, "whomper/EPDF") && !strcmp(repos[7]->folder, "C:\\aera\\epdf"));
 		CHECK(!strcmp(repos[8]->full, "whomper/EUpdate") && !strcmp(repos[8]->folder, dir));
 		CHECK(!strncmp(repos[8]->have, "v", 1) && !repos[2]->have[0] && !repos[2]->rule[0].names[0]);
 		CHECK(store_save() == 0);	/* from now on EUPDATE.INF */

@@ -15,6 +15,7 @@ import time
 
 import rig
 from rig import K
+from machines import ci_path      # EUpdate writes lowercase names (6.6); Hatari keeps the case
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOP = os.path.normpath(os.path.join(HERE, "..", ".."))
@@ -33,29 +34,31 @@ def main():
     shutil.rmtree(work, ignore_errors=True)
     hd = os.path.join(work, "hd")
     os.makedirs(hd)
-    for f in ("EUPDATE.PRG", "CACERT.PEM", "ROOTS.DAT"):
+    for f in ("eupdate.prg", "cacert.pem", "roots.dat"):
         shutil.copy(os.path.join(TOP, "binary", f), hd)
-    with open(os.path.join(hd, "EUPDATE.INF"), "w", newline="") as f:
+    with open(os.path.join(hd, "eupdate.inf"), "w", newline="") as f:
         f.write("[OPTIONS]\r\nCHECK=1\r\nLOG=1\r\nAPIBASE=http://127.0.0.1:1\r\nFOLDER=C:\\NET\r\n"
                 "[REPO]\r\nREPO=whomper/EUpdate\r\nFOLDER=C:\\NET\\EUPDATE\r\nUNZIP=1\r\n")
     m = rig.machine(spec, work)
     print("on", m.describe(), flush=True)
     r = rig.Rig(work, m, extra=m.network())
-    log = os.path.join(hd, "EUPDATE.LOG")
+    def log_path():
+        return ci_path(hd, "eupdate.log")
     try:
         time.sleep(float(os.environ.get("BOOT", "45")))
         alert = r.shot("alert")
+        log = log_path()
         text = open(log, errors="replace").read() if os.path.exists(log) else ""
         check("TLS.OVL is missing" in text, "the check at the start: EUPDATE.LOG says TLS.OVL is missing")
         r.key(K["RETURN"])
         time.sleep(2)
         after = r.shot("after")
         check(open(alert, "rb").read() != open(after, "rb").read(), "the alert answered, EUpdate goes on")
-        inf = open(os.path.join(hd, "EUPDATE.INF"), errors="replace").read()
+        inf = open(ci_path(hd, "eupdate.inf"), errors="replace").read()
         check("LATEST=" not in inf, "nothing was asked of GitHub")
     finally:
-        if fails and os.path.exists(log):
-            print(open(log, errors="replace").read()[-2000:])
+        if fails and os.path.exists(log_path()):
+            print(open(log_path(), errors="replace").read()[-2000:])
         r.stop()
         m.stop()
     print("%d failed" % fails)

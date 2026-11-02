@@ -107,10 +107,10 @@ def run(base, ca):
     shutil.rmtree(dest, ignore_errors=True)
     rc, out, err = cli(base, ca, "get", "whomper/EUpdate", dest, token="good-token")
     check(rc == 0 and "have v1.1" in out, "downloaded with a token (not sent on to the file's host)")
-    check(sorted(os.listdir(dest)) == ["EUPDATE.PRG", "ICONS"] and
-          os.path.getsize(os.path.join(dest, "ICONS", "README.TXT")) == 4400, "the zip unpacked, 8+3")
+    check(sorted(os.listdir(dest)) == ["eupdate.prg", "icons"] and
+          os.path.getsize(os.path.join(dest, "icons", "readme.txt")) == 4400, "the zip unpacked, 8+3 in lowercase (6.6)")
     rc, out, err = cli(base, ca, "get", "whomper/EUpdate", dest, "*.HYP")
-    check(rc == 0 and os.path.getsize(os.path.join(dest, "EUPDATE.HYP")) == 5124, "the files a pattern names")
+    check(rc == 0 and os.path.getsize(os.path.join(dest, "eupdate.hyp")) == 5124, "the files a pattern names")
 
 
 def main():

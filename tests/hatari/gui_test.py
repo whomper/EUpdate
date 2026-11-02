@@ -18,6 +18,7 @@ import time
 
 import rig
 from rig import K
+from machines import ci_path      # EUpdate writes lowercase names (6.6); Hatari keeps the case
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOP = os.path.normpath(os.path.join(HERE, "..", ".."))
@@ -36,9 +37,9 @@ def check(cond, what):
 def drive_c():
     hd = os.path.join(work, "hd")
     os.makedirs(hd, exist_ok=True)
-    for f in ("EUPDATE.PRG", "TLS.OVL", "CACERT.PEM", "ROOTS.DAT"):
+    for f in ("eupdate.prg", "tls.ovl", "cacert.pem", "roots.dat"):
         shutil.copy(os.path.join(TOP, "binary", f), hd)
-    with open(os.path.join(hd, "EUPDATE.INF"), "w", newline="") as f:
+    with open(os.path.join(hd, "eupdate.inf"), "w", newline="") as f:
         f.write("[OPTIONS]\r\nCHECK=1\r\nLOG=1\r\nAPIBASE=http://127.0.0.1:%d\r\nFOLDER=C:\\NET\r\n"
                 "[REPO]\r\nREPO=whomper/EUpdate\r\nFOLDER=C:\\NET\\EUPDATE\r\nUNZIP=1\r\nHAVE=v1.0\r\n"
                 "HAVEDATE=2026-10-01\r\nRULE=README.TXT;-\r\n"
@@ -88,7 +89,7 @@ def main():
     try:
         time.sleep(float(os.environ.get("BOOT", "45")))
         r.shot("start")
-        inf = open(os.path.join(hd, "EUPDATE.INF"), errors="replace").read()
+        inf = open(ci_path(hd, "eupdate.inf"), errors="replace").read()
         check("LATEST=v1.1" in inf, "the check at the start: v1.1 is the latest")
         r.ctrl("f")
         time.sleep(1.5)
@@ -135,12 +136,12 @@ def main():
         r.ctrl("d")                            # Update (^U closes, the guidelines 3.2)
         time.sleep(25)
         r.shot("updated")
-        check(os.path.exists(os.path.join(hd, "NET", "EUPDATE", "EUPDATE.PRG")) and
-              os.path.getsize(os.path.join(hd, "NET", "EUPDATE", "EUPDATE.PRG")) == 10240,
+        prg = ci_path(hd, "NET/EUPDATE/eupdate.prg")
+        check(prg.endswith("eupdate.prg") and os.path.exists(prg) and os.path.getsize(prg) == 10240,
               "Update: the zip unpacked into its folder")
-        check(not os.path.exists(os.path.join(hd, "NET", "EUPDATE", "ICONS", "README.TXT")),
+        check(not os.path.exists(ci_path(hd, "NET/EUPDATE/icons/readme.txt")),
               "its rule left README.TXT out")
-        inf = open(os.path.join(hd, "EUPDATE.INF"), errors="replace").read()
+        inf = open(ci_path(hd, "eupdate.inf"), errors="replace").read()
         check("HAVE=v1.1" in inf, "it has v1.1 now, in EUPDATE.INF")
         # ^C: the row chosen, as one line, in the clipboard (common's clip.c)
         r.ctrl("c")
@@ -184,8 +185,8 @@ def main():
         r.key(K["RETURN"])
         time.sleep(1)
     finally:
-        if fails and os.path.exists(os.path.join(hd, "EUPDATE.LOG")):
-            print(open(os.path.join(hd, "EUPDATE.LOG"), errors="replace").read()[-3000:])
+        if fails and os.path.exists(ci_path(hd, "eupdate.log")):
+            print(open(ci_path(hd, "eupdate.log"), errors="replace").read()[-3000:])
         r.stop()
         m.stop()
         srv.kill()

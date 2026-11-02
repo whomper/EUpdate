@@ -4,7 +4,7 @@
 # Atari Falcon and TT: find repositories and owners, follow them, see
 # which are current, and update them by hand or on a schedule.
 #
-#   make            binary/EUPDATE.PRG (68030 code), TLS.OVL beside it (its
+#   make            binary/eupdate.prg (68030 code), TLS.OVL beside it (its
 #                   TLS: BearSSL, RSA and the curves on the Falcon's DSP;
 #                   the family's, the guidelines 7.4) and the root
 #                   certificates, with a stock m68k ELF cross compiler
@@ -18,8 +18,8 @@
 #   make itest      eupd-cli against tests/server.py, a GitHub of our own,
 #                   over HTTP and TLS
 #   make fuzz       the parsers under libFuzzer (clang), FUZZTIME s each
-#   make help       binary/EUPDATE.HYP, the guide (HCP=/path/to/hcp)
-#   make dist       a release's files in dist/, and EUPDATE-x.y.zip
+#   make help       binary/eupdate.hyp, the guide (HCP=/path/to/hcp)
+#   make dist       a release's files in dist/, and eupdate-x.y.zip
 #
 # binary/ is what make builds, never committed: releases carry the
 # program (.github/workflows/release.yml).
@@ -63,12 +63,12 @@ OBJS    := $(OBJDIR)/crt0.o $(OBJDIR)/sting_s.o $(OBJDIR)/nf.o $(OBJDIR)/crash_s
 HDRS    := $(wildcard src/*.h atari/*.h ui/*.h common/src/*.h common/atari/*.h \
            common/atari/include/*.h common/ui/*.h common/dsp/*.h)
 
-all: binary/EUPDATE.PRG binary/TLS.OVL binary/ROOTS.DAT
+all: binary/eupdate.prg binary/tls.ovl binary/roots.dat
 
-binary/EUPDATE.PRG: $(OBJDIR)/eupdate.elf common/tools/elf2tos.py | binary
+binary/eupdate.prg: $(OBJDIR)/eupdate.elf common/tools/elf2tos.py | binary
 	PRGFLAGS=7 python3 common/tools/elf2tos.py $< $@
 # the family's TLS.OVL, as it comes with common/: copied, never built here
-binary/TLS.OVL: common/tlsovl/TLS.OVL | binary
+binary/tls.ovl: common/tlsovl/tls.ovl | binary
 	cp $< $@
 
 # the version: VERSION holds the last release (major.minor), and the
@@ -86,8 +86,8 @@ $(OBJDIR)/version.o: $(OBJDIR)/version.c
 # the desktop icon, the About box's and the README's, from the family's
 # drawing (common/icons/EUPDATE.txt, the guidelines 5.5): committed
 icons:
-	python3 common/tools/appicon.py EUPDATE --rsc icons/EUPDATE.RSC --rscnv icons/EUPDNV.RSC \
-		--icn icons/EUPDATE.ICN --mask icons/EUPDMK.ICN --headers ui --docs docs
+	python3 common/tools/appicon.py EUPDATE --rsc icons/eupdate.rsc --rscnv icons/eupdnv.rsc \
+		--icn icons/eupdate.icn --mask icons/eupdmk.icn --headers ui --docs docs
 
 $(OBJDIR)/eupdate.elf: $(OBJS) $(OBJDIR)/version.o common/atari/link.ld
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(OBJDIR)/version.o -lgcc
@@ -134,13 +134,13 @@ $(OBJDIR) binary:
 
 # the speed rig's build (tests/hatari/speed.py): each stretch between
 # event calls of 20 ms or more on the emulator's console (-DAES_PROFILE,
-# common/atari/gem.c), in build/prof/EUPDATE.PRG
+# common/atari/gem.c), in build/prof/eupdate.prg
 ifdef PROF
 CFLAGS += -DAES_PROFILE=$(PROF)
 endif
 prof:
-	$(MAKE) OBJDIR=build/prof PROF=20 build/prof/EUPDATE.PRG
-build/prof/EUPDATE.PRG: build/prof/eupdate.elf common/tools/elf2tos.py
+	$(MAKE) OBJDIR=build/prof PROF=20 build/prof/eupdate.prg
+build/prof/eupdate.prg: build/prof/eupdate.elf common/tools/elf2tos.py
 	PRGFLAGS=7 python3 common/tools/elf2tos.py $< $@
 
 # ---- this computer: the same core, for the tests and eupd-cli ----
@@ -174,18 +174,18 @@ $(OBJDIR)/mkroots: common/tools/mkroots.c $(HOSTSRC) $(HDRS) $(HOSTLIB) | $(OBJD
 
 # the root certificates (Mozilla's list, kept in common/) next to the
 # program, and decoded on this computer so the Atari needn't
-binary/CACERT.PEM: common/certs/CACERT.PEM | binary
+binary/cacert.pem: common/certs/CACERT.PEM | binary
 	cp $< $@
-binary/ROOTS.DAT: binary/CACERT.PEM
+binary/roots.dat: binary/cacert.pem
 	$(MAKE) $(OBJDIR)/mkroots
-	$(OBJDIR)/mkroots binary/CACERT.PEM $@
+	$(OBJDIR)/mkroots binary/cacert.pem $@
 
 # the help file for ST-Guide and EHypView, from docs/GUIDE.md; needs hcp
 # (common/tools/build-hcp.sh builds it): make help HCP=/path/to/hcp. The
 # front page (the guidelines, 4.3) is common/tools/helpfront.py's.
 HCP     ?= hcp
-help: binary/EUPDATE.HYP
-binary/EUPDATE.HYP: docs/GUIDE.md tools/mkhelp.py VERSION docs/front.json docs/help/WINDOW.IMG \
+help: binary/eupdate.hyp
+binary/eupdate.hyp: docs/GUIDE.md tools/mkhelp.py VERSION docs/front.json docs/help/WINDOW.IMG \
 		common/help/EUPDATE.IMG common/tools/helpfront.py | $(OBJDIR) binary
 	python3 tools/mkhelp.py docs/GUIDE.md VERSION $(OBJDIR)/EUPDATE.STG
 	python3 common/tools/helpfront.py page docs/front.json $(OBJDIR)/EUPDATE.STG $(OBJDIR)/EUPDATE.STG
@@ -232,21 +232,23 @@ itest: $(OBJDIR)/eupd-cli
 	python3 tests/integration.py $(OBJDIR)/eupd-cli
 
 # a release's files: each one in dist/, and all of them in
-# dist/EUPDATE-x.y.zip (the icons in icons/), for the release workflow
-DIST    := binary/EUPDATE.PRG binary/TLS.OVL binary/CACERT.PEM binary/ROOTS.DAT binary/EUPDATE.HYP binary/DEFAULTS.INF
-ICONS   := icons/EUPDATE.RSC icons/EUPDNV.RSC icons/EUPDATE.ICN icons/EUPDMK.ICN
-dist: all help binary/DEFAULTS.INF
+# dist/eupdate-x.y.zip (the icons in icons/), for the release workflow: every
+# file and folder named in lowercase (the guidelines 6.6: MiNT's ext2 tells
+# the cases apart)
+DIST    := binary/eupdate.prg binary/tls.ovl binary/cacert.pem binary/roots.dat binary/eupdate.hyp binary/defaults.inf
+ICONS   := icons/eupdate.rsc icons/eupdnv.rsc icons/eupdate.icn icons/eupdmk.icn
+dist: all help binary/defaults.inf
 	rm -rf dist
 	mkdir -p dist/zip/icons
 	cp $(DIST) $(ICONS) dist/
 	cp $(DIST) dist/zip/
 	cp $(ICONS) dist/zip/icons/
-	cd dist/zip && zip -q -9 -r ../EUPDATE-$(VERSION_STR).zip .
+	cd dist/zip && zip -q -9 -r ../eupdate-$(VERSION_STR).zip .
 	rm -rf dist/zip
 
 # what a first start follows (the AERA programs), EUpdate itself at this version
-binary/DEFAULTS.INF: DEFAULTS.INF VERSION | binary
-	sed 's/@VERSION@/$(VERSION_STR)/' DEFAULTS.INF > $@
+binary/defaults.inf: defaults.inf VERSION | binary
+	sed 's/@VERSION@/$(VERSION_STR)/' defaults.inf > $@
 
 clean:
 	rm -rf $(OBJDIR) binary dist

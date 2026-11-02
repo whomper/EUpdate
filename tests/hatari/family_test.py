@@ -26,6 +26,7 @@ import sys
 import time
 
 import rig
+from machines import ci_path      # EUpdate writes lowercase names (6.6); Hatari keeps the case
 from gui_test import wait_port, check, TOP
 
 work = os.path.abspath(sys.argv[1])
@@ -91,18 +92,18 @@ def main():
     certs()
     hd = os.path.join(work, "hd")
     os.makedirs(hd)
-    shutil.copy(os.environ.get("PRG", os.path.join(TOP, "binary", "EUPDATE.PRG")), os.path.join(hd, "EUPDATE.PRG"))
-    shutil.copy(os.path.join(TOP, "binary", "TLS.OVL"), os.path.join(hd, "TLS.OVL"))
-    shutil.copy(os.path.join(work, "root.pem"), os.path.join(hd, "CACERT.PEM"))
+    shutil.copy(os.environ.get("PRG", os.path.join(TOP, "binary", "eupdate.prg")), os.path.join(hd, "eupdate.prg"))
+    shutil.copy(os.path.join(TOP, "binary", "tls.ovl"), os.path.join(hd, "tls.ovl"))
+    shutil.copy(os.path.join(work, "root.pem"), os.path.join(hd, "cacert.pem"))
     tags = {r: open(os.path.join(CACHE, r, "TAG")).read().strip() for r, _ in FOLLOW}
     # an ST edition copied by hand beside its program (the guidelines 7.4):
     # replaced once the release has TLS.OVL and no ST edition
     os.makedirs(os.path.join(hd, "NET", "EFTP"))
     with open(os.path.join(hd, "NET", "EFTP", "EFTPST.PRG"), "wb") as f:
         f.write(b"by hand")
-    eftp = os.listdir(os.path.join(CACHE, "EFTP", tags["EFTP"]))
+    eftp = [n.upper() for n in os.listdir(os.path.join(CACHE, "EFTP", tags["EFTP"]))]  # any case (6.6)
     one_for_all = "TLS.OVL" in eftp and "EFTPST.PRG" not in eftp
-    with open(os.path.join(hd, "EUPDATE.INF"), "w", newline="") as f:
+    with open(os.path.join(hd, "eupdate.inf"), "w", newline="") as f:
         f.write("[OPTIONS]\r\nCHECK=1\r\nFETCH=1\r\nLOG=1\r\nAPIBASE=https://127.0.0.1:%d\r\n" % PORT)
         for repo, have in FOLLOW:
             f.write("[REPO]\r\nREPO=whomper/%s\r\nFOLDER=C:\\NET\\%s\r\nUNZIP=1\r\nHAVE=%s\r\n" %
@@ -127,7 +128,7 @@ def main():
         inf = ""
         for i in range(int(os.environ.get("WAIT", "150"))):
             time.sleep(10)
-            inf = open(os.path.join(hd, "EUPDATE.INF"), errors="replace").read()   # lines end "\n" here
+            inf = open(ci_path(hd, "eupdate.inf"), errors="replace").read()   # lines end "\n" here
             if inf.count("HAVE=v") == len(FOLLOW):
                 break
         r.shot("end")
@@ -137,26 +138,26 @@ def main():
             have[lines.get("REPO", "")] = lines.get("HAVE", "")
         for repo, _ in FOLLOW:
             check(have.get("whomper/" + repo) == tags[repo], "%s %s downloaded" % (repo, tags[repo]))
-        check(not os.path.exists(os.path.join(hd, "NET", "EMAIL", "EMAILST.PRG")), "the ST editions left out")
-        check(os.path.exists(os.path.join(hd, "SIGS.DAT")), "the checked signatures kept in SIGS.DAT")
-        check(os.path.exists(os.path.join(hd, "EHYPVIEW.ACC")) and
-              os.path.getsize(os.path.join(hd, "EHYPVIEW.ACC")) ==
-              os.path.getsize(os.path.join(CACHE, "EHypView", tags["EHypView"], "EHYPVIEW.ACC")),
+        check(not os.path.exists(ci_path(hd, "NET/EMAIL/emailst.prg")), "the ST editions left out")
+        check(os.path.exists(ci_path(hd, "sigs.dat")), "the checked signatures kept in SIGS.DAT")
+        check(os.path.exists(ci_path(hd, "ehypview.acc")) and
+              os.path.getsize(ci_path(hd, "ehypview.acc")) ==
+              os.path.getsize(ci_path(os.path.join(CACHE, "EHypView", tags["EHypView"]), "ehypview.acc")),
               "EHYPVIEW.ACC into C:\\, over the one running")
-        st = os.path.exists(os.path.join(hd, "NET", "EFTP", "EFTPST.PRG"))
+        st = os.path.exists(ci_path(hd, "NET/EFTP/eftpst.prg"))
         if one_for_all:
-            check(os.path.exists(os.path.join(hd, "NET", "EFTP", "TLS.OVL")) and
-                  os.path.getsize(os.path.join(hd, "NET", "EFTP", "TLS.OVL")) ==
-                  os.path.getsize(os.path.join(CACHE, "EFTP", tags["EFTP"], "TLS.OVL")),
+            check(os.path.exists(ci_path(hd, "NET/EFTP/tls.ovl")) and
+                  os.path.getsize(ci_path(hd, "NET/EFTP/tls.ovl")) ==
+                  os.path.getsize(ci_path(os.path.join(CACHE, "EFTP", tags["EFTP"]), "tls.ovl")),
                   "EFTP %s: TLS.OVL beside EFTP.PRG" % tags["EFTP"])
             check(not st, "EFTP %s: the hand-copied EFTPST.PRG replaced" % tags["EFTP"])
-            log = open(os.path.join(hd, "EUPDATE.LOG"), errors="replace").read()
-            check("EFTPST.PRG replaced by EFTP.PRG" in log, "and the log says so")
+            log = open(ci_path(hd, "eupdate.log"), errors="replace").read()
+            check("eftpst.prg replaced by eftp.prg" in log.lower(), "and the log says so")
         else:
             check(st, "EFTP %s still has its ST edition: the hand-copied one kept" % tags["EFTP"])
         # the hello asks for RSA certificates, DSP or not: GitHub's ECDSA
         # signature took a stock Falcon's DSP 5.5 s (common's conn.c)
-        log = open(os.path.join(hd, "EUPDATE.LOG"), errors="replace").read()
+        log = open(ci_path(hd, "eupdate.log"), errors="replace").read()
         check("RSA-2048 signature" in log and "ECDSA" not in log,
               "GitHub's RSA certificate asked for, not its ECDSA one")
     finally:

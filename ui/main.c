@@ -6,6 +6,7 @@
  * the commands behind menus, keys and the toolbar. Laid out as EFTP's.
  */
 #include <string.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "ui.h"
@@ -161,7 +162,7 @@ static void set_logging(void)
 {
 	conn_log_flush();
 	if (opt.log)
-		path_join(conn_logfile, sizeof(conn_logfile), opt.workdir, "EUPDATE.LOG");
+		path_join(conn_logfile, sizeof(conn_logfile), opt.workdir, "eupdate.log");
 	else
 		conn_logfile[0] = 0;
 }
@@ -369,14 +370,27 @@ static void dialog_redraw(const short *msg)
 	win_message(m);
 }
 
+/* a file's name as the user writes it (EUpdate writes them in lowercase:
+   6.6; an alert says ECAL.ACC) */
+static void shown(char *out, const char *name, int size)
+{
+	int i;
+	for (i = 0; name[i] && i < size - 1; i++)
+		out[i] = (char)toupper((unsigned char)name[i]);
+	out[i] = 0;
+}
+
 static void on_replaced(const REPO *r, const char *old, const char *now)
 {
 	const char *app = strchr(r->full, '/');
+	char o[16], n[16];
 	app = app ? app + 1 : r->full;	/* the log has it already (update.c's say) */
+	shown(o, old, sizeof(o));
+	shown(n, now, sizeof(n));
 	if (nreplaced < NREPLACED && wild_match("*.ACC", now))
 		snprintf(replaced[nreplaced++], sizeof(replaced[0]),
 			 "[1][%s's accessory is now %s (%s is gone). Restart the Atari to load it; "
-			 "the Desk menu still says %s.][ OK ]", app, now, old, app);
+			 "the Desk menu still says %s.][ OK ]", app, n, o, app);
 }
 
 static void job_end(void)
@@ -788,7 +802,7 @@ void main_closed(void)
 
 static void help_key_pressed(void)
 {
-	if (help_key(opt.workdir, "EUPDATE.HYP", 0, "Keys"))
+	if (help_key(opt.workdir, "eupdate.hyp", 0, "Keys"))
 		dlg_keys();
 }
 

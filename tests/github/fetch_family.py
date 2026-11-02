@@ -86,7 +86,10 @@ def main():
         if not os.path.isdir(d) or not os.listdir(d):
             os.makedirs(d, exist_ok=True)
             names = api_names(repo) or (NAMES[repo] + " " + COMMON).replace("VER", tag[1:]).split()
-            got = [n for n in names if get(repo, tag, n, os.path.join(d, n))]
+            # the list's names in capitals, a release's since 6.6 in lowercase
+            # (GitHub's addresses tell the cases apart): either
+            got = [n for n in names if get(repo, tag, n, os.path.join(d, n)) or
+                   (n != n.lower() and get(repo, tag, n.lower(), os.path.join(d, n.lower())))]
             if not got:
                 sys.exit("no files for %s %s" % (repo, tag))
         with open(os.path.join(cache, repo, "TAG"), "w") as f:

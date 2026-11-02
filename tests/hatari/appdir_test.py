@@ -74,8 +74,8 @@ def main():
     build = os.path.join(work, "build")
     subprocess.run(["make", "-s", "-C", os.path.join(TOP, "common", "tests", "appdir"), "B=" + build,
                     os.path.join(build, "LAUNCH.PRG")], check=True)
-    prg = os.environ.get("PRG", os.path.join(TOP, "binary", "EUPDATE.PRG"))
-    defaults = os.path.join(TOP, "binary", "DEFAULTS.INF")
+    prg = os.environ.get("PRG", os.path.join(TOP, "binary", "eupdate.prg"))
+    defaults = os.path.join(TOP, "binary", "defaults.inf")
 
     # started by another program, from A:\APP
     w = os.path.join(work, "launched")
@@ -86,22 +86,22 @@ def main():
     mt("mformat", "-i", img, "-f", "720", "-C", "::")
     mt("mmd", "-i", img, "::/APP")
     mt("mcopy", "-i", img, prg, "::/APP/PROBE.PRG")
-    mt("mcopy", "-i", img, defaults, "::/APP/DEFAULTS.INF")
+    mt("mcopy", "-i", img, defaults, "::/APP/defaults.inf")
     what = hatari(w, hd, "C:\\LAUNCH.PRG", img)
     print("on", what, flush=True)
     names = mt("mdir", "-b", "-i", img, "::/APP").upper()
     check("EUPDATE.KEY" in names, "started by another program from A:\\APP: its EUPDATE.KEY in A:\\APP")
-    check(not os.path.exists(os.path.join(hd, "EUPDATE.KEY")), "and none in C:\\ (the desktop's folder)")
+    check(not os.path.exists(machines.ci_path(hd, "eupdate.key")), "and none in C:\\ (the desktop's folder)")
 
     # started as from the desktop, from C:\APP
     w = os.path.join(work, "desktop")
     hd = os.path.join(w, "hd")
     os.makedirs(os.path.join(hd, "APP"))
-    shutil.copy(prg, os.path.join(hd, "APP", "EUPDATE.PRG"))
-    shutil.copy(defaults, os.path.join(hd, "APP", "DEFAULTS.INF"))
+    shutil.copy(prg, os.path.join(hd, "APP", "eupdate.prg"))
+    shutil.copy(defaults, os.path.join(hd, "APP", "defaults.inf"))
     hatari(w, hd, "C:\\APP\\EUPDATE.PRG")
-    check(os.path.exists(os.path.join(hd, "APP", "EUPDATE.KEY")) and
-          not os.path.exists(os.path.join(hd, "EUPDATE.KEY")),
+    check(os.path.exists(machines.ci_path(hd, "APP/eupdate.key")) and
+          not os.path.exists(machines.ci_path(hd, "eupdate.key")),
           "started from the desktop in C:\\APP: its EUPDATE.KEY in C:\\APP")
     print("%d failed" % fails)
     sys.exit(fails != 0)

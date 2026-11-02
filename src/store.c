@@ -165,24 +165,26 @@ int store_init(const char *workdir)
 
 	defaults();
 	str_copy(opt.workdir, workdir, sizeof(opt.workdir));
-	path_join(inf_path, sizeof(inf_path), workdir, "EUPDATE.INF");
-	path_join(kf, sizeof(kf), workdir, "EUPDATE.KEY");
+	path_join(inf_path, sizeof(inf_path), workdir, "eupdate.inf");
+	path_join(kf, sizeof(kf), workdir, "eupdate.key");
 	secret_init(kf);
 	store_lost_token = 0;
 	/* TLS: the root certificates and the random seed next to EUPDATE.PRG */
-	path_join(conn_cacert, sizeof(conn_cacert), workdir, "CACERT.PEM");
-	path_join(tls_roots_cache, sizeof(tls_roots_cache), workdir, "ROOTS.DAT");
-	path_join(tls_seed_path, sizeof(tls_seed_path), workdir, "SEED.DAT");
+	path_join(conn_cacert, sizeof(conn_cacert), workdir, "cacert.pem");
+	path_join(tls_roots_cache, sizeof(tls_roots_cache), workdir, "roots.dat");
+	path_join(tls_seed_path, sizeof(tls_seed_path), workdir, "seed.dat");
 	/* the certificates' signatures already checked (RSA and ECDSA): the
 	   next start doesn't check GitHub's chain again */
-	path_join(tls_sigs_path, sizeof(tls_sigs_path), workdir, "SIGS.DAT");
-	/* the TLS itself, the family's TLS.OVL (the guidelines 7.4) */
-	path_join(tls_ovl_path, sizeof(tls_ovl_path), workdir, "TLS.OVL");
+	path_join(tls_sigs_path, sizeof(tls_sigs_path), workdir, "sigs.dat");
+	/* the TLS itself, the family's TLS.OVL (the guidelines 7.4). Every
+	   name of EUpdate's own files is in lowercase (6.6): on MiNT's ext2
+	   the case is part of the name */
+	path_join(tls_ovl_path, sizeof(tls_ovl_path), workdir, "tls.ovl");
 	buf = pf_load(inf_path, 0);
 	if (!buf) {
 		/* a first start: the AERA programs to follow, from DEFAULTS.INF
 		   beside EUPDATE.PRG (EUpdate's own folder is ".") */
-		path_join(kf, sizeof(kf), workdir, "DEFAULTS.INF");
+		path_join(kf, sizeof(kf), workdir, "defaults.inf");
 		buf = pf_load(kf, 0);
 		first = 1;
 		if (!buf)

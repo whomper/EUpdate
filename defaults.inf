@@ -9,7 +9,7 @@
 REPO=whomper/ECal
 
 ; where its files go: "." = EUpdate's own folder
-FOLDER=C:\AERA\ECAL
+FOLDER=C:\aera\ecal
 
 ; 1 = its .zip is unpacked into the folder
 UNZIP=1
@@ -20,7 +20,7 @@ RULE=*.ACC;C:\
 [REPO]
 REPO=whomper/EContact
 
-FOLDER=C:\AERA\ECONTACT
+FOLDER=C:\aera\econtact
 
 UNZIP=1
 
@@ -29,21 +29,21 @@ RULE=*.ACC;C:\
 [REPO]
 REPO=whomper/EMail
 
-FOLDER=C:\AERA\EMAIL
+FOLDER=C:\aera\email
 
 UNZIP=1
 
 [REPO]
 REPO=whomper/EFTP
 
-FOLDER=C:\AERA\EFTP
+FOLDER=C:\aera\eftp
 
 UNZIP=1
 
 [REPO]
 REPO=whomper/EHypView
 
-FOLDER=C:\AERA\EHYPVIEW
+FOLDER=C:\aera\ehypview
 
 UNZIP=1
 
@@ -52,24 +52,24 @@ RULE=*.ACC;C:\
 [REPO]
 REPO=whomper/ClaudeST
 
-FOLDER=C:\AERA\CLAUDEST
+FOLDER=C:\aera\claudest
 
 UNZIP=1
 
 [REPO]
 REPO=whomper/EWeb
 
-FOLDER=C:\AERA\EWEB
+FOLDER=C:\aera\eweb
 
 UNZIP=1
 
 ; the ST edition is left out
-RULE=EWEBST.PRG;-
+RULE=ewebst.prg;-
 
 [REPO]
 REPO=whomper/EPDF
 
-FOLDER=C:\AERA\EPDF
+FOLDER=C:\aera\epdf
 
 UNZIP=1
 
