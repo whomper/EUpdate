@@ -407,6 +407,15 @@ static void test_zip(void)
 	CHECK(!strcmp(name, "_hidden"));
 	disk_name("a b+c.tar.gz", name, sizeof(name));
 	CHECK(!strcmp(name, "a_b_c_ta.gz"));
+	/* 6.6: a name already 8+3 in lowercase as the release spells it, one
+	   in capitals (an older release's) in lowercase, what the programs
+	   open; a long one shortened as before, in lowercase */
+	disk_name("eweb.prg", name, sizeof(name));
+	CHECK(!strcmp(name, "eweb.prg"));
+	disk_name("EFTP.PRG", name, sizeof(name));
+	CHECK(!strcmp(name, "eftp.prg"));
+	disk_name("eweb-0.62.zip", name, sizeof(name));
+	CHECK(!strcmp(name, "eweb-0_6.zip"));
 	opt.shorten = 0;
 	disk_name("EFTP-1.45.zip", name, sizeof(name));
 	CHECK(!strcmp(name, "EFTP-1.45.zip"));
