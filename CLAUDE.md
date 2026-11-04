@@ -139,7 +139,8 @@ EUpdate is in maintenance mode while EWeb, EPDF and EPlay go to 1.0 (AERA-Atari,
 - **Speed:** EUpdate runs only on a TT or Falcon, so its slow machine is `Falcon-4:16`, with and
   without NVDI. `make prof && tests/hatari/speed.py WORK` times what the user does (the window
   drawn, rows, scrolling, the dialogs); `PRG=build/prof/eupdate.prg tests/hatari/family_test.py
-  WORK Falcon-4:16` times the check, the downloads and the unzip (the `AESGAP` lines in
+  WORK Falcon-4:16` (EUpdate on its own there: no accessories on a 4 MB machine, Erez, 4 Nov 2026)
+  times the check, the downloads and the unzip (the `AESGAP` lines in
   `WORK/hatari.log`).
 - **The rigs mimic Erez's machine as closely as they can** (Erez, 22 Oct 2026): before a release,
   `tests/hatari/family_test.py WORK` updates the AERA family from their real latest releases

@@ -16,7 +16,8 @@ The check at the start downloads all that is new (FETCH=1).
 Erez's TOS 4.04 and NVDI are used when this machine has them
 (machines.py: ~/.aera/tos, AERA_WITH_NVDI=1); EmuTOS otherwise.
 AERA_WITH_ACCS= (empty) runs it with no accessories, as Erez ran 1.1 when
-it crashed on 22 Oct 2026.
+it crashed on 22 Oct 2026. On a 4 MB machine (Falcon-4) it always runs
+with none: the accessories are not run there (Erez, 4 Nov 2026).
 """
 import os
 import socket
@@ -32,6 +33,7 @@ from gui_test import wait_port, check, TOP
 work = os.path.abspath(sys.argv[1])
 spec = sys.argv[2] if len(sys.argv) > 2 else "Falcon:16"
 PORT = 18760
+FOUR_MB = ("ST", "Falcon-4")  # the accessories aren't run there (AERA-Atari 21ba998)
 FILES_HOST = "127.0.0.2"      # GitHub's files are on a host of their own
 CACHE = os.path.join(os.path.expanduser("~"), ".cache", "aera", "releases")
 # Erez's list (22 Oct 2026); ECal and EContact current, the others not yet downloaded
@@ -119,6 +121,9 @@ def main():
            for port in (PORT, PORT + 1)]
     wait_port(PORT)
     wait_port(PORT + 1, FILES_HOST)
+    if spec.split(":")[0] in FOUR_MB:
+        os.environ["AERA_WITH_ACCS"] = ""     # no accessories on a 4 MB machine (Erez, 4 Nov 2026)
+        print("on a 4 MB machine: EUpdate on its own, no accessories", flush=True)
     os.environ.setdefault("AERA_WITH_ACCS", ",".join(ACCS))
     m = rig.machine(spec, work)
     r = rig.Rig(work, m, display=os.environ.get("XDISPLAY", ":99"),

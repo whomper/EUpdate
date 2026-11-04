@@ -161,7 +161,8 @@ docs/       the user guide (GUIDE.md, the source of EUPDATE.HYP) and pictures
   serves them: a certificate chain like GitHub's, the files from a second host at signed addresses,
   idle connections closed), at a NetUSBee's pace, with ECal, EContact and EHypView loaded as
   accessories and the suggested rules on (the ST editions left out, the accessories into `C:\`);
-  `AERA_WITH_ACCS=` (empty) runs it with none. Under Erez's TOS 4.04 and NVDI where the machine
+  `AERA_WITH_ACCS=` (empty) runs it with none, and on the 4 MB `Falcon-4` it always runs with none
+  (the accessories are not run on a 4 MB machine, Erez, 4 Nov 2026). Under Erez's TOS 4.04 and NVDI where the machine
   has them (`common/tools/machines.py`), EmuTOS otherwise.
 
 ## Licence
