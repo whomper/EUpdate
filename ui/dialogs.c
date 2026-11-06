@@ -334,6 +334,21 @@ static short form_loop(short start)
 			if (dlg_esc(e.kreturn) && !dlg_undo(e.kreturn))
 				e.kreturn = 0x011b;	/* ^[ too: the key objc_edit empties a field on */
 			scan = KEY_SCAN(e.kreturn);
+			if (scan == 0x44 && !(e.kstate & (K_LSHIFT | K_RSHIFT | K_CTRL | K_ALT))) {
+				/* F10: the Hebrew keyboard here too, its badge on the band;
+				   the window's toolbar and menu follow when the dialog has
+				   closed (d_do), not under it */
+				void (*hook)(void) = hebrew_kbd_hook;
+				hebrew_kbd_hook = 0;
+				set_hebrew_kbd(!hebrew_kbd);
+				hebrew_kbd_hook = hook;
+				if (band_obj && !(tree[band_obj].ob_flags & HIDETREE)) {
+					short bx, by;
+					objc_offset(tree, band_obj, &bx, &by);
+					objc_draw(tree, band_obj, 1, bx, by, tree[band_obj].ob_width, tree[band_obj].ob_height);
+				}
+				continue;
+			}
 			nav = scan == 0x1c || scan == 0x72 || scan == 0x0f || scan == 0x48 || scan == 0x50;
 			/* the Hebrew keyboard (F10) types into the fields too, not
 			   into a password */
@@ -395,6 +410,8 @@ static short d_do(const char *name, short edit)
 	dlg_open(tree, &x, &y, &w, &h);	/* over the screen, or in a window (3.5) */
 	r = form_loop(edit) & 0x7fff;
 	dlg_close();
+	if (hebrew_kbd_hook)
+		hebrew_kbd_hook();	/* F10 in the dialog: the toolbar's badge, the menu's tick */
 	tree[r].ob_state &= ~SELECTED;
 	npw = 0;
 	return r;
@@ -440,10 +457,56 @@ static TEDINFO *d_ted(const char *text, short just, short color)
 	return t;
 }
 
+/* the Hebrew keyboard's badge at the band's right end (Erez, 6 Nov 2026,
+   guideline 5.3): a user-defined object over the band, its child, drawn
+   by the AES whenever the band is; nothing while the keyboard is off */
+#define G_USERDEF 24
+typedef struct {
+	OBJECT *pb_tree;
+	short pb_obj, pb_prevstate, pb_currstate;
+	short pb_x, pb_y, pb_w, pb_h, pb_xc, pb_yc, pb_wc, pb_hc;
+	long pb_parm;
+} PARMBLK;
+typedef struct {
+	short (*ub_code)(PARMBLK *);
+	long ub_parm;
+} USERBLK;
+
+static short badge_draw(PARMBLK *pb)
+{
+	short c[4];
+	if (!hebrew_kbd)
+		return 0;
+	c[0] = pb->pb_xc;
+	c[1] = pb->pb_yc;
+	c[2] = pb->pb_xc + pb->pb_wc - 1;
+	c[3] = pb->pb_yc + pb->pb_hc - 1;
+	font_sys_push();		/* the band's font: it sets the badge's size */
+	vs_clip(vdi_h, 1, c);
+	hebrew_badge_right(vdi_h, pb->pb_x, pb->pb_y, pb->pb_w, pb->pb_h, 0);	/* white on black */
+	vs_clip(vdi_h, 0, c);
+	font_sys_pop();
+	return 0;
+}
+
+static USERBLK badge_ub = { badge_draw, 0 };
+
 /* black band across the top, white title */
 static void d_band(short w, const char *title)
 {
+	short b;
+	OBJECT *o;
 	band_obj = d_add(G_BOXTEXT, 0, 0, (long)d_ted(title, 0, 0x1071), 0, 0, w, 1);
+	b = nobj++;			/* the badge: the band's one child, all of it */
+	o = &tree[b];
+	memset(o, 0, sizeof(*o));
+	o->ob_next = band_obj;
+	o->ob_head = o->ob_tail = -1;
+	o->ob_type = G_USERDEF;
+	o->ob_spec = (long)&badge_ub;
+	o->ob_width = w;
+	o->ob_height = 1;
+	tree[band_obj].ob_head = tree[band_obj].ob_tail = b;
 }
 
 static short d_tick(short x, short y, const char *label, short var)
@@ -542,6 +605,8 @@ static void open_box(const char *name)
 static void close_box(short r)
 {
 	dlg_close();
+	if (hebrew_kbd_hook)
+		hebrew_kbd_hook();	/* F10 in the dialog: the toolbar's badge, the menu's tick */
 	tree[r].ob_state &= ~SELECTED;
 	npw = 0;
 }

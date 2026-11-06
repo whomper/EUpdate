@@ -34,7 +34,6 @@ extern const char app_version[];
 short vdi_h, cw, ch, scr_w, scr_h, desk_x, desk_y, desk_w, desk_h, planes;
 short gl_wchar, gl_hchar;
 short ap_id;
-short hebrew_kbd;
 static short quit;
 
 /* ---------------- menu ---------------- */
@@ -167,32 +166,13 @@ static void set_logging(void)
 		conn_logfile[0] = 0;
 }
 
-/* Israeli SI-1452 layout by key position (scancode 0x10-0x35), giving
- * Atari character codes; 0 = key not remapped. From Claude ST, as in
- * EMail and EFTP: a search can be typed in Hebrew too. */
-static const u8 hebrew_keys[0x36 - 0x10] = {
-	/* 10 q..p */ '/', '\'', 0xD4, 0xD5, 0xC2, 0xCA, 0xC7, 0xD8, 0xDA, 0xD2,
-	/* 1a [ ] ret ctrl */ 0, 0, 0, 0,
-	/* 1e a..' */ 0xD6, 0xC5, 0xC4, 0xCC, 0xD1, 0xCB, 0xC9, 0xCD, 0xD9, 0xDB, ',',
-	/* 29 ` lshift \ */ 0, 0, 0,
-	/* 2c z../ */ 0xC8, 0xD0, 0xC3, 0xC6, 0xCF, 0xCE, 0xD3, 0xD7, 0xDC, '.'
-};
-
-unsigned char key_char(short kstate, short key)
+/* the Hebrew keyboard is common's (hebkey.c); when F10 switches it, the
+   menu's check mark and the badge at the toolbar's right end follow
+   (Erez, 6 Nov 2026: the badge at the right end, as in every app) */
+static void hebrew_changed(void)
 {
-	short scan = KEY_SCAN(key);
-	unsigned char ascii = KEY_ASCII(key);
-	if (hebrew_kbd && !(kstate & (K_LSHIFT | K_RSHIFT | K_ALT)) && !key_ctrl(kstate, key) &&
-	    scan >= 0x10 && scan < 0x36 && hebrew_keys[scan - 0x10])
-		ascii = hebrew_keys[scan - 0x10];
-	return ascii;
-}
-
-void set_hebrew_kbd(short on)
-{
-	hebrew_kbd = on;
 	menu_update();
-	status(on ? "Hebrew keyboard (F10 switches back)" : "");
+	toolbar_redraw();
 }
 
 /* ---------------- while a job runs ----------------
@@ -1167,6 +1147,7 @@ int app_main(void)
 	theme_init();
 	font_apply();
 	hebrew_kbd = opt.hebrew;
+	hebrew_kbd_hook = hebrew_changed;
 	set_logging();
 	net_init();
 	falcon_dsp_init();

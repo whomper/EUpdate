@@ -73,6 +73,7 @@ static short header_h(void)
 enum { B_CHECK, B_UPDATE, B_FIND, B_STOP, NBUT };
 static GRECT but[NBUT];
 static GRECT r_note;			/* "2 new", or what runs */
+#define BADGE_ROOM 20			/* the badge's 16 pixels and 4 beside them */
 
 static const char *label(int i)
 {
@@ -111,7 +112,9 @@ static void tool_layout(void)
 		x += bw + (i == B_UPDATE ? cw : 2);
 	}
 	bw = 6 * cw;
-	but[B_STOP].x = mwork.x + mwork.w - 4 - bw;
+	/* the toolbar's right end is the Hebrew keyboard's badge's (16 pixels
+	   and 3 in from the edge, hebrew_badge_right): Stop stays left of it */
+	but[B_STOP].x = mwork.x + mwork.w - 4 - BADGE_ROOM - bw;
 	but[B_STOP].y = mwork.y + 3;
 	but[B_STOP].w = bw;
 	but[B_STOP].h = ch + 2;
@@ -139,7 +142,7 @@ static long tool_drawn = -1;
 
 static long tool_state(void)
 {
-	long st = ((long)found_new_count() << 20) | ((long)nrepos << 4);
+	long st = ((long)found_new_count() << 20) | ((long)nrepos << 4) | ((long)(hebrew_kbd != 0) << 30);
 	int i;
 	for (i = 0; i < NBUT; i++)
 		st |= (long)enabled(i) << i;
@@ -170,6 +173,9 @@ static void draw_toolbar(GRECT *clip)
 		text_pen_at(pen[P_NEW], r_note.x, r_note.y, t, n, cols, TX_LTR);
 	else
 		text_at(r_note.x, r_note.y, t, n, cols, TX_LTR | (k ? 0 : TX_LIGHT));
+	/* the Hebrew keyboard, when on: its badge at the row's right end
+	   (in the window's font, as the row; nothing while it is off) */
+	hebrew_badge_right(vdi_h, r_tool.x, r_tool.y, r_tool.w, (short)(r_tool.h - 1), 1);
 	hline(mwork.x, mwork.x + mwork.w - 1, mwork.y + r_tool.h - 1);
 }
 

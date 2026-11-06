@@ -157,9 +157,7 @@ void font_menu(void);
 
 /* main.c */
 void status(const char *msg);
-void set_hebrew_kbd(short on);
-extern short hebrew_kbd;
-unsigned char key_char(short kstate, short key);	/* honours the Hebrew layout */
+#include "hebkey.h"	/* common's Hebrew keyboard: hebrew_kbd, set_hebrew_kbd, key_char, the badge */
 /* "980 bytes", "12 KB", "1.4 MB" */
 void size_str(long n, char *out, int size);
 
