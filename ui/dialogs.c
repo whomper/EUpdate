@@ -413,7 +413,7 @@ static short d_do(const char *name, short edit)
 	r = form_loop(edit) & 0x7fff;
 	dlg_close();
 	if (heb_switched && hebrew_kbd_hook)
-		hebrew_kbd_hook();	/* F10 in the dialog: the toolbar's badge, the menu's tick */
+		hebrew_kbd_hook();	/* F10 in the dialog: the toolbar's badge */
 	heb_switched = 0;
 	tree[r].ob_state &= ~SELECTED;
 	npw = 0;
@@ -609,7 +609,7 @@ static void close_box(short r)
 {
 	dlg_close();
 	if (heb_switched && hebrew_kbd_hook)
-		hebrew_kbd_hook();	/* F10 in the dialog: the toolbar's badge, the menu's tick */
+		hebrew_kbd_hook();	/* F10 in the dialog: the toolbar's badge */
 	heb_switched = 0;
 	tree[r].ob_state &= ~SELECTED;
 	npw = 0;

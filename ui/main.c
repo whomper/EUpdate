@@ -73,7 +73,6 @@ static const MBAR_ITEM m_opts[] = {
 	{ "Settings...", "^,", C_SETTINGS },
 	{ "Font...", 0, C_FONT },
 	{ "-", 0, 0 },
-	{ "Hebrew keyboard", "F10", C_HEBREW },
 	{ "Protocol log", 0, C_PLOG },
 	{ 0, 0, 0 }
 };
@@ -123,15 +122,13 @@ void menu_update(void)
 	on[8] = idle && sel == 1;
 	on[9] = idle && sel > 0;
 	on[10] = idle;
-	on[11] = hebrew_kbd != 0;
+	on[11] = 0;		/* was the Hebrew keyboard's tick: F10 alone now (Erez, 7 Nov 2026) */
 	on[12] = opt.log != 0;
 	for (now = 0, i = 0; i < 13; i++)
 		now |= (long)on[i] << i;
 	for (i = 0; i < 11; i++)
 		if (shown < 0 || ((shown ^ now) >> i & 1))
 			enable(cmds[i], on[i]);
-	if (shown < 0 || ((shown ^ now) >> 11 & 1))
-		menu_icheck(mb.tree, mbar_object(&mb, C_HEBREW), on[11]);
 	if (shown < 0 || ((shown ^ now) >> 12 & 1))
 		menu_icheck(mb.tree, mbar_object(&mb, C_PLOG), on[12]);
 	shown = now;
@@ -167,11 +164,11 @@ static void set_logging(void)
 }
 
 /* the Hebrew keyboard is common's (hebkey.c); when F10 switches it, the
-   menu's check mark and the badge at the toolbar's right end follow
-   (Erez, 6 Nov 2026: the badge at the right end, as in every app) */
+   badge at the toolbar's right end follows (Erez, 6 Nov 2026: the badge
+   at the right end, as in every app). It has no menu entry: F10 alone
+   (Erez, 7 Nov 2026) */
 static void hebrew_changed(void)
 {
-	menu_update();
 	toolbar_redraw();
 }
 
@@ -875,7 +872,6 @@ static void command(short cmd)
 		}
 		break;
 	case C_FONT: font_menu(); break;
-	case C_HEBREW: set_hebrew_kbd(!hebrew_kbd); break;
 	case C_PLOG:
 		opt.log = !opt.log;
 		set_logging();
