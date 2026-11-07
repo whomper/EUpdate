@@ -27,6 +27,7 @@ static TEDINFO ted[TMAX];
 static char tmpl[TMAX][64], valid[TMAX][64];
 static short nobj, nted, last_child;
 static short band_obj;			/* the title band, 0 for none */
+static short heb_switched;		/* F10 in this dialog: the window follows when it closes */
 /* the fields that hold more than they show (field.c, the guidelines 5.4):
    the Follow dialog has ten */
 #define NLF 12
@@ -342,6 +343,7 @@ static short form_loop(short start)
 				hebrew_kbd_hook = 0;
 				set_hebrew_kbd(!hebrew_kbd);
 				hebrew_kbd_hook = hook;
+				heb_switched = 1;
 				if (band_obj && !(tree[band_obj].ob_flags & HIDETREE)) {
 					short bx, by;
 					objc_offset(tree, band_obj, &bx, &by);
@@ -410,8 +412,9 @@ static short d_do(const char *name, short edit)
 	dlg_open(tree, &x, &y, &w, &h);	/* over the screen, or in a window (3.5) */
 	r = form_loop(edit) & 0x7fff;
 	dlg_close();
-	if (hebrew_kbd_hook)
+	if (heb_switched && hebrew_kbd_hook)
 		hebrew_kbd_hook();	/* F10 in the dialog: the toolbar's badge, the menu's tick */
+	heb_switched = 0;
 	tree[r].ob_state &= ~SELECTED;
 	npw = 0;
 	return r;
@@ -605,8 +608,9 @@ static void open_box(const char *name)
 static void close_box(short r)
 {
 	dlg_close();
-	if (hebrew_kbd_hook)
+	if (heb_switched && hebrew_kbd_hook)
 		hebrew_kbd_hook();	/* F10 in the dialog: the toolbar's badge, the menu's tick */
+	heb_switched = 0;
 	tree[r].ob_state &= ~SELECTED;
 	npw = 0;
 }
