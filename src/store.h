@@ -53,7 +53,6 @@ typedef struct {
 				   Enterprise server's https://HOST/api/v3 */
 	short log;		/* write EUPDATE.LOG */
 	short colour;		/* colours, on screens with 16 or more */
-	short hebrew;		/* Hebrew keyboard on at start */
 	short dsp;		/* the DSP does TLS's sums */
 	short falcon;		/* TLS on this Atari: always, as there is no gateway
 				   (common/ui/dsp.c reads it) */

@@ -279,7 +279,9 @@ window.
   MiNT or MagiC with long names.
 - **GitHub**: your token (see [Your GitHub token](#your-github-token)).
 - **Look**: colours (new releases in orange, current ones in teal, on
-  screens with 16 colours or more) and the Hebrew keyboard at start.
+  screens with 16 colours or more). The Hebrew keyboard is F10 alone: it
+  starts off each time, and its badge shows at the toolbar's right end
+  while it is on.
   The dialogs and alerts take the AES's own look: 3D where it has one
   (TOS 4, MagiC, XaAES, EmuTOS in colour), flat elsewhere.
 - **Advanced**: whether the Falcon's DSP checks GitHub's certificates

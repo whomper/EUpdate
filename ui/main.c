@@ -1142,7 +1142,6 @@ int app_main(void)
 	up_boot_drive = boot_drive();
 	theme_init();
 	font_apply();
-	hebrew_kbd = opt.hebrew;
 	hebrew_kbd_hook = hebrew_changed;
 	set_logging();
 	net_init();

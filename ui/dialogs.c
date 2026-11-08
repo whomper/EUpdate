@@ -429,7 +429,7 @@ static short d_do(const char *name, short edit)
  * words), framed fields and choice buttons that open a list. */
 
 enum {
-	T_FETCH, T_SHORTEN, T_COLOUR, T_HEB, T_LOG, T_DSP, T_UNZIP, T_NOW,
+	T_FETCH, T_SHORTEN, T_COLOUR, T_LOG, T_DSP, T_UNZIP, T_NOW,
 	/* choices, one of a group: when to check; what Find looks for */
 	T_NEVER, T_START, T_EVERY, T_REPOS, T_OWNERS, NT
 };
@@ -877,7 +877,6 @@ static void part_look(short x, short y)
 	d_tick(x, ROW(0), "Use colours", T_COLOUR);
 	d_add(G_STRING, 0, 0, (long)"on screens with 16 colours or more:", x + 3, ROW(1), 35, 1);
 	d_add(G_STRING, 0, 0, (long)"new in orange, current in teal", x + 3, ROW(2), 30, 1);
-	d_tick(x, ROW(3), "Start with the Hebrew keyboard", T_HEB);
 }
 
 static void part_advanced(short x, short y)
@@ -904,7 +903,6 @@ int dlg_settings(void)
 	s_on[T_FETCH] = opt.fetch;
 	s_on[T_SHORTEN] = opt.shorten;
 	s_on[T_COLOUR] = opt.colour;
-	s_on[T_HEB] = opt.hebrew;
 	s_on[T_LOG] = opt.log;
 	s_on[T_DSP] = opt.dsp;
 	d_begin(SX + 42, 16);
@@ -968,7 +966,6 @@ int dlg_settings(void)
 	opt.fetch = s_on[T_FETCH];
 	opt.shorten = s_on[T_SHORTEN];
 	opt.colour = s_on[T_COLOUR];
-	opt.hebrew = s_on[T_HEB];
 	opt.log = s_on[T_LOG];
 	opt.dsp = s_on[T_DSP];
 	str_copy(opt.token, str_trim(s_token), sizeof(opt.token));
