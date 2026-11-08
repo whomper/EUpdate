@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Copyright (C) 2026 AERA | Erez Yaary
 """GitHub as the AERA family's releases have it, for the Hatari rigs: the
-real latest releases of each app (tests/github/fetch_family.py's CACHE),
+stand-in releases of each app (tests/github/standin_family.py's CACHE),
 answered as GitHub's API answers them, and their files from a second
 server, as GitHub sends them on to release-assets.githubusercontent.com.
 

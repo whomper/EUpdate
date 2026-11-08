@@ -63,10 +63,10 @@ These come from AERA-Atari's repo template and are the same in every app's CLAUD
 
   How it is made is the team's, without asking: code, structure, shared code, tests, measurements,
   fixes, docs and releases inside an approved phase.
-- **Testing with another AERA program uses its latest release**, what Erez runs, never a build of its
-  `main`: `common/tools/getrelease.py APP DIR FILE...` fetches it. Only for a change both programs are
-  still making, test against the other's `main` at a named commit, say so, and test again against its
-  release when it is out.
+- **No test uses another AERA program or accessory** (Erez, 8 Nov 2026; the guidelines 1.2): EUpdate's
+  tests run it alone, with nothing of the family loaded beside it, started by it or fetched for it
+  (no `getrelease.py`). What it does with the others' releases is tested against stand-ins this repo
+  makes; the real programs together are the hub's family checks.
 - **Every new source file starts with the SPDX line and copyright** (see any `.c` file); a generator
   writes them into the files it makes.
 - **The name** reads "AERA | Erez Yaary" wherever it is given: copyright lines
@@ -139,17 +139,16 @@ EUpdate is in maintenance mode while EWeb, EPDF and EPlay go to 1.0 (AERA-Atari,
 - **Speed:** EUpdate runs only on a TT or Falcon, so its slow machine is `Falcon-4:16`, with and
   without NVDI. `make prof && tests/hatari/speed.py WORK` times what the user does (the window
   drawn, rows, scrolling, the dialogs); `PRG=build/prof/eupdate.prg tests/hatari/family_test.py
-  WORK Falcon-4:16` (EUpdate on its own there: no accessories on a 4 MB machine, Erez, 4 Nov 2026)
-  times the check, the downloads and the unzip (the `AESGAP` lines in
+  WORK Falcon-4:16` times the check, the downloads and the unzip (the `AESGAP` lines in
   `WORK/hatari.log`).
 - **The rigs mimic Erez's machine as closely as they can** (Erez, 22 Oct 2026): before a release,
-  `tests/hatari/family_test.py WORK` updates the AERA family from their real latest releases
-  (`tests/github/fetch_family.py` into `~/.cache/aera/releases`, served by `tests/family_server.py`
-  as GitHub serves them: TLS with a chain like GitHub's, the files from a second host at signed
-  addresses of 900 characters and more, idle connections closed), at a NetUSBee's pace, with ECal,
-  EContact and EHypView loaded as accessories and the suggested rules on; under Erez's TOS 4.04
+  `tests/hatari/family_test.py WORK` updates stand-ins of the AERA family
+  (`tests/github/standin_family.py`: each app's file names, sizes like the real ones', made-up
+  bytes), served by `tests/family_server.py` as GitHub serves them: TLS with a chain like GitHub's,
+  the files from a second host at signed addresses of 900 characters and more, idle connections
+  closed; at a NetUSBee's pace, EUpdate on its own, the suggested rules on; under Erez's TOS 4.04
   and NVDI where this machine has them. What it can't mimic (STinG with a NetUSBee, GitHub itself,
-  the accessories syncing) is said in the report.
+  the real programs) is said in the report; the real family is the hub's acc_all.
 - **The tests' GitHub** is `tests/server.py` (its repository is `tests/github/repo.json`, a real
   one as the API gave it): `APIBASE=` points EUpdate at it, as at a GitHub Enterprise server.
   GitHub's real API isn't asked by any test.

@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Copyright (C) 2026 AERA | Erez Yaary
-"""EUPDATE.PRG updating the AERA family as on Erez's Falcon: the family's
-real latest releases (tests/github/fetch_family.py, served by
-tests/family_server.py as GitHub serves them: TLS with a chain like
+"""EUPDATE.PRG updating the AERA family as on Erez's Falcon, on its own:
+stand-in releases of the family (tests/github/standin_family.py: each
+app's file names, sizes like the real ones', made-up bytes), served by
+tests/family_server.py as GitHub serves them (TLS with a chain like
 GitHub's, the files from a second host at signed addresses, idle
 connections closed), the network at a NetUSBee's pace through FAKESTNG,
-ECal, EContact and EHypView loaded as accessories (their latest
-releases, common/tools/machines.py), and the rules EUpdate suggests:
-the ST editions left out, the accessories into C:\\ over the ones running.
-The check at the start downloads all that is new (FETCH=1).
+and the rules EUpdate suggests: the ST editions left out, the accessories
+into C:\\. The check at the start downloads all that is new (FETCH=1).
+No other AERA program is fetched or loaded (Erez, 8 Nov 2026; the
+guidelines 1.2): the real ones together, as accessories too, are the
+hub's family checks (AERA-Atari, common/tests/family/acc_all.py).
 
     family_test.py WORK [MACHINE]      (MACHINE: Falcon:16; Xvfb, xdotool)
 
 Erez's TOS 4.04 and NVDI are used when this machine has them
 (machines.py: ~/.aera/tos, AERA_WITH_NVDI=1); EmuTOS otherwise.
-AERA_WITH_ACCS= (empty) runs it with no accessories, as Erez ran 1.1 when
-it crashed on 22 Oct 2026. On a 4 MB machine (Falcon-4) it always runs
-with none: the accessories are not run there (Erez, 4 Nov 2026).
 """
 import os
 import socket
@@ -33,9 +32,7 @@ from gui_test import wait_port, check, TOP
 work = os.path.abspath(sys.argv[1])
 spec = sys.argv[2] if len(sys.argv) > 2 else "Falcon:16"
 PORT = 18760
-FOUR_MB = ("ST", "Falcon-4")  # the accessories aren't run there (AERA-Atari 21ba998)
 FILES_HOST = "127.0.0.2"      # GitHub's files are on a host of their own
-CACHE = os.path.join(os.path.expanduser("~"), ".cache", "aera", "releases")
 # Erez's list (22 Oct 2026); ECal and EContact current, the others not yet downloaded
 FOLLOW = (("ECal", True), ("EContact", True), ("EUpdate", False), ("ClaudeST", False), ("EHypView", False),
           ("EWeb", False), ("EMail", False), ("EFTP", False),
@@ -43,7 +40,7 @@ FOLLOW = (("ECal", True), ("EContact", True), ("EUpdate", False), ("ClaudeST", F
 # the rules EUpdate suggests for them on a Falcon (update.c, up_suggest)
 SKIP = {"ECal": "ECALST.ACC", "EContact": "ECONTST.ACC", "EMail": "EMAILST.PRG", "EFTP": "EFTPST.PRG",
         "EWeb": "EWEBST.PRG"}
-ACCS = ("ECal", "EContact", "EHypView")
+ACCS = ("ECal", "EContact", "EHypView")   # their .ACC into C:\ by a rule
 
 
 def certs():
@@ -90,20 +87,21 @@ def main():
                  ("ports" if len(taken) > 1 else "port", " and ".join(map(str, taken))))
     shutil.rmtree(work, ignore_errors=True)
     os.makedirs(work)
-    subprocess.run([sys.executable, os.path.join(TOP, "tests", "github", "fetch_family.py"), CACHE], check=True)
+    cache = os.path.join(work, "releases")
+    subprocess.run([sys.executable, os.path.join(TOP, "tests", "github", "standin_family.py"), cache], check=True)
     certs()
     hd = os.path.join(work, "hd")
     os.makedirs(hd)
     shutil.copy(os.environ.get("PRG", os.path.join(TOP, "binary", "eupdate.prg")), os.path.join(hd, "eupdate.prg"))
     shutil.copy(os.path.join(TOP, "binary", "tls.ovl"), os.path.join(hd, "tls.ovl"))
     shutil.copy(os.path.join(work, "root.pem"), os.path.join(hd, "cacert.pem"))
-    tags = {r: open(os.path.join(CACHE, r, "TAG")).read().strip() for r, _ in FOLLOW}
+    tags = {r: open(os.path.join(cache, r, "TAG")).read().strip() for r, _ in FOLLOW}
     # an ST edition copied by hand beside its program (the guidelines 7.4):
     # replaced once the release has TLS.OVL and no ST edition
     os.makedirs(os.path.join(hd, "NET", "EFTP"))
     with open(os.path.join(hd, "NET", "EFTP", "EFTPST.PRG"), "wb") as f:
         f.write(b"by hand")
-    eftp = [n.upper() for n in os.listdir(os.path.join(CACHE, "EFTP", tags["EFTP"]))]  # any case (6.6)
+    eftp = [n.upper() for n in os.listdir(os.path.join(cache, "EFTP", tags["EFTP"]))]  # any case (6.6)
     one_for_all = "TLS.OVL" in eftp and "EFTPST.PRG" not in eftp
     with open(os.path.join(hd, "eupdate.inf"), "w", newline="") as f:
         f.write("[OPTIONS]\r\nCHECK=1\r\nFETCH=1\r\nLOG=1\r\nAPIBASE=https://127.0.0.1:%d\r\n" % PORT)
@@ -116,15 +114,12 @@ def main():
                 f.write("RULE=*.ACC;C:\\\r\n")
     chain, key = os.path.join(work, "chain.pem"), os.path.join(work, "leaf.key")
     srv = [subprocess.Popen([sys.executable, os.path.join(TOP, "tests", "family_server.py"), str(port), str(PORT + 1),
-                             CACHE, chain, key, os.path.join(work, "ecchain.pem"), os.path.join(work, "ecleaf.key")],
+                             cache, chain, key, os.path.join(work, "ecchain.pem"), os.path.join(work, "ecleaf.key")],
                             stdout=subprocess.DEVNULL, env=dict(os.environ, FILES_HOST=FILES_HOST))
            for port in (PORT, PORT + 1)]
     wait_port(PORT)
     wait_port(PORT + 1, FILES_HOST)
-    if spec.split(":")[0] in FOUR_MB:
-        os.environ["AERA_WITH_ACCS"] = ""     # no accessories on a 4 MB machine (Erez, 4 Nov 2026)
-        print("on a 4 MB machine: EUpdate on its own, no accessories", flush=True)
-    os.environ.setdefault("AERA_WITH_ACCS", ",".join(ACCS))
+    os.environ["AERA_WITH_ACCS"] = ""         # EUpdate alone: no AERA accessory beside it (1.2)
     m = rig.machine(spec, work)
     r = rig.Rig(work, m, display=os.environ.get("XDISPLAY", ":99"),
                 extra=m.network(rate=int(os.environ.get("RATE", "100000"))))   # a NetUSBee's pace
@@ -147,13 +142,13 @@ def main():
         check(os.path.exists(ci_path(hd, "sigs.dat")), "the checked signatures kept in SIGS.DAT")
         check(os.path.exists(ci_path(hd, "ehypview.acc")) and
               os.path.getsize(ci_path(hd, "ehypview.acc")) ==
-              os.path.getsize(ci_path(os.path.join(CACHE, "EHypView", tags["EHypView"]), "ehypview.acc")),
-              "EHYPVIEW.ACC into C:\\, over the one running")
+              os.path.getsize(ci_path(os.path.join(cache, "EHypView", tags["EHypView"]), "ehypview.acc")),
+              "EHYPVIEW.ACC into C:\\, by its rule")
         st = os.path.exists(ci_path(hd, "NET/EFTP/eftpst.prg"))
         if one_for_all:
             check(os.path.exists(ci_path(hd, "NET/EFTP/tls.ovl")) and
                   os.path.getsize(ci_path(hd, "NET/EFTP/tls.ovl")) ==
-                  os.path.getsize(ci_path(os.path.join(CACHE, "EFTP", tags["EFTP"]), "tls.ovl")),
+                  os.path.getsize(ci_path(os.path.join(cache, "EFTP", tags["EFTP"]), "tls.ovl")),
                   "EFTP %s: TLS.OVL beside EFTP.PRG" % tags["EFTP"])
             check(not st, "EFTP %s: the hand-copied EFTPST.PRG replaced" % tags["EFTP"])
             log = open(ci_path(hd, "eupdate.log"), errors="replace").read()
