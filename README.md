@@ -1,86 +1,44 @@
 # EUpdate
 
-<img src="docs/icon.png" width="96" align="right" alt="EUpdate icon: a blue floppy disk with git's red diamond mark above its top right corner and a green arrow pointing down beside it">
+<img src="docs/icon.png" width="96" align="right" alt="EUpdate icon: a floppy disk, git's mark and a green arrow down">
 
-The latest releases of GitHub repositories, straight to the Atari Falcon and TT: a GEM program,
-written in C, that finds repositories and owners on GitHub, follows the ones you choose into
-folders of your choice, shows which are current, and updates them with a click or on a schedule.
+The latest releases of GitHub repositories, straight to the Atari Falcon and TT: a GEM program that
+finds repositories on GitHub, follows the ones you choose into folders of your choice, and updates
+them with a click or on a schedule.
 
 **Highlights**
 
-- **The AERA programs, ready to follow:** on its first start EUpdate follows ECal, EContact,
-  EMail, EFTP, EHypView, ClaudeST, EWeb, EPDF and itself (`DEFAULTS.INF`), each into `C:\AERA\`, the
-  desk accessories to `C:\`; a Check shows what is new, and Update brings them in.
-- **Find on GitHub:** repositories by name, the most starred first; or owners, people and
-  organisations, and then their repositories.
-- **Follow** a repository into a folder: what you have, the latest release GitHub has, and
-  whether you are current, at a glance (new releases in AERA's orange, current ones in teal).
-- **Update** one, several or all of them; **Check** without downloading; **Download again**.
-- **On a schedule:** a check when EUpdate starts, and every few hours while it runs; downloading
-  what is new, or only saying so. Iconified, the window says how many are new.
-- **Every file where it belongs:** a release's zip unpacked into the folder; rules for the files
-  that go elsewhere (desk accessories to the boot drive's root) or nowhere (the ST edition, on a
-  Falcon), suggested from what the release has; long names made 8+3 for TOS; every file written
-  safely, so a reset never leaves half a program. An AERA program's `TLS.OVL` always goes with it,
-  and a hand-copied ST edition (`ECALST.ACC`) gives way to the one program that replaces it.
-- **TLS on the Atari itself:** TLS 1.2 with BearSSL, the handshake's sums on the Falcon's DSP; no
-  gateway. It is the family's `TLS.OVL`, beside the program, loaded when EUpdate first talks to GitHub. A GitHub token is optional, kept encrypted, and goes nowhere but GitHub's API.
-- **Modern but Atari:** one window with a toolbar and tooltips, right-click menus, the family's
-  Settings dialog, VA_START and drag and drop (drop a repository's address on the window),
-  iconify, help in EHypView or ST-Guide.
-- **Light:** about 220 KB, and 140 KB more for `TLS.OVL` once it talks to GitHub; built so that
-  only the shared AERA code it calls goes in.
+- **The AERA programs, ready to follow:** on its first start it follows the whole family, each into
+  `C:\AERA\`, the desk accessories to `C:\`.
+- **Every file where it belongs:** zips unpacked, rules for files that go elsewhere or nowhere, 8+3
+  names, every file written safely.
+- **TLS on the Atari itself**, the handshake on the Falcon's DSP; no gateway. A GitHub token is
+  optional and kept encrypted.
+- **Find on GitHub** repositories or owners; **check on a schedule**, downloading what is new.
 
-![EUpdate on a Falcon: the AERA programs followed above, one with a new release, one not
-downloaded yet; whomper's repositories found below, ticks by those followed](docs/screenshot.png)
+![EUpdate on a Falcon: the AERA programs followed above, repositories found below](docs/screenshot.png)
 
 ## Getting started
 
-Download what you need from the **[latest release](https://github.com/whomper/EUpdate/releases/latest)**,
-file by file or all together in the zip:
+Download the **[latest release](https://github.com/whomper/EUpdate/releases/latest)**, file by file
+or all together in the zip:
 
 | File | What it is |
 |---|---|
-| `EUPDATE.PRG` | the program, for a Falcon or TT (68030; a 68020 or better) |
-| `TLS.OVL` | its TLS (the AERA family's): EUpdate can't reach GitHub without it |
-| `CACERT.PEM`, `ROOTS.DAT` | the root certificates GitHub's are checked against |
-| `EUPDATE.HYP` | the user guide, for EHypView or ST-Guide; the Help key opens it |
-| `DEFAULTS.INF` | what EUpdate follows on its first start: the AERA programs |
-| `EUPDATE.RSC`, `EUPDNV.RSC`, `EUPDATE.ICN`, `EUPDMK.ICN` | the desktop icon (in the zip's `icons/` folder): `EUPDATE.RSC` under TOS, EmuTOS, or NVDI with TOS's palette loaded (COLORVDI); `EUPDNV.RSC`, renamed `EUPDATE.RSC`, under NVDI with its own palette |
-| `EUPDATE-x.y.zip` | all of these together |
+| `EUPDATE.PRG` | the program (68030) |
+| `TLS.OVL` | its TLS, the AERA family's: needed to reach GitHub |
+| `CACERT.PEM`, `ROOTS.DAT` | the root certificates |
+| `EUPDATE.HYP` | the user guide; the Help key opens it |
+| `DEFAULTS.INF` | what it follows on its first start: the AERA programs |
+| `icons/` | the desktop icon (`EUPDNV.RSC`, renamed, under NVDI's own palette) |
 
-1. Copy `EUPDATE.PRG`, `TLS.OVL`, `CACERT.PEM`, `ROOTS.DAT`, `EUPDATE.HYP` and `DEFAULTS.INF` into a folder
-   of their own.
-   EUpdate keeps its settings and the repositories it follows (`EUPDATE.INF`, `EUPDATE.KEY`) in
-   the folder it is started from.
+1. Copy the files into a folder of their own; EUpdate keeps its settings there.
 2. Load STinG (or run MiNT with MiNTnet).
-3. Start EUpdate: it follows the AERA programs (`DEFAULTS.INF`). **Check** (^R) shows their
-   releases and **Update** (^D) downloads them; **Get info** (^I) changes where one goes, and
-   **Unfollow** (Del) drops the ones you don't want. To follow more, choose **Repository > Find
-   on GitHub** (^F) and double-click a repository. Press **Help** for the guide.
+3. Start EUpdate: **Check** (^R), then **Update** (^D). **Help** opens the guide.
 
-EUpdate can keep itself up to date: follow `whomper/EUpdate` into its own folder.
-
-**Needs:** a Falcon or TT; TOS 3 or 4, EmuTOS, MagiC or MiNT; 640×400 or larger; about 500 KB free,
-and room for the biggest file you download; STinG or MiNTnet.
-
-**Under TOS, put Atari's `FOLDR100.PRG` first in `AUTO`**, renamed for more room (`FOLDR400.PRG`).
-TOS keeps an entry in a small internal pool for every folder a program has looked into, and halts
-with "OUT OF INTERNAL MEMORY" when it runs out; FOLDRxxx makes the pool bigger.
-
-**With STinG, set the Delay in `STING.CPX` to 10** on a Falcon or TT, as STinG's manual says.
-STinG looks at the network card that often, so it sets the speed of every STinG program: on
-Erez's Falcon with a NetUSBee, Delay 10 took EFTP's downloads from 40 to 75 KB/s.
-
-**GitHub answers 60 questions an hour** from an address without a token (a check asks one a
-repository); with a token, 5,000. Make one with no rights at all on github.com (Settings >
-Developer settings > Personal access tokens) and type or paste it in EUpdate's **Settings >
-GitHub**: the field takes a fine-grained token's 93 characters, as every field takes what its
-setting holds and scrolls.
-
-**If it crashes,** `CRASH.LOG` in its folder says where; when TOS shows the bombs, start EUpdate
-again and it writes TOS's record of them there. **Options > Protocol log** writes each step of a
-job to `EUPDATE.LOG` as it happens (the token never).
+**Needs:** a Falcon or TT; TOS 3 or 4, EmuTOS, MagiC or MiNT; 640×400 or larger; about 500 KB free
+and room for the biggest download; STinG or MiNTnet. The guide has the tips: `FOLDR100.PRG` under
+TOS, STinG's Delay, and a GitHub token for more than 60 questions an hour.
 
 ## How it reaches GitHub
 
@@ -89,92 +47,39 @@ Falcon, TT:  Atari (EUpdate, TLS 1.2, the DSP) ---TLS---> api.github.com
                                                ---TLS---> where GitHub sends the files
 ```
 
-EUpdate asks GitHub's REST API itself: the latest release
-(`/repos/OWNER/NAME/releases/latest`), searches (`/search/repositories`, `/search/users`), an
-owner's repositories (`/users/LOGIN/repos`), and a release's files (`/releases/assets/ID`, which
-GitHub redirects to its file servers). Answers come gzip'ed; the connections stay open between
-questions, as a handshake costs a Falcon a second or more. No gateway is needed. For a GitHub
-Enterprise server, `APIBASE=` in `EUPDATE.INF`.
-
 ## Building
 
 ```sh
-sudo apt install gcc-m68k-linux-gnu python3   # Debian/Ubuntu; no MiNTLib needed
-make            # binary/eupdate.prg, tls.ovl (common's), cacert.pem, roots.dat
-make test       # the core on this computer, with AddressSanitizer and UBSan
-make itest      # eupd-cli against a GitHub of the tests' own (tests/server.py), HTTP and TLS
-make fuzz       # the parsers under libFuzzer (clang)
+sudo apt install gcc-m68k-linux-gnu python3
+make            # binary/eupdate.prg, tls.ovl, cacert.pem, roots.dat
 make dist       # dist/eupdate-x.y.zip, as on the Releases page
-make help HCP=/path/to/hcp   # EUPDATE.HYP from docs/GUIDE.md (common/tools/build-hcp.sh builds hcp)
 ```
 
-`binary/` and `dist/` are what make builds; they are never committed, and a build changes no tracked
-file. A release: `tools/bump.py`, commit and push, then **Actions > Release > Run workflow** on `main`
-with what is new. The workflow tests, builds, tags the commit `vX.Y` and publishes the files and the
-zip on the Releases page. Builds in between are never handed out: to try a change, release it.
+More (tests, fuzzing, the help file, releases, how it talks to GitHub):
+[docs/DEVELOPING.md](docs/DEVELOPING.md).
 
 ## Source
 
 ```
-src/        the core, also built for this computer in the tests: HTTP (http.c), a JSON reader
-            (json.c), GitHub's API (gh.c), EUPDATE.INF (store.c), zips (unzip.c), checking and
-            updating a repository, its rules and its names (update.c)
-ui/         GEM: the window and its two lists, dialogs, menus, the jobs and the schedule
-atari/      files and time on GEMDOS (plat_tos.c)
-common/     the code the AERA programs share (git subtree of AERA-Atari): the runtime, TLS and
-            connections, the DSP, inflate, charsets, the GEM building blocks
-tests/      unit.c, integration.py with server.py, the fuzz targets, the Hatari rigs (tests/hatari)
-tools/      the help file, the version bump, common/'s update (the icon is the family's:
-            common/icons/EUPDATE.txt, made by `make icons`)
-docs/       the user guide (GUIDE.md, the source of EUPDATE.HYP) and pictures
+src/        the core: HTTP, JSON, GitHub's API, EUPDATE.INF, zips, updating
+ui/         GEM: the window, its lists, dialogs, menus, jobs and the schedule
+atari/      files and time on GEMDOS
+common/     the code the AERA programs share (from AERA-Atari)
+tests/      unit tests, a GitHub of the tests' own, fuzz targets, the Hatari rigs
+docs/       the user guide (GUIDE.md, the source of EUPDATE.HYP), DEVELOPING.md, pictures
 ```
 
 ## Tests
 
-- `make test`: the JSON reader (escapes, UTF-8 and Hebrew to the Atari's characters, broken and
-  too-deep text), HTTP against answers `common/tests/fuzz/fuzz_net.c` plays (chunked, gzip,
-  redirects, broken lengths, endless lines), GitHub's answers (a release, no release, no
-  repository, the hour's limit, searches), zips (stored, deflated, a damaged CRC, a name that
-  climbs out of the folder), the rules and their suggestions, 8+3 names, and `EUPDATE.INF`
-  written and read back with the token encrypted (an empty line after every setting, and 1.1's
-  file without them read too); then the fuzz targets' seeds and finds.
-- `make itest`: `eupd-cli` against `tests/server.py`, over HTTP and TLS with a certificate
-  authority of the test's own: every question EUpdate asks, a wrong token, a download unpacked
-  into a folder, and the token never sent on to the file's server nor written in the log.
-- `tests/hatari/gui_test.py WORK [MACHINE]`: `EUPDATE.PRG` on the family's emulated Falcon
-  (`common/tools/machines.py`), through FAKESTNG to `tests/server.py`: the check at the start,
-  Find, an owner's repositories, Follow (a letter typed into the middle of its folder), Update
-  (unpacked, a rule obeyed, `EUPDATE.INF` written), Get info, a 93-character token typed into
-  Settings and reaching the server whole, and the About box. `tests/hatari/screenshots.py` makes the pictures in
-  `docs/`.
-- `tests/hatari/st_test.py WORK`: `EUPDATE.PRG` started on an ST (`ST:mono`) says it needs a Falcon
-  or a TT, and Quit brings the desktop back (common's `cpucheck.c`, the program's first code, is built for
-  the 68000).
-- `tests/hatari/appdir_test.py WORK`: EUpdate started by another program (common's
-  `tests/appdir` launcher, from a real FAT floppy) and as from the desktop finds its own files in
-  its own folder, not the current one (common's `app_dir()`; TOS 1.04 and 4.04 start a program
-  in the desktop's folder).
-- `tests/hatari/noovl_test.py WORK`: with no `TLS.OVL` beside `EUPDATE.PRG`, the check at the
-  start says so in an alert and in `EUPDATE.LOG`, asks GitHub nothing, and EUpdate goes on.
-- `tests/hatari/family_test.py WORK`: as on Erez's Falcon, EUpdate on its own: stand-in releases
-  of the AERA family (`tests/github/standin_family.py`: each app's file names, sizes like the real
-  ones', made-up bytes), served by `tests/family_server.py` as GitHub serves them (a certificate
-  chain like GitHub's, the files from a second host at signed addresses, idle connections closed),
-  at a NetUSBee's pace, with the suggested rules on (the ST editions left out, the accessories into
-  `C:\`). No other AERA program is fetched or loaded (Erez, 8 Nov 2026): the real ones together are
-  the hub's family checks. Under Erez's TOS 4.04 and NVDI where the machine has them
-  (`common/tools/machines.py`), EmuTOS otherwise.
+- `make test`: the core on this computer (JSON, HTTP, GitHub's answers, zips, rules, `EUPDATE.INF`).
+- `make itest`: the command-line build against `tests/server.py`, over HTTP and TLS.
+- `tests/hatari/`: the GEM program on an emulated Falcon (`gui_test.py`), updating stand-ins of the
+  AERA family (`family_test.py`), and the start (`st_test.py`, `appdir_test.py`, `noovl_test.py`).
 
 ## Licence
 
-EUpdate is free software: you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free
-Software Foundation, either version 2 of the License, or (at your option)
-any later version. It is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See [COPYING](COPYING).
-
-Copyright (C) 2026 AERA | Erez Yaary.
+EUpdate is free software under the GNU General Public License, version 2 or (at your option) any
+later version, WITHOUT ANY WARRANTY; see [COPYING](COPYING). Copyright (C) 2026 AERA | Erez Yaary.
 
 The AERA name and logos are not covered by the GPL (see
 [AERA-Atari](https://github.com/whomper/AERA-Atari#licence)). GitHub is a trademark of GitHub, Inc.;
