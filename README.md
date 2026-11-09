@@ -8,13 +8,14 @@ them with a click or on a schedule.
 
 **Highlights**
 
-- **The AERA programs, ready to follow:** on its first start it follows the whole family, each into
-  `C:\AERA\`, the desk accessories to `C:\`.
-- **Every file where it belongs:** zips unpacked, rules for files that go elsewhere or nowhere, 8+3
-  names, every file written safely.
-- **TLS on the Atari itself**, the handshake on the Falcon's DSP; no gateway. A GitHub token is
-  optional and kept encrypted.
-- **Find on GitHub** repositories or owners; **check on a schedule**, downloading what is new.
+- **The AERA programs, ready to follow** on its first start, each into `C:\AERA\`.
+- **Find on GitHub** repositories by name, or owners and then their repositories.
+- **Follow** a repository into a folder and see at a glance whether you are current.
+- **Update** one, several or all with a click, or on a schedule.
+- **Every file where it belongs:** zips unpacked, accessories to `C:\`, 8+3 names, safe writes.
+- **TLS on the Atari itself**, the handshake on the Falcon's DSP; no gateway.
+- **A GitHub token** is optional and kept encrypted; it goes only to GitHub's API.
+- **Light:** about 220 KB, and 140 KB of `TLS.OVL` loaded when it first talks to GitHub.
 
 ![EUpdate on a Falcon: the AERA programs followed above, repositories found below](docs/screenshot.png)
 
@@ -61,20 +62,14 @@ More (tests, fuzzing, the help file, releases, how it talks to GitHub):
 ## Source
 
 ```
-src/        the core: HTTP, JSON, GitHub's API, EUPDATE.INF, zips, updating
-ui/         GEM: the window, its lists, dialogs, menus, jobs and the schedule
-atari/      files and time on GEMDOS
+src/        the core: HTTP, JSON, GitHub's API, zips, updating
+ui/         the GEM side: window, lists, dialogs, menus
 common/     the code the AERA programs share (from AERA-Atari)
-tests/      unit tests, a GitHub of the tests' own, fuzz targets, the Hatari rigs
-docs/       the user guide (GUIDE.md, the source of EUPDATE.HYP), DEVELOPING.md, pictures
 ```
 
 ## Tests
 
-- `make test`: the core on this computer (JSON, HTTP, GitHub's answers, zips, rules, `EUPDATE.INF`).
-- `make itest`: the command-line build against `tests/server.py`, over HTTP and TLS.
-- `tests/hatari/`: the GEM program on an emulated Falcon (`gui_test.py`), updating stand-ins of the
-  AERA family (`family_test.py`), and the start (`st_test.py`, `appdir_test.py`, `noovl_test.py`).
+`make test` runs the core on this computer; the rest is in [docs/DEVELOPING.md](docs/DEVELOPING.md).
 
 ## Licence
 
@@ -95,4 +90,4 @@ It includes, under their own licences (compatible with the GPL):
 
 ---
 
-Part of **AERA** for Atari: [ECal](https://github.com/whomper/ECal) · [EContact](https://github.com/whomper/EContact) · [EMail](https://github.com/whomper/EMail) · [EFTP](https://github.com/whomper/EFTP) · [EHypView](https://github.com/whomper/EHypView) · [ClaudeST](https://github.com/whomper/ClaudeST) · [EWeb](https://github.com/whomper/EWeb) · [EUpdate](https://github.com/whomper/EUpdate) · [EPDF](https://github.com/whomper/EPDF) · 8-bit: [EDOS](https://github.com/whomper/EDOS) · [EFTP_XL](https://github.com/whomper/EFTP_XL) · Pi: [AERA-Gateway](https://github.com/whomper/AERA-Gateway)
+Part of **AERA** for Atari: [ECal](https://github.com/whomper/ECal) · [EContact](https://github.com/whomper/EContact) · [EMail](https://github.com/whomper/EMail) · [EFTP](https://github.com/whomper/EFTP) · [EHypView](https://github.com/whomper/EHypView) · [ClaudeST](https://github.com/whomper/ClaudeST) · [EWeb](https://github.com/whomper/EWeb) · [EUpdate](https://github.com/whomper/EUpdate) · [EPDF](https://github.com/whomper/EPDF) · 8-bit: [EDOS](https://github.com/whomper/EDOS) · [EFTP_XL](https://github.com/whomper/EFTP_XL) · Gateway: [AERA-Gateway](https://github.com/whomper/AERA-Gateway)

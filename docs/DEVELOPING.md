@@ -54,6 +54,23 @@ file. A release: `tools/bump.py`, commit and push, then **Actions > Release > Ru
 with what is new. The workflow tests, builds, tags the commit `vX.Y` and publishes the files and the
 zip on the Releases page. Builds in between are never handed out: to try a change, release it.
 
+## Source
+
+```
+src/        the core, also built for this computer in the tests: HTTP (http.c), a JSON reader
+            (json.c), GitHub's API (gh.c), EUPDATE.INF (store.c), zips (unzip.c), checking and
+            updating a repository, its rules and its names (update.c)
+ui/         GEM: the window and its two lists, dialogs, menus, the jobs and the schedule
+atari/      files and time on GEMDOS (plat_tos.c)
+common/     the code the AERA programs share (git subtree of AERA-Atari): the runtime, TLS and
+            connections, the DSP, inflate, charsets, the GEM building blocks
+tests/      unit.c, integration.py with server.py, the fuzz targets, the Hatari rigs (tests/hatari)
+tools/      the help file, the version bump, common/'s update (the icon is the family's:
+            common/icons/EUPDATE.txt, made by `make icons`)
+docs/       the user guide (GUIDE.md, the source of EUPDATE.HYP) and pictures
+```
+
+
 ## Tests
 
 - `make test`: the JSON reader (escapes, UTF-8 and Hebrew to the Atari's characters, broken and
