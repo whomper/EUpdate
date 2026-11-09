@@ -157,3 +157,32 @@ EUpdate is in maintenance mode while EWeb, EPDF and EPlay go to 1.0 (AERA-Atari,
   what a first start follows, with no `EUPDATE.INF` yet: the AERA programs into `C:\AERA\NAME`,
   accessories to `C:\`, EUpdate in its own folder (`.`) at the release's version
   (`HAVE=v@VERSION@`, filled in by make). A new AERA program is added there.
+
+## UI backlog (Erez's 54 UI decisions, 9 Nov 2026; AERA-Atari a261597, standards/ui)
+
+Not started: maintenance mode stands. Take these with a release made anyway (a fault fix, or one Erez
+asks for) without growing its risk: the S items freely, the H items only if that release is otherwise
+untouched. Every GEM release still passes the speed rig. When one is done, send the hub one line with
+the commit. [hub] = waits for shared code; the hub says when it is in `common/`.
+1. `Write a log`, not `Protocol log`, in the menu and in Settings (D8, MD3). S
+2. Pop-up words and keys are the bar's, in sentence case (D14, MD19); `Check for a release` may stay,
+   `Copy name ^C` against the bar's `Copy` is still open: leave it. S
+3. `Copied to the clipboard.` on the status line after a copy (D50, W17). S
+4. Notification button `Show`, not `Open` (D51, W25). S
+5. Column titles bold dim (D41, W15). S
+6. Sizes `980 B`, `12 KB of 3.4 MB`, `2 min left` (D35, W4). S
+7. Settings' hours outside 1 to 168: an alert saying what to type, not a clamp (D30, C21); the words
+   go to Erez. S
+8. Disabled toolbar buttons in the AES's `DISABLED` look (W2). S
+9. Lists: Control+click extends a range (W7) S; Shift+Up/Down a page of rows - 1, Clr/Home and
+   Shift+Clr/Home (W6) S [hub: key_shift].
+10. Toolbar buttons act on the release, as EFTP's; Stop during a job keeps acting on the press (D32,
+    W1). H
+11. Clicks through `click.h` (`press_track`, `press_double`) (W24). H
+12. Exclusive tick groups (`group_of`: the Checks schedule, Find's choice) become radio buttons (D23,
+    D24, C5). H [hub: the engine greys one choice]
+13. INF `MAIN=` and `FONT=id,pt` become `WINDOW=x,y,w,h` and `FONT=name,points`, the old keys read
+    once (D43, D44, W18); `PANE=` stays. H
+14. Pop-up padding dropped once `popup()` adds its margin (D15, MD18). S [hub]
+15. Keys in dialogs (D25, C6), the own `form_loop` onto `dlg_do` (C11), the token's copy flag (C12),
+    window arrows to the pane under the pointer (D37). [hub]
