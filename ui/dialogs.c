@@ -667,7 +667,7 @@ int dlg_ask(const char *title, const char *label, char *buf, short len)
 
 /* ---------------- Find ---------------- */
 
-int dlg_find(char *text, int size, int *owners)
+int find_dialog(char *text, int size, int *owners)
 {
 	static char field[100];
 	short f, ok;
@@ -974,7 +974,7 @@ int dlg_settings(void)
 
 /* ---------------- the keys (Help) ---------------- */
 
-void dlg_keys(void)
+void keys_dialog(void)
 {
 	static const char *lines[] = {
 		"^F  find on GitHub         ^N  follow owner/name",

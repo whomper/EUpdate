@@ -782,7 +782,7 @@ void main_closed(void)
 static void help_key_pressed(void)
 {
 	if (help_key(opt.workdir, "eupdate.hyp", 0, "Keys"))
-		dlg_keys();
+		keys_dialog();
 }
 
 /* "owner/name", "github.com/owner/name/...", "https://github.com/owner/name":
@@ -821,7 +821,7 @@ static void command(short cmd)
 	case C_FIND: {
 		static char text[100];
 		static int owners;
-		if (dlg_find(text, sizeof(text), &owners))
+		if (find_dialog(text, sizeof(text), &owners))
 			find_on_github(text, owners);
 		break;
 	}
@@ -878,7 +878,7 @@ static void command(short cmd)
 		store_save();
 		break;
 	case C_HELP: help_key_pressed(); break;
-	case C_KEYS: dlg_keys(); break;
+	case C_KEYS: keys_dialog(); break;
 	}
 	menu_update();
 }

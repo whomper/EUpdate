@@ -7,10 +7,12 @@ the longest stretch between event calls of each thing the user does,
 from the AESGAP lines on the emulator's console. Fails when one is over
 its time.
 
-    make prof && speed.py WORK [MACHINE]     (MACHINE: Falcon-4:16)
+    make prof && speed.py WORK [MACHINE]     (MACHINE: Erez's configuration)
 
-With Erez's TOS 4.04 where this machine has it, and under NVDI with
-AERA_WITH_NVDI=1 (common/tools/machines.py). The check and the
+By default Erez's own configuration (Erez, 10 Nov 2026): machines.ERZ_MACHINE,
+a stock Falcon with TOS 4.04 and NVDI in 256 colours (erz_env()); where this
+computer has no TOS images or NVDI, the same machine on EmuTOS, a stand-in
+(common/tools/machines.py says which). Falcon-4:16 for a drawing change. The check and the
 downloads are timed by family_test.py with PRG=build/prof/eupdate.prg.
 """
 import os
@@ -21,12 +23,14 @@ import time
 
 import rig
 from rig import K
-from machines import ci_path      # EUpdate writes lowercase names (6.6); Hatari keeps the case
+from machines import ci_path, ERZ_MACHINE, erz_env   # ci_path: EUpdate writes lowercase names (6.6)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOP = os.path.normpath(os.path.join(HERE, "..", ".."))
 work = os.path.abspath(sys.argv[1])
-spec = sys.argv[2] if len(sys.argv) > 2 else "Falcon-4:16"
+spec = sys.argv[2] if len(sys.argv) > 2 else ERZ_MACHINE
+if spec == ERZ_MACHINE:
+    os.environ.update(erz_env())
 NREPOS = 40
 fails = 0
 results = []

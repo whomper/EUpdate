@@ -121,11 +121,11 @@ void unfollow_selected(void);
 
 /* dialogs (dialogs.c) */
 int  dlg_ask(const char *title, const char *label, char *buf, short len);
-int  dlg_find(char *text, int size, int *owners);
+int  find_dialog(char *text, int size, int *owners);
 int  dlg_follow(REPO *r, const char *desc, int is_new, int *now);	/* 1 = OK */
 int  dlg_settings(void);
 void dlg_about(void);
-void dlg_keys(void);
+void keys_dialog(void);
 #include "alert.h"		/* alert(): common/ui */
 
 /* menu commands (main.c) */
