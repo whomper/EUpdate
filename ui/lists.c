@@ -290,14 +290,14 @@ static void repos_rclick(WIN *w, short mx, short my)
 	short r;
 	if (row < 0) {
 		static const char *const empty[] = { "Find on GitHub...  ^F", "Follow...          ^N" };
-		r = popup(mx, my, empty, 2);
+		r = popup_m(mx, my, empty, 2);
 		if (r >= 0)
 			ui_command(r ? C_FOLLOW : C_FIND);
 		return;
 	}
 	if (!repos[row]->sel)
 		select_only(row);
-	r = popup(mx, my, items, sizeof(items) / sizeof(items[0]));
+	r = popup_m(mx, my, items, sizeof(items) / sizeof(items[0]));
 	if (r >= 0 && cmds[r])
 		ui_command(cmds[r]);
 }
@@ -514,7 +514,7 @@ static void found_rclick(WIN *w, short mx, short my)
 	long row = found_at(w, my);
 	if (row < 0) {
 		static const char *const empty[] = { "Find on GitHub...  ^F" };
-		if (popup(mx, my, empty, 1) == 0)
+		if (popup_m(mx, my, empty, 1) == 0)
 			ui_command(C_FIND);
 		return;
 	}
@@ -526,7 +526,7 @@ static void found_rclick(WIN *w, short mx, short my)
 		back = n;
 		items[n++] = "Back to the owners  Backspace";
 	}
-	r = popup(mx, my, items, n);
+	r = popup_m(mx, my, items, n);
 	if (r == 0)
 		found_open(row);
 	else if (r == 1)
