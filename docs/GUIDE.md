@@ -307,6 +307,8 @@ fixed-width GDOS font under NVDI or SpeedoGDOS.
 | ^C | copy the names selected (in dialogs ^C ^X ^V) |
 | Return, double-click | get info; in Find, follow a repository or list an owner's |
 | Backspace | in Find, back to the owners |
+| Up, Down | the row above or below; with Shift, a page |
+| Clr/Home | the first row; with Shift, the last |
 | Tab | the other list |
 | Insert | the row's menu |
 | ^, | Settings |

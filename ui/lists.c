@@ -318,17 +318,34 @@ static void repos_rclick(WIN *w, short mx, short my)
 		ui_command(cmds[r]);
 }
 
+/* Up and Down in a list move a row, with Shift a page of rows - 1 (one
+   line of context stays, as the bars page; W5, W6); key_shift tells Shift
+   from the key's code too, as the AES may give kstate as it is when the
+   key is read */
+static long list_page(WIN *w, short kstate, short key)
+{
+	long rows = win_rows(w) - 1;
+	return key_shift(kstate, key) ? (rows > 1 ? rows : 1) : 1;
+}
+
+static long list_step(long at, long total, int dir, long by)
+{
+	at += dir * by;
+	return at < 0 ? 0 : at > total - 1 ? total - 1 : at;
+}
+
 static int repos_key(WIN *w, short kstate, short key)
 {
 	short scan = KEY_SCAN(key);
 	if (!nrepos)
 		return 0;
 	switch (scan) {
-	case 0x48:			/* up */
-		select_only(cursor > 0 ? cursor - 1 : 0);
-		return 1;
+	case 0x48:			/* up; with Shift a page (W6) */
 	case 0x50:			/* down */
-		select_only(cursor < nrepos - 1 ? cursor + 1 : nrepos - 1);
+		select_only(list_step(cursor, nrepos, scan == 0x48 ? -1 : 1, list_page(w, kstate, key)));
+		return 1;
+	case 0x47:			/* Clr/Home: the first; Shift: the last */
+		select_only(key_shift(kstate, key) ? nrepos - 1 : 0);
 		return 1;
 	case 0x1c:			/* Return */
 	case 0x72:
@@ -556,12 +573,13 @@ static int found_key(WIN *w, short kstate, short key)
 	short scan = KEY_SCAN(key);
 	switch (scan) {
 	case 0x48:
-		if (w->total)
-			found_select(f_sel > 0 ? f_sel - 1 : 0);
-		return 1;
 	case 0x50:
 		if (w->total)
-			found_select(f_sel < w->total - 1 ? f_sel + 1 : w->total - 1);
+			found_select(list_step(f_sel, w->total, scan == 0x48 ? -1 : 1, list_page(w, kstate, key)));
+		return 1;
+	case 0x47:			/* Clr/Home: the first; Shift: the last */
+		if (w->total)
+			found_select(key_shift(kstate, key) ? w->total - 1 : 0);
 		return 1;
 	case 0x1c:
 	case 0x72:
