@@ -119,11 +119,48 @@ void font_reselect(void)
 	ch = keep_ch;
 }
 
+/* the font's id from its name, or its name from its id (EUPDATE.INF keeps
+   FONT=name,points, D43: an id is only this boot's GDOS order); 0 / no
+   name when it isn't loaded */
+static short id_of_name(const char *want)
+{
+	short i, n = gdos_fonts > 0 ? gdos_fonts : 0, id;
+	char name[34];
+	for (i = 2; i <= n + 1; i++) {
+		id = vqt_name(vdi_h, i, name);
+		name[32] = 0;
+		str_trim(name);
+		if (!strcmp(name, want))
+			return id;
+	}
+	return 0;
+}
+
+static void name_of_id(short id, char *out, int size)
+{
+	short i, n = gdos_fonts > 0 ? gdos_fonts : 0;
+	char name[34];
+	str_copy(out, "System", size);
+	if (id == 1)
+		return;
+	for (i = 2; i <= n + 1; i++)
+		if (vqt_name(vdi_h, i, name) == id) {
+			name[32] = 0;
+			str_trim(name);
+			str_copy(out, name, size);
+			return;
+		}
+}
+
 void font_apply(void)
 {
 	if (opt.font_id != 1 && gdos_fonts < 0 && vq_gdos())
 		gdos_fonts = vst_load_fonts(vdi_h, 0);
-	if (!set_font(opt.font_id, opt.font_pt)) {
+	if (!opt.font_id)		/* FONT=name,points: its id in this boot */
+		opt.font_id = id_of_name(opt.font_name);
+	else if (opt.font_id > 1 && !opt.font_name[0])	/* 2.02's FONT=id,pt, read once */
+		name_of_id(opt.font_id, opt.font_name, sizeof(opt.font_name));
+	if (!opt.font_id || !set_font(opt.font_id, opt.font_pt)) {
 		opt.font_id = 1;
 		opt.font_pt = 0;
 		set_font(1, 0);
@@ -180,6 +217,7 @@ static void take(fontsel *s)
 {
 	opt.font_id = s->id;
 	opt.font_pt = s->pt;
+	name_of_id(s->id, opt.font_name, sizeof(opt.font_name));
 	font_apply();
 	store_save();
 	win_relayout();

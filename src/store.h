@@ -58,7 +58,8 @@ typedef struct {
 				   (common/ui/dsp.c reads it) */
 	short main_x, main_y, main_w, main_h;	/* the window, 0 = not yet placed */
 	short pane_h;		/* the repositories pane's height */
-	short font_id, font_pt;	/* text font: VDI font id (1 = system) and size */
+	short font_id, font_pt;	/* text font: VDI font id (1 = system, 0 = find font_name) and size */
+	char font_name[34];	/* its name, as the INF keeps it (FONT=name,points): "System" for the system font */
 	short hebfont;		/* where the font has its Hebrew letters: HEB_* */
 	char folder[160];	/* the folder chosen last, offered for the next */
 	char workdir[200];	/* where EUPDATE.PRG is */

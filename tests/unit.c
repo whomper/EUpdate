@@ -694,6 +694,44 @@ static void test_store(void)
 			repo_delete(repos[0]);
 	}
 	{
+		/* the family's keys (D43, D44): 2.02's MAIN= and FONT=id,pt read
+		   once, WINDOW= and FONT=name,points written; WINDOW= wins */
+		static const char old202[] =
+			"[OPTIONS]\r\nMAIN=10,20,300,200\r\nFONT=5,10\r\n";
+		static const char both[] =
+			"[OPTIONS]\r\nWINDOW=1,2,3,4\r\nMAIN=10,20,300,200\r\nFONT=Swiss 721, bold,12\r\n";
+		char path[100];
+		long n;
+		char *text, *before;
+		long nb;
+		snprintf(path, sizeof(path), "%s/eupdate.inf", dir);
+		before = load(path, &nb);	/* put back at the end, for the tests after */
+		CHECK(pf_save(path, old202, sizeof(old202) - 1) == 0);
+		store_init(dir);
+		CHECK(opt.main_x == 10 && opt.main_w == 300 && opt.font_id == 5 && opt.font_pt == 10);
+		str_copy(opt.font_name, "Swiss 721", sizeof(opt.font_name));	/* what the GEM side finds for id 5 */
+		CHECK(store_save() == 0);
+		text = load(path, &n);
+		CHECK(text && strstr(text, "WINDOW=10,20,300,200\r\n") && !strstr(text, "MAIN=") &&
+		      strstr(text, "FONT=Swiss 721,10\r\n"));
+		free(text);
+		CHECK(pf_save(path, both, sizeof(both) - 1) == 0);
+		store_init(dir);
+		CHECK(opt.main_x == 1 && opt.main_h == 4 && opt.font_id == 0 && opt.font_pt == 12 &&
+		      !strcmp(opt.font_name, "Swiss 721, bold"));
+		pf_remove(path);
+		store_init(dir);
+		CHECK(store_save() == 0);
+		text = load(path, &n);
+		CHECK(text && strstr(text, "FONT=System,0\r\n"));
+		free(text);
+		if (before)
+			CHECK(pf_save(path, before, nb) == 0);
+		free(before);
+		while (nrepos)
+			repo_delete(repos[0]);
+	}
+	{
 		/* DEFAULTS.INF beside EUPDATE.PRG: read only while there is no
 		   EUPDATE.INF; "." is EUpdate's own folder */
 		long n;

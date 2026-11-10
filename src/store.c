@@ -128,6 +128,9 @@ static void shorts(const char *v, short *out, int n)
 	}
 }
 
+/* WINDOW= read already: an old MAIN= after it is not taken (D44) */
+static int had_window;
+
 static void set_opt(const char *k, const char *v)
 {
 	short n = (short)atoi(v);
@@ -149,9 +152,27 @@ static void set_opt(const char *k, const char *v)
 	else if (!strcmp(k, "log")) opt.log = n != 0;
 	else if (!strcmp(k, "colour")) opt.colour = n != 0;
 	else if (!strcmp(k, "dsp")) opt.dsp = n != 0;
-	else if (!strcmp(k, "main")) shorts(v, &opt.main_x, 4);
+	else if (!strcmp(k, "window")) {	/* the family's key (D43) */
+		shorts(v, &opt.main_x, 4);
+		had_window = 1;
+	} else if (!strcmp(k, "main")) {	/* 2.02's: read once, WINDOW= wins (D44) */
+		if (!had_window)
+			shorts(v, &opt.main_x, 4);
+	}
 	else if (!strcmp(k, "pane")) opt.pane_h = n;
-	else if (!strcmp(k, "font")) shorts(v, &opt.font_id, 2);
+	else if (!strcmp(k, "font")) {
+		const char *c = strrchr(v, ',');
+		if (*v >= '0' && *v <= '9') {	/* 2.02's FONT=id,pt: read once (D44) */
+			shorts(v, &opt.font_id, 2);
+			opt.font_name[0] = 0;
+		} else if (c && c > v && (size_t)(c - v) < sizeof(opt.font_name)) {
+			/* FONT=name,points (D43): the id is found by name when the fonts are loaded */
+			memcpy(opt.font_name, v, (size_t)(c - v));
+			opt.font_name[c - v] = 0;
+			opt.font_pt = (short)atoi(c + 1);
+			opt.font_id = strcmp(opt.font_name, "System") ? 0 : 1;
+		}
+	}
 	else if (!strcmp(k, "hebfont")) opt.hebfont = n >= 0 && n <= 2 ? n : 0;
 	else if (!strcmp(k, "folder")) str_copy(opt.folder, v, sizeof(opt.folder));
 }
@@ -163,6 +184,7 @@ int store_init(const char *workdir)
 	short in_opts = 0, first = 0, j;
 
 	defaults();
+	had_window = 0;
 	str_copy(opt.workdir, workdir, sizeof(opt.workdir));
 	path_join(inf_path, sizeof(inf_path), workdir, "eupdate.inf");
 	path_join(kf, sizeof(kf), workdir, "eupdate.key");
@@ -287,11 +309,11 @@ int store_save(void)
 	put_fmt(&b, "1 = colours on screens with 16 or more", "COLOUR", "%d", opt.colour);
 	put_fmt(&b, "1 = the DSP does the sums of the secure connections; 0 = the 68030 does", "DSP", "%d",
 		opt.dsp);
-	put_fmt(&b, "the window: x,y,width,height in pixels; 0,0,0,0 = let EUpdate place it", "MAIN",
+	put_fmt(&b, "the window: x,y,width,height in pixels; 0,0,0,0 = let EUpdate place it", "WINDOW",
 		"%d,%d,%d,%d", opt.main_x, opt.main_y, opt.main_w, opt.main_h);
 	put_fmt(&b, "the repositories pane's height, in pixels", "PANE", "%d", opt.pane_h);
-	put_fmt(&b, "text font: GDOS font id (1 = system font), size (system font: 0, 8 small, 16 large)",
-		"FONT", "%d,%d", opt.font_id, opt.font_pt);
+	put_fmt(&b, "text font: its name (System = the system font), size (system font: 0, 8 small, 16 large)",
+		"FONT", "%s,%d", opt.font_name[0] ? opt.font_name : "System", opt.font_pt);
 	put_fmt(&b, "where a bitmap font keeps its Hebrew letters: 0 = Atari places, 1 = ISO-8859-8, "
 		    "2 = DOS 862", "HEBFONT", "%d", opt.hebfont);
 	put_str(&b, "the folder chosen last", "FOLDER", opt.folder);
