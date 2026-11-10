@@ -246,6 +246,12 @@ void repos_select_all(void)
 	toolbar_redraw();
 }
 
+/* what a copy did, on the status line, never an alert (D50) */
+static void copied(int ok)
+{
+	status(ok ? "Copied to the clipboard." : "Couldn't write the clipboard.");
+}
+
 void repos_copy(void)
 {
 	SBUF b;
@@ -255,7 +261,7 @@ void repos_copy(void)
 		if (repos[i]->sel)
 			sb_printf(&b, "%s\r\n", repos[i]->full);
 	if (b.len)
-		clip_put(b.s, b.len);
+		copied(clip_put(b.s, b.len));
 	sb_free(&b);
 }
 
@@ -418,7 +424,7 @@ void found_copy(void)
 	if (f_sel < 0 || f_sel >= w_found.total)
 		return;
 	snprintf(line, sizeof(line), "%s", showing_owners ? f_owners[f_sel].login : f_repos[f_sel].full);
-	clip_put(line, (long)strlen(line));
+	copied(clip_put(line, (long)strlen(line)));
 }
 
 static void found_draw(WIN *w, GRECT *clip)
