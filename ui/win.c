@@ -131,11 +131,49 @@ static void draw_button(int i)
 	const char *l = label(i);
 	short n = (short)strlen(l), on = enabled(i), tx = r.x + (r.w - n * cw) / 2;
 	fill(&r, 0);
-	frame(&r, on ? 1 : (colour ? pen[P_DIM] : 1));
+	frame(&r, 1);
 	if ((i == B_STOP || (i == B_UPDATE && found_new_count())) && on && colour)
 		text_pen_at(pen[i == B_STOP ? P_ERR : P_NEW], tx, r.y + 1, l, n, n, TX_LTR);
 	else
-		text_at(tx, r.y + 1, l, n, n, TX_LTR | (on ? 0 : TX_LIGHT));
+		text_at(tx, r.y + 1, l, n, n, TX_LTR);
+	if (!on) {
+		/* disabled as the AES draws a DISABLED object (W2, as EFTP's AES
+		   buttons): every other pixel of frame and label taken back to
+		   white, the 50% pattern in transparent mode */
+		short p[4];
+		p[0] = r.x;
+		p[1] = r.y;
+		p[2] = r.x + r.w - 1;
+		p[3] = r.y + r.h - 1;
+		vswr_mode(vdi_h, 2);
+		vsf_interior(vdi_h, 2);
+		vsf_style(vdi_h, 4);
+		vsf_color(vdi_h, 0);
+		vr_recfl(vdi_h, p);
+		vswr_mode(vdi_h, 1);
+		vsf_interior(vdi_h, 1);
+	}
+}
+
+/* the button pressed, or let go: inverted inside its frame */
+static void button_invert(int i)
+{
+	GRECT r = but[i];
+	short p[4];
+	p[0] = r.x + 1;
+	p[1] = r.y + 1;
+	p[2] = r.x + r.w - 2;
+	p[3] = r.y + r.h - 2;
+	wind_update(BEG_UPDATE);
+	graf_mouse(M_OFF, 0);
+	clip_on(&r);
+	vswr_mode(vdi_h, 3);
+	vsf_interior(vdi_h, 1);
+	vsf_color(vdi_h, 1);
+	vr_recfl(vdi_h, p);
+	vswr_mode(vdi_h, 1);
+	graf_mouse(M_ON, 0);
+	wind_update(END_UPDATE);
 }
 
 /* what the toolbar shows: drawn again only when it changes */
@@ -199,28 +237,30 @@ static int toolbar_click(short mx, short my)
 	int i;
 	for (i = 0; i < NBUT; i++) {
 		GRECT r = but[i];
-		short p[4];
 		if (!inside(&r, mx, my))
 			continue;
 		if (!enabled(i) || i == B_STOP)
 			return 1;
-		/* pressed: inverted for a moment */
-		wind_update(BEG_UPDATE);
-		graf_mouse(M_OFF, 0);
-		clip_on(&r);
-		p[0] = r.x + 1;
-		p[1] = r.y + 1;
-		p[2] = r.x + r.w - 2;
-		p[3] = r.y + r.h - 2;
-		vswr_mode(vdi_h, 3);
-		vsf_interior(vdi_h, 1);
-		vsf_color(vdi_h, 1);
-		vr_recfl(vdi_h, p);
-		vswr_mode(vdi_h, 1);
-		graf_mouse(M_ON, 0);
-		wind_update(END_UPDATE);
-		evnt_timer_(80);
-		main_redraw(&r);
+		/* sunk while held, done on the release over it, nothing if let go
+		   elsewhere (D32, D33: the family's buttons; Stop, in a job, acts
+		   on the press: main.c's idle) */
+		{
+			short x, y, b, k, in = 1, now;
+			button_invert(i);
+			do {
+				evnt_timer_(20);
+				graf_mkstate(&x, &y, &b, &k);
+				now = inside(&r, x, y);
+				if (now != in) {
+					button_invert(i);
+					in = now;
+				}
+			} while (b & 1);
+			if (in)
+				button_invert(i);
+			if (!in)
+				return 1;
+		}
 		ui_command(i == B_CHECK ? C_CHECK : i == B_UPDATE ? C_UPDATE : C_FIND);
 		return 1;
 	}
