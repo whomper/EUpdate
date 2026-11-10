@@ -112,7 +112,7 @@ place and size, and the divider, in `EUPDATE.INF`.
 
 **Repository > Find on GitHub** (^F) asks what to look for, and where:
 
-- **Repositories with it in their names**: GitHub's best matches, the
+- **Names**: repositories with it in their names, GitHub's best matches, the
   most starred first, with their stars, when they last changed and what
   they are. GitHub gives the first 30.
 - **Owners**: people and organisations whose login or name has it.
@@ -228,10 +228,11 @@ come; Esc or **Stop** ends it.
 
 In **Settings > Checks**:
 
-- **Only when I ask**: EUpdate checks when you say.
-- **When EUpdate starts** (the first time): it checks every repository
+- **Never**: EUpdate checks only when you say (Check, ^R).
+- **At start**: it checks every repository
   as it starts.
-- **Then every N hours too**: and again every N hours while it runs.
+- **Every N hours**: as it starts, and again every N hours while it runs
+  (1 to 168).
 - **Download what is new, not only say so**: a check made by itself
   downloads the newer releases too, as Update would.
 
