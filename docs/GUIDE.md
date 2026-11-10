@@ -242,7 +242,7 @@ release.
 
 Under MiNT with XaAES and BGEM.NG, what a check every N hours finds is
 also a notification at the desktop's edge, "New releases" with their
-names (or "Updated", when EUpdate downloads them): **Open** brings
+names (or "Updated", when EUpdate downloads them): **Show** brings
 EUpdate's window to the front, **Later** leaves it. The same news is
 told once.
 

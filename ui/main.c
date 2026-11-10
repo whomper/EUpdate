@@ -730,7 +730,7 @@ static void tell_news(int fetched)
 		snprintf(text, sizeof(text), "%s|and %d more", news_text, news_n - 3);
 	else
 		str_copy(text, news_text, sizeof(text));
-	notify_send(title, text, "Open|Later", 1);
+	notify_send(title, text, "Show|Later", 1);
 }
 
 /* a notification's button: Open (1) brings the window, the list in it */
