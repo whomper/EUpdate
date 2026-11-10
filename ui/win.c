@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "ui.h"
+#include "arrowed.h"
 #include "theme.h"
 #include "util.h"
 #include "bidi.h"
@@ -1027,13 +1028,24 @@ void win_message(short *msg)
 		if (!running)
 			main_closed();
 		break;
-	case WM_ARROWED:		/* the window's own sliders: the larger pane */
+	case WM_ARROWED:
+		/* the scrolling pane under the pointer (an AES's wheel), else the
+		   one the window's own sliders belong to (D37, common's arrowed.c) */
 		if (!main_iconified) {
-			long page = win_rows(aes_pane) - 1;
+			ARROW_PANE ap[2];
+			short n = 0;
+			WIN *w;
+			long page;
+			if (w_repos.total > win_rows(&w_repos))
+				ap[n].r = w_repos.work, ap[n++].id = 0;
+			if (w_found.total > win_rows(&w_found))
+				ap[n].r = w_found.work, ap[n++].id = 1;
+			w = arrow_target(ap, n, aes_pane == &w_repos ? 0 : 1) ? &w_found : &w_repos;
+			page = win_rows(w) - 1;
 			if (page < 1)
 				page = 1;
 			if (msg[4] >= WA_UPPAGE && msg[4] <= WA_DNLINE)
-				win_scroll_to(aes_pane, aes_pane->top + (msg[4] == WA_UPPAGE ? -page :
+				win_scroll_to(w, w->top + (msg[4] == WA_UPPAGE ? -page :
 					      msg[4] == WA_DNPAGE ? page : msg[4] == WA_UPLINE ? -1 : 1));
 		}
 		break;

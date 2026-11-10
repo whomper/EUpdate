@@ -55,7 +55,7 @@ CORE    := conn util futil inflate secret charset ctime bidi ovl
 ATARI   := libc tos plat_tos net_tos sting gem tls_ovl crash bigbuf
 UI      := main win draw lists dialogs font about theme \
            dsp_ovl fontsel help av alert dialog field mbar aboutbox iconify clip clipedit dd popup \
-           panebar notify aboutline cpucheck hebkey text
+           panebar notify aboutline cpucheck hebkey text arrowed
 
 OBJDIR  := build
 OBJS    := $(OBJDIR)/crt0.o $(OBJDIR)/sting_s.o $(OBJDIR)/nf.o $(OBJDIR)/crash_s.o $(OBJDIR)/inflate_fast.o \
