@@ -88,7 +88,7 @@ static void column_titles(WIN *w, const char *const *t, const short *x, short n)
 	fill(&r, 0);
 	for (i = 0; i < n; i++)
 		text_pen_at(colour ? pen[P_DIM] : 1, w->work.x + x[i] * cw, y, t[i], (long)strlen(t[i]),
-			    (short)strlen(t[i]), TX_LTR | (colour ? 0 : TX_LIGHT));
+			    (short)strlen(t[i]), TX_LTR | TX_BOLD);	/* bold dim, as EFTP's (D41) */
 	line_col(w->work.x, y + w->head_h - 1, w->work.x + w->work.w - 1, y + w->head_h - 1, pen[P_LINE]);
 }
 
