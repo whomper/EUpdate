@@ -103,7 +103,7 @@ def main():
         r.ctrl("f")
         time.sleep(1.5)
         r.key(K["DOWN"])                       # the Owners choice: through the ticks' words
-        r.click(200, 255)
+        r.click(330, 233)                      # [Owners] (radio buttons, Erez 10 Nov 2026)
         r.key(K["RETURN"])
         time.sleep(10)
         r.shot("owners")
@@ -158,7 +158,7 @@ def main():
         settings = changed(r, before, "settings", lambda: r.key(0x33, ctrl=True), again=False)   # ^,
         # every 999 hours: refused with an alert saying what to type, the
         # field kept as typed (D30, Erez's words of 10 Nov 2026); then 24
-        r.click(240, 261)                      # Then every ... hours too
+        r.click(410, 217)                      # [Every] __ hours
         time.sleep(1)
         r.key(K["ESC"])                        # the hours field emptied
         r.type("999")

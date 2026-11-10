@@ -524,9 +524,29 @@ static short d_tick(short x, short y, const char *label, short var)
 	return k;
 }
 
+/* a radio button, one of a group (D23, D24: the Checks schedule, what Find
+   looks for): an AES button 9 wide, chosen = SELECTED (pressed in where the
+   AES draws 3D, turned over where it is flat), kept by tick_hit, not the
+   AES. A tick's slot with no label */
+static short d_radio(short x, short y, const char *label, short var)
+{
+	short k = nticks++;
+	tick_var[k] = var;
+	tick_box[k] = d_add(G_BUTTON, TOUCHEXIT | RBUTTON, s_on[var] ? SELECTED : 0, (long)label, x, y, 9, 1);
+	tick_lbl[k] = -1;
+	return k;
+}
+
 static void tick_draw(short k)
 {
-	tree[tick_box[k]].ob_spec = (long)(s_on[tick_var[k]] ? &tick_on_blk : &tick_off_blk);
+	if (tree[tick_box[k]].ob_type == G_BUTTON) {
+		if (s_on[tick_var[k]])
+			tree[tick_box[k]].ob_state |= SELECTED;
+		else
+			tree[tick_box[k]].ob_state &= ~SELECTED;
+	} else {
+		tree[tick_box[k]].ob_spec = (long)(s_on[tick_var[k]] ? &tick_on_blk : &tick_off_blk);
+	}
 	dlg_draw(tree, tick_box[k]);
 }
 
@@ -626,7 +646,8 @@ static int tick_hit(short r)
 			break;
 	if (k == nticks)
 		return 0;
-	tree[r].ob_state &= ~SELECTED;
+	if (tree[r].ob_type != G_BUTTON)
+		tree[r].ob_state &= ~SELECTED;
 	if (tree[r].ob_state & DISABLED)
 		return 1;		/* greyed: it stays as it is */
 	if (group_of(tick_var[k])) {
@@ -681,9 +702,9 @@ int find_dialog(char *text, int size, int *owners)
 	rows_at(2);
 	d_add(G_STRING, 0, 0, (long)"Look for", 2, ROW(0), 8, 1);
 	f = d_field(11, ROW(0), field, 34, (short)(size < (int)sizeof(field) ? size - 1 : (int)sizeof(field) - 1), 'X');
-	d_tick(2, ROW(1), "Repositories with it in their names", T_REPOS);
-	d_tick(2, ROW(2), "Owners: people and organisations", T_OWNERS);
-	d_text(5, ROW(3), "(a double click lists their repositories)");
+	d_radio(11, ROW(1), "Names", T_REPOS);	/* Erez's words, 10 Nov 2026 */
+	d_radio(21, ROW(1), "Owners", T_OWNERS);
+	d_text(5, ROW(2), "(a double click lists their repositories)");
 	d_button(24, 8, 10, "Cancel", EXIT);
 	ok = d_button(36, 8, 10, "Find", EXIT | DEFAULT);
 	d_end();
@@ -842,13 +863,15 @@ static void part_checks(short x, short y)
 {
 	rows_at(y);
 	d_add(G_STRING, 0, 0, (long)"Look for new releases", x, ROW(0), 21, 1);
-	d_tick(x + 2, ROW(1), "Only when I ask (Check, ^R)", T_NEVER);
-	d_tick(x + 2, ROW(2), "When EUpdate starts", T_START);
-	d_tick(x + 2, ROW(3), "Then every     hours too", T_EVERY);
-	d_field(x + 16, ROW(3), s_hours, 3, 3, '9');
-	d_tick(x, ROW(4), "Download what is new, not only say so", T_FETCH);
-	d_add(G_STRING, 0, 0, (long)"(only while EUpdate runs: let the", x + 3, ROW(5), 33, 1);
-	d_add(G_STRING, 0, 0, (long)"desktop start it, to keep to them)", x + 3, ROW(6), 34, 1);
+	/* one of three, as radio buttons (Erez's words, 10 Nov 2026) */
+	d_radio(x, ROW(1), "Never", T_NEVER);
+	d_radio(x + 10, ROW(1), "At start", T_START);
+	d_radio(x + 20, ROW(1), "Every", T_EVERY);
+	d_field(x + 30, ROW(1), s_hours, 3, 3, '9');
+	d_add(G_STRING, 0, 0, (long)"hours", x + 34, ROW(1), 5, 1);
+	d_tick(x, ROW(3), "Download what is new, not only say so", T_FETCH);
+	d_add(G_STRING, 0, 0, (long)"(only while EUpdate runs: let the", x + 3, ROW(4), 33, 1);
+	d_add(G_STRING, 0, 0, (long)"desktop start it, to keep to them)", x + 3, ROW(5), 34, 1);
 }
 
 static void part_files(short x, short y)
