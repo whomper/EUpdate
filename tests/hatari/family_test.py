@@ -160,6 +160,15 @@ def main():
         log = open(ci_path(hd, "eupdate.log"), errors="replace").read()
         check("RSA-2048 signature" in log and "ECDSA" not in log,
               "GitHub's RSA certificate asked for, not its ECDSA one")
+        # the quit, each step in the log at once, and no crash after it
+        # (EFTP's and EMail's bombs at quit, Erez 10 Nov 2026: the catcher
+        # left in a chain another program hooked over it)
+        r.ctrl("q")
+        time.sleep(8)
+        log = open(ci_path(hd, "eupdate.log"), errors="replace").read()
+        check("quit: out of the AES" in log and "quit: the crash catcher off" in log,
+              "the quit's steps in EUPDATE.LOG, to the AES's end")
+        check(not os.path.exists(ci_path(hd, "crash.log")), "no CRASH.LOG after the quit")
     finally:
         r.stop()
         m.stop()

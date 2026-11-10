@@ -1240,13 +1240,25 @@ int app_main(void)
 		}
 	}
 	conn_log_flush();
+	/* each step of the quit in EUPDATE.LOG at once, as EFTP's: should
+	   TOS go down after it, the log's last line says how far it came */
 	main_close();
+	log_step("quit: the window closed");
 	store_save();
+	log_step("quit: the settings saved");
 	theme_exit();			/* the palette back as it was */
 	menu_bar(mb.tree, 0);
 	av_exit();
 	v_clsvwk(vdi_h);
+	log_step("quit: the colours, the menu bar and the VDI given back");
 	crash_remove();
+	{
+		char m[160];
+		snprintf(m, sizeof(m), "quit: the crash catcher off; hooked over it: %s",
+			 *crash_over() ? crash_over() : "none");
+		log_step(m);
+	}
 	appl_exit();
+	log_step("quit: out of the AES");
 	return 0;
 }
