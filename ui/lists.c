@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ui.h"
-#include "theme.h"
+#include "colours.h"
 #include "util.h"
 #include "clip.h"
 

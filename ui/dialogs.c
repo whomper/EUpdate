@@ -15,7 +15,7 @@
 #include "clip.h"
 #include "field.h"
 #include "dialog.h"
-#include "theme.h"
+#include "colours.h"
 
 #define DMAX 80
 #define TMAX 24

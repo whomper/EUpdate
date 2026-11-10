@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include "ui.h"
 #include "arrowed.h"
-#include "theme.h"
+#include "colours.h"
 #include "util.h"
 #include "bidi.h"
 #include "iconify.h"

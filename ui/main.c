@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ui.h"
-#include "theme.h"
+#include "colours.h"
 #include "conn.h"
 #include "secret.h"
 #include "../src/plat.h"
@@ -170,6 +170,20 @@ static void set_logging(void)
    badge at the toolbar's right end follows (Erez, 6 Nov 2026: the badge
    at the right end, as in every app). It has no menu entry: F10 alone
    (Erez, 7 Nov 2026) */
+/* EUpdate's own colours, after the family's six (want16: TOS's darker
+   shades, taken as the nearest pen the screen has; a state's colour never
+   the dim one, else an Update button in it would look disabled) */
+static const THEME_ROLE eu_roles[NPEN - P_BASE] = {
+	{ { 745, 471, 216 }, { 667, 667,   0 }, 1, 1 },	/* P_NEW: AERA's orange (#D9A977) a shade deeper */
+	{ {  55, 486, 525 }, {   0, 667, 667 }, 1, 1 },	/* P_OK: AERA's teal, #0E7C86 */
+	{ { 863, 149, 149 }, { 1000,  0,   0 }, 1, 1 },	/* P_ERR: red */
+};
+
+void colours_init(void)
+{
+	theme_init(opt.colour, eu_roles, NPEN - P_BASE);
+}
+
 static void hebrew_changed(void)
 {
 	toolbar_redraw();
@@ -870,7 +884,7 @@ static void command(short cmd)
 			falcon_dsp_init();
 			falcon_dsp_ec_init();
 			store_save();
-			theme_init();
+			colours_init();
 			win_redraw_all();
 		}
 		break;
@@ -1143,7 +1157,7 @@ int app_main(void)
 	str_copy(gh_base, opt.api, sizeof(gh_base));
 	snprintf(http_user_agent, sizeof(http_user_agent), "EUpdate/%s (Atari)", app_version);
 	up_boot_drive = boot_drive();
-	theme_init();
+	colours_init();
 	font_apply();
 	hebrew_kbd_hook = hebrew_changed;
 	set_logging();
@@ -1233,7 +1247,7 @@ int app_main(void)
 				quit = 1;
 				break;
 			case COLORS_CHANGED:	/* the palette: each colour's pen again */
-				theme_init();
+				colours_init();
 				win_redraw_all();
 				break;
 			default: {

@@ -7,7 +7,7 @@
  */
 #include <string.h>
 #include "ui.h"
-#include "theme.h"
+#include "colours.h"
 #include "bidi.h"
 
 short text_pen = 1;		/* the colour of text that isn't inverted */
