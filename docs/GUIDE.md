@@ -97,7 +97,8 @@ The folder its files go to is in the last column, when there is room.
 Rest the mouse on a row for when the release was published and when you
 downloaded yours.
 
-Click a row to select it, Shift+click to add another, ^A to select them
+Click a row to select it, Shift+click to add or drop another, Control+click
+to add the rows from the last one clicked, ^A to select them
 all. Double-click a row (or Return) for **Get info**. Right-click a row,
 or press Insert, for its menu.
 

@@ -279,6 +279,16 @@ static void repos_click(WIN *w, short mx, short my, short clicks, short kstate)
 		toolbar_redraw();
 		return;
 	}
+	if ((kstate & K_CTRL) && cursor >= 0 && cursor < nrepos) {
+		/* Control: the range from the last row clicked (the anchor) to
+		   this one added (W7, as EMail, EFTP, EContact); the anchor stays */
+		long a = cursor < row ? cursor : row, b = cursor < row ? row : cursor, i;
+		for (i = a; i <= b; i++)
+			repos[i]->sel = 1;
+		win_redraw_lines(w, a, b - a + 1);
+		toolbar_redraw();
+		return;
+	}
 	select_only(row);
 	if (clicks >= 2)
 		repo_info(repos[row]);
