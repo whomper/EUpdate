@@ -86,9 +86,17 @@ static void column_titles(WIN *w, const char *const *t, const short *x, short n)
 	GRECT r = w->work;
 	r.h = w->head_h;
 	fill(&r, 0);
-	for (i = 0; i < n; i++)
-		text_pen_at(colour ? pen[P_DIM] : 1, w->work.x + x[i] * cw, y, t[i], (long)strlen(t[i]),
-			    (short)strlen(t[i]), TX_LTR | TX_BOLD);	/* bold dim, as EFTP's (D41) */
+	/* bold dim, as EFTP's (D41). Bold made by drawing the words again a
+	   pixel to the right: the VDI's bold effect took a stock Falcon 55 to
+	   95 ms more for the window's two rows of titles (EmuTOS draws it a
+	   glyph at a time), this a few */
+	for (i = 0; i < n; i++) {
+		short tx = w->work.x + x[i] * cw, k = (short)strlen(t[i]);
+		text_pen_at(colour ? pen[P_DIM] : 1, tx, y, t[i], k, k, TX_LTR);
+		if (!(cw & 7))
+			tx = (tx + 3) & ~7;	/* where text_pen_at put it */
+		v_gtext_n(vdi_h, tx + 1, y, t[i], k);
+	}
 	line_col(w->work.x, y + w->head_h - 1, w->work.x + w->work.w - 1, y + w->head_h - 1, pen[P_LINE]);
 }
 
