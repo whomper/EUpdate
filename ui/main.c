@@ -146,12 +146,15 @@ void status(const char *msg)
 
 void size_str(long n, char *out, int size)
 {
+	/* the family's sizes (D35, EFTP's): 980 B, 12 KB, 1.4 MB, 120 MB */
 	if (n < 1024)
-		snprintf(out, size, "%ld bytes", n);
+		snprintf(out, size, "%ld B", n);
 	else if (n < 1024L * 1024)
 		snprintf(out, size, "%ld KB", (n + 512) / 1024);
-	else
+	else if (n < 100L * 1024 * 1024)
 		snprintf(out, size, "%ld.%ld MB", n / (1024L * 1024), n % (1024L * 1024) * 10 / (1024L * 1024));
+	else
+		snprintf(out, size, "%ld MB", (n + 512L * 1024) / (1024L * 1024));
 }
 
 static void set_logging(void)
