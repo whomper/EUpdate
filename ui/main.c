@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ui.h"
+#include "tooltip.h"
 #include "colours.h"
 #include "conn.h"
 #include "secret.h"
@@ -972,69 +973,14 @@ static void work_dir(char *out, int size)
 		out[strlen(out) - 1] = 0;
 }
 
-/* ---------------- tooltips (EFTP's) ----------------
- * shown when the mouse rests on a toolbar button or a row, gone when it
- * moves, a key is pressed or a button clicked */
-static short tip_on, tip_tried, hover_x = -1, hover_y = -1;
-static unsigned long hover_at;
-static GRECT tip_r;
+/* ---------------- tooltips: the family's (common's tooltip.c, D18) ----------------
+ * the toolbar's buttons and the rows' names (win_tip); gone at any event */
+static short hover_x = -1, hover_y = -1;
 
-static void tip_hide(void)
+static void tip_repaint(const GRECT *r)
 {
-	if (!tip_on)
-		return;
-	tip_on = 0;
-	win_redraw_area(&tip_r);
-}
-
-static void tip_show(void)
-{
-	char text[200], *l2;
-	short n1, n2, n;
-	GRECT r, scr;
-	tip_tried = 1;
-	if (!win_tip(hover_x, hover_y, text, sizeof(text)))
-		return;
-	l2 = strchr(text, '|');
-	if (l2)
-		*l2++ = 0;
-	n1 = (short)strlen(text);
-	n2 = l2 ? (short)strlen(l2) : 0;
-	if (n1 > 64)
-		n1 = 64;
-	if (n2 > 64)
-		n2 = 64;
-	n = n1 > n2 ? n1 : n2;
-	r.w = (n + 2) * cw;
-	r.h = (l2 ? 2 : 1) * ch + 6;
-	r.x = hover_x + cw;
-	r.y = hover_y + ch + 2;
-	/* on the screen: to the left or above the mouse at the edges */
-	if (r.x + r.w > desk_x + desk_w)
-		r.x = hover_x - r.w - cw / 2;
-	if (r.x < desk_x)
-		r.x = desk_x;
-	if (r.y + r.h > desk_y + desk_h)
-		r.y = hover_y - r.h - 2;
-	if (r.y < desk_y)
-		r.y = desk_y;
-	tip_r = r;
-	tip_r.w++;
-	tip_r.h++;
-	scr.x = scr.y = 0;
-	scr.w = scr_w;
-	scr.h = scr_h;
-	wind_update(BEG_UPDATE);
-	graf_mouse(M_OFF, 0);
-	clip_on(&scr);
-	fill(&r, 0);
-	frame(&r, 1);
-	text_at(r.x + cw, r.y + 3, text, n1, n1, (line_rtl(text, n1) ? TX_RIGHT : 0));
-	if (l2)
-		text_pen_at(pen[P_DIM], r.x + cw, r.y + 3 + ch, l2, n2, n2, 0);
-	graf_mouse(M_ON, 0);
-	wind_update(END_UPDATE);
-	tip_on = 1;
+	GRECT a = *r;
+	win_redraw_area(&a);
 }
 
 /* EUpdate crashed and CRASH.LOG is written (common/atari/crash.c): say so
@@ -1097,6 +1043,7 @@ int app_main(void)
 	unsigned long sched_at;
 
 	ap_id = appl_init();
+	tip_init(tip_repaint);
 	if (ap_id < 0)
 		return 1;
 	/* where the AES runs several programs at once, dialogs are windows
@@ -1204,12 +1151,9 @@ int app_main(void)
 	evnt_set_m1(1, 0, 0, 1, 1);
 
 	while (!quit) {
-		short which, hovering;
-		unsigned long wait = 1000;
+		short which;
+		unsigned long wait = tip_wait(1000);	/* sooner when a tip is due */
 		evnt_set_m1(1, hover_x, hover_y, 1, 1);
-		hovering = !tip_tried && hover_x >= 0 && !main_iconified;
-		if (hovering)
-			wait = 100;
 		if (win_sliders_owed())
 			wait = 0;		/* a scroll's slider, in a stretch of its own */
 		/* 0x102/3/0: wake on any button press, left or right, the
@@ -1224,18 +1168,12 @@ int app_main(void)
 				!(which & MU_MESAG) ? "timer" : msg[0] == WM_REDRAW ? "redraw" :
 				msg[0] == WM_ARROWED ? "arrowed" : msg[0] == WM_VSLID ? "vslid" :
 				msg[0] == MN_SELECTED ? "menu" : "message");
-		if (which & (MU_M1 | MU_KEYBD | MU_BUTTON | MU_MESAG)) {
+		if ((which & MU_M1) && !main_iconified) {
 			short k;
-			if ((which & MU_M1) && !main_iconified) {
-				graf_mkstate(&hover_x, &hover_y, &k, &k);
-				win_hover(hover_x, hover_y);
-			}
-			hover_at = pf_ms();
-			tip_tried = (which & (MU_KEYBD | MU_BUTTON)) != 0;
-			tip_hide();
-		} else if (hovering && pf_ms() - hover_at >= 700UL) {
-			tip_show();
+			graf_mkstate(&hover_x, &hover_y, &k, &k);
+			win_hover(hover_x, hover_y);
 		}
+		tip_tick(which, main_iconified ? -1 : hover_x, hover_y, win_tip);
 		if ((which & MU_MESAG) && !notify_message(msg)) {	/* BGEM.NG's: its own */
 			const char *va;
 			switch (msg[0]) {
