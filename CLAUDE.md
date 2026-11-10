@@ -186,3 +186,11 @@ the commit. [hub] = waits for shared code; the hub says when it is in `common/`.
 14. Pop-up padding dropped once `popup()` adds its margin (D15, MD18). S [hub]
 15. Keys in dialogs (D25, C6), the own `form_loop` onto `dlg_do` (C11), the token's copy flag (C12),
     window arrows to the pane under the pointer (D37). [hub]
+
+## Testing configuration (Erez, 10 Nov 2026; AERA-Atari 148df17, TEST-MATRIX.md)
+
+From the next release made anyway: the speed rig's NVDI run on `Falcon-4:16` becomes Erez's own
+configuration, `Falcon-4:256` with `AERA_WITH_NVDI=1` (`machines.ERZ_MACHINE`, `machines.erz_env()`);
+the plain `Falcon-4:16` run stays only for a drawing change. A replacement, not an extra run. Without
+TOS images or NVDI here it runs on EmuTOS and the report says "stand-in". Tell the hub in one line
+when the rigs are next touched.
