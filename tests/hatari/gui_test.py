@@ -156,6 +156,26 @@ def main():
         time.sleep(1)
         before = r.shot("before_settings")
         settings = changed(r, before, "settings", lambda: r.key(0x33, ctrl=True), again=False)   # ^,
+        # every 999 hours: refused with an alert saying what to type, the
+        # field kept as typed (D30, Erez's words of 10 Nov 2026); then 24
+        r.click(240, 261)                      # Then every ... hours too
+        time.sleep(1)
+        r.key(K["ESC"])                        # the hours field emptied
+        r.type("999")
+        time.sleep(0.5)
+        typed = r.shot("settings_999")
+        r.key(K["RETURN"])                     # OK
+        time.sleep(1.5)
+        shown = r.shot("settings_hours_alert")
+        r.key(K["RETURN"])                     # the alert's OK
+        time.sleep(1.5)
+        back = r.shot("settings_hours_back")
+        check(open(shown, "rb").read() != open(typed, "rb").read() and
+              open(back, "rb").read() == open(typed, "rb").read(),
+              "Settings: 999 hours refused by an alert, the dialog back with the field as typed")
+        r.key(K["ESC"])
+        r.type("24")
+        time.sleep(0.5)
         # a fine-grained token, 93 characters, into the field 30 wide
         # (the guidelines 5.4): the field scrolls, and all of it is kept.
         # Typed only once the GitHub page is up: on a loaded host the
@@ -174,6 +194,8 @@ def main():
         time.sleep(1.5)
         r.ctrl("r")                            # a check, with the token
         time.sleep(12)
+        inf = open(ci_path(hd, "eupdate.inf"), errors="replace").read()
+        check("HOURS=24" in inf, "Settings: every 24 hours kept once corrected")
         sent = open(auth_log).read().split("\n") if os.path.exists(auth_log) else []
         check("Bearer " + server_token() in sent,
               "a 93-character token typed into Settings reaches GitHub whole")

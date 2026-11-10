@@ -15,6 +15,7 @@
 #include "clip.h"
 #include "field.h"
 #include "dialog.h"
+#include "alert.h"
 #include "colours.h"
 
 #define DMAX 80
@@ -952,17 +953,24 @@ int dlg_settings(void)
 				show_page(k, 1);
 			continue;
 		}
+		if (r == ok && s_on[T_EVERY] && (atoi(s_hours) < 1 || atoi(s_hours) > 168)) {
+			/* refused, never changed quietly (D30; Erez's words, 10 Nov
+			   2026): the field kept as typed, its page shown to correct */
+			tree[r].ob_state &= ~SELECTED;
+			alert(1, "[1][Check every 1 to 168 hours.|Please type a number|from 1 to 168.][ OK ]");
+			if (cur_page != 1)
+				show_page(1, 0);
+			dlg_draw(tree, 0);
+			continue;
+		}
 		break;
 	}
 	close_box(r);
 	if (r != ok)
 		return 0;
 	opt.check = s_on[T_EVERY] ? CHECK_EVERY : s_on[T_START] ? CHECK_START : CHECK_NEVER;
-	opt.hours = (short)atoi(s_hours);
-	if (opt.hours < 1)
-		opt.hours = 1;
-	if (opt.hours > 168)
-		opt.hours = 168;
+	if (atoi(s_hours) >= 1 && atoi(s_hours) <= 168)	/* else, not checking every few hours, kept */
+		opt.hours = (short)atoi(s_hours);
 	opt.fetch = s_on[T_FETCH];
 	opt.shorten = s_on[T_SHORTEN];
 	opt.colour = s_on[T_COLOUR];
