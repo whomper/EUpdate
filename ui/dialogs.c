@@ -884,7 +884,7 @@ static void part_advanced(short x, short y)
 	rows_at(y);
 	d_tick(x, ROW(0), "Check certificates on the DSP", T_DSP);
 	d_add(G_STRING, 0, 0, (long)"(else the 68030 does it all)", x + 3, ROW(1), 28, 1);
-	d_tick(x, ROW(2), "Write a protocol log (EUPDATE.LOG)", T_LOG);
+	d_tick(x, ROW(2), "Write a log (EUPDATE.LOG)", T_LOG);
 	d_add(G_STRING, 0, 0, (long)"the token never goes into it", x + 3, ROW(3), 28, 1);
 }
 

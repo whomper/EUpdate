@@ -73,7 +73,7 @@ static const MBAR_ITEM m_opts[] = {
 	{ "Settings...", "^,", C_SETTINGS },
 	{ "Font...", 0, C_FONT },
 	{ "-", 0, 0 },
-	{ "Protocol log", 0, C_PLOG },
+	{ "Write a log", 0, C_PLOG },
 	{ 0, 0, 0 }
 };
 static const MBAR_ITEM m_help[] = {

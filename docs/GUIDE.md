@@ -44,7 +44,7 @@ CACERT.PEM    the root certificates GitHub's are checked against
 ROOTS.DAT     the same, decoded ahead of time
 EUPDATE.INF   settings and the repositories followed (a note above each)
 EUPDATE.KEY   the key your GitHub token is encrypted with
-EUPDATE.LOG   protocol log, when switched on
+EUPDATE.LOG   the log, when switched on
 CRASH.LOG     what happened, if EUpdate ever crashes
 SEED.DAT      randomness kept for the next start
 SIGS.DAT      certificates' signatures already checked (quicker next time)
@@ -286,7 +286,7 @@ window.
   (TOS 4, MagiC, XaAES, EmuTOS in colour), flat elsewhere.
 - **Advanced**: whether the Falcon's DSP checks GitHub's certificates
   and does the key exchange (else the 68030 does it all), and the
-  protocol log, `EUPDATE.LOG`.
+  log, `EUPDATE.LOG` (**Write a log**).
 
 **Options > Font** chooses the font of the lists: the system font, or a
 fixed-width GDOS font under NVDI or SpeedoGDOS.
@@ -337,7 +337,7 @@ fixed-width GDOS font under NVDI or SpeedoGDOS.
   big file out (Get info > Files).
 - **A failed row**: rest the mouse on it for what went wrong.
 
-For anything else, switch on **Options > Protocol log**, try again, and
+For anything else, switch on **Options > Write a log**, try again, and
 look at `EUPDATE.LOG`. It starts each job with a line about your Atari
 (TOS, AES, NVDI, the free ST and TT RAM), then has every question
 asked, how GitHub answered, and each step: what is downloaded, every
