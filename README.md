@@ -15,7 +15,7 @@ them with a click or on a schedule.
 - **Every file where it belongs:** zips unpacked, accessories to `C:\`, 8+3 names, safe writes.
 - **TLS on the Atari itself**, the handshake on the Falcon's DSP; no gateway.
 - **A GitHub token** is optional and kept encrypted; it goes only to GitHub's API.
-- **Light:** about 220 KB, and 140 KB of `TLS.OVL` loaded when it first talks to GitHub.
+- **Light:** about 250 KB, and 140 KB of `TLS.OVL` loaded when it first talks to GitHub.
 
 ![EUpdate on a Falcon: the AERA programs followed above, repositories found below](docs/screenshot.png)
 

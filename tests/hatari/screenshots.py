@@ -50,7 +50,7 @@ def main():
         r.ctrl("f")
         time.sleep(1.5)
         r.type("whomper")
-        r.click(200, 255)                      # Owners
+        r.click(330, 233)                      # Owners (a radio button since D24)
         r.key(K["RETURN"])
         time.sleep(10)
         r.click(60, 331, double=True)          # whomper: the family

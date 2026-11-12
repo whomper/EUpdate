@@ -25,7 +25,7 @@ and what each test checks. How to use it is in the user guide, [GUIDE.md](GUIDE.
 - **Modern but Atari:** one window with a toolbar and tooltips, right-click menus, the family's
   Settings dialog, VA_START and drag and drop (drop a repository's address on the window),
   iconify, help in EHypView or ST-Guide.
-- **Light:** about 220 KB, and 140 KB more for `TLS.OVL` once it talks to GitHub; built so that
+- **Light:** about 250 KB, and 140 KB more for `TLS.OVL` once it talks to GitHub; built so that
   only the shared AERA code it calls goes in.
 
 ## How it reaches GitHub
