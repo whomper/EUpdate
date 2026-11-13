@@ -58,8 +58,12 @@ UI      := main win draw lists dialogs font about theme \
            panebar notify aboutline cpucheck hebkey text arrowed tooltip
 
 OBJDIR  := build
+# the link order (the guidelines' Speed, Erez 13 Nov 2026): the main flows'
+# hot loops first, after the start's assembly, so they sit together in
+# memory (link.ld keeps input order): unzip's CRC and inflate's piece loop
+HOT     := unzip inflate
 OBJS    := $(OBJDIR)/crt0.o $(OBJDIR)/sting_s.o $(OBJDIR)/nf.o $(OBJDIR)/crash_s.o $(OBJDIR)/inflate_fast.o \
-           $(addprefix $(OBJDIR)/,$(addsuffix .o,$(OWN) $(CORE) $(ATARI) $(UI)))
+           $(addprefix $(OBJDIR)/,$(addsuffix .o,$(HOT) $(filter-out $(HOT),$(OWN) $(CORE)) $(ATARI) $(UI)))
 HDRS    := $(wildcard src/*.h atari/*.h ui/*.h common/src/*.h common/atari/*.h \
            common/atari/include/*.h common/ui/*.h common/dsp/*.h)
 
