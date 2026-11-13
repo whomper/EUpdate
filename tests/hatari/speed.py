@@ -88,10 +88,19 @@ def report(what, worst, limit):
                                       "  " + worst[1] if worst[1] else ""), flush=True)
 
 
-def measure(con, what, limit, wait=2.0):
-    """the longest stretch since the last look"""
+def measure(con, what, limit, wait=2.0, need=False):
+    """the longest stretch since the last look. need: the action draws
+    more than 20 ms (a dialog, the window), so no stretch at all means it
+    didn't happen (a key or click lost) and the row fails, not 0 ms"""
+    global fails
     time.sleep(wait)
-    report(what, max(con.gaps() or [(0, "")]), limit)
+    gaps = con.gaps()
+    if need and not gaps:
+        fails += 1
+        results.append((what, 99999, limit))
+        print("FAIL %-46s nothing measured: did it open?" % what, flush=True)
+        return
+    report(what, max(gaps or [(0, "")]), limit)
 
 
 def each(con, what, limit, do, times, pace=0.6):
@@ -109,8 +118,8 @@ def main():
     os.makedirs(work)
     drive_c()
     m = rig.machine(spec, work)
-    print("on", m.describe(), flush=True)
     r = rig.Rig(work, m, display=os.environ.get("XDISPLAY", ":98"))
+    print("on", m.describe(), flush=True)  # after Rig(): NVDI is on the disk by then
     con = Console(os.path.join(work, "hatari.log"))
     try:
         time.sleep(float(os.environ.get("BOOT", "50")))
@@ -122,7 +131,7 @@ def main():
         start = [int(m.group(1)) for m in (re.match(r"AESSTART (\d+) ms", l) for l in lines) if m]
         drawn = max([g for g in con.gaps(lines) if g[1] == "redraw"] or [(0, "")])
         report("the program started: its window drawn", (start[0] + drawn[0] if start else 99999, ""), 2000)
-        report("the window drawn whole (opened)", drawn, 300)
+        report("the window drawn whole (opened)", drawn if drawn[0] else (99999, "no redraw seen"), 300)
         if os.environ.get("EXPLORE"):
             return
         r.key(K["DOWN"])                       # the first row
@@ -137,21 +146,21 @@ def main():
         r.click(*DESK)
         time.sleep(1)
         r.click(*ABOUT)
-        measure(con, "the About box opened", 150)
+        measure(con, "the About box opened", 150, need=True)
         r.shot("about")
         r.key(K["RETURN"])
-        measure(con, "the window uncovered (the About box closed)", 300)
+        measure(con, "the window uncovered (the About box closed)", 300, need=True)
         r.key(0x33, ctrl=True)                 # ^,
-        measure(con, "Settings opened (^,)", 150)
+        measure(con, "Settings opened (^,)", 150, need=True)
         r.shot("settings")
         r.key(K["UNDO"])
-        measure(con, "Settings closed (Undo), the window uncovered", 300)
+        measure(con, "Settings closed (Undo), the window uncovered", 300, need=True)
         r.ctrl("f")
-        measure(con, "Find opened (^F)", 150)
+        measure(con, "Find opened (^F)", 150, need=True)
         each(con, "a letter typed in Find's field", 50, lambda: r.type("e", 0), 6, 0.4)
         r.shot("find")
         r.key(K["UNDO"])
-        measure(con, "Find closed (Undo), the window uncovered", 300)
+        measure(con, "Find closed (Undo), the window uncovered", 300, need=True)
         r.move(60, 129)                        # a row: its tip
         measure(con, "a row's tip shown", 150, 2.5)
         r.move(*REST)
