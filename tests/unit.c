@@ -658,6 +658,27 @@ static void test_store(void)
 	store_init(dir);
 	CHECK(nrepos == 2 && opt.check == CHECK_EVERY && opt.hours == 6);
 	CHECK(!strcmp(opt.token, "ghp_secret;with stuff"));
+	{
+		/* 6.1 (Erez, 12 Nov 2026): a quit, twice, with nothing changed
+		   leaves EUPDATE.INF as it was, the sealed token too (a new seal
+		   has a new nonce); a change writes it once */
+		long n0, n1;
+		char path[100], *t0, *t1;
+		snprintf(path, sizeof(path), "%s/eupdate.inf", dir);
+		t0 = load(path, &n0);
+		CHECK(store_save() == 0 && store_save() == 0);
+		t1 = load(path, &n1);
+		CHECK(t0 && t1 && n0 == n1 && !memcmp(t0, t1, n0));
+		free(t1);
+		str_copy(opt.token, "ghp_other", sizeof(opt.token));	/* a new token: written */
+		CHECK(store_save() == 0);
+		t1 = load(path, &n1);
+		CHECK(t1 && (n0 != n1 || memcmp(t0, t1, n0)) && !strstr(t1, "ghp_other"));
+		free(t1);
+		str_copy(opt.token, "ghp_secret;with stuff", sizeof(opt.token));
+		CHECK(store_save() == 0);
+		free(t0);
+	}
 	CHECK(!strcmp(repos[0]->folder, "C:\\NET\\EFTP") && !strcmp(repos[0]->files, "*.PRG,*.HYP"));
 	CHECK(repos[0]->unzip == 1 && !strcmp(repos[1]->have, "v2.21"));
 	CHECK(!strcmp(repos[0]->rule[0].names, "EFTPST.PRG") && !strcmp(repos[0]->rule[0].folder, "-"));
@@ -683,11 +704,20 @@ static void test_store(void)
 		CHECK(!strcmp(repos[0]->full, "whomper/EMail") && !strcmp(repos[0]->folder, "C:\\NET"));
 		CHECK(!strcmp(repos[0]->rule[0].folder, "C:\\") && !strcmp(repos[0]->have_date, "2026-10-01"));
 		CHECK(!strcmp(repos[1]->full, "whomper/EWeb") && !strcmp(repos[1]->have, "v0.27"));
+		CHECK(store_save() == 0);	/* nothing changed: the file as it was (6.1) */
+		{
+			long n;
+			char *text = load(path, &n);
+			CHECK(text && n == (long)sizeof(old11) - 1 && !memcmp(text, old11, n));
+			free(text);
+		}
+		str_copy(repos[1]->have, "v0.28", sizeof(repos[1]->have));	/* a change: written */
 		CHECK(store_save() == 0);
 		{
 			long n;
 			char *text = load(path, &n);
-			CHECK(text && !strstr(text, "DIALOGS3D") && strstr(text, "HOURS=12\r\n"));
+			CHECK(text && !strstr(text, "DIALOGS3D") && strstr(text, "HOURS=12\r\n") &&
+			      strstr(text, "HAVE=v0.28\r\n"));
 			free(text);
 		}
 		while (nrepos)
@@ -697,9 +727,10 @@ static void test_store(void)
 		/* the family's keys (D43, D44): 2.02's MAIN= and FONT=id,pt read
 		   once, WINDOW= and FONT=name,points written; WINDOW= wins */
 		static const char old202[] =
-			"[OPTIONS]\r\nMAIN=10,20,300,200\r\nFONT=5,10\r\n";
+			"[OPTIONS]\r\nMAIN=10,20,300,200\r\nFONT=5,10\r\nPANE=150\r\n";
 		static const char both[] =
-			"[OPTIONS]\r\nWINDOW=1,2,3,4\r\nMAIN=10,20,300,200\r\nFONT=Swiss 721, bold,12\r\n";
+			"[OPTIONS]\r\nWINDOW=1,2,3,4\r\nMAIN=10,20,300,200\r\nFONT=Swiss 721, bold,12\r\n"
+			"PANES=90\r\nPANE=150\r\n";
 		char path[100];
 		long n;
 		char *text, *before;
@@ -713,12 +744,13 @@ static void test_store(void)
 		CHECK(store_save() == 0);
 		text = load(path, &n);
 		CHECK(text && strstr(text, "WINDOW=10,20,300,200\r\n") && !strstr(text, "MAIN=") &&
-		      strstr(text, "FONT=Swiss 721,10\r\n"));
+		      strstr(text, "FONT=Swiss 721,10\r\n") && strstr(text, "PANES=150\r\n") &&
+		      !strstr(text, "\nPANE="));
 		free(text);
 		CHECK(pf_save(path, both, sizeof(both) - 1) == 0);
 		store_init(dir);
 		CHECK(opt.main_x == 1 && opt.main_h == 4 && opt.font_id == 0 && opt.font_pt == 12 &&
-		      !strcmp(opt.font_name, "Swiss 721, bold"));
+		      !strcmp(opt.font_name, "Swiss 721, bold") && opt.pane_h == 90);
 		pf_remove(path);
 		store_init(dir);
 		CHECK(store_save() == 0);

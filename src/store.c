@@ -25,6 +25,16 @@ short nrepos;
 int store_lost_token;
 
 static char inf_path[220];
+/* the 6.1 rule (Erez, 12 Nov 2026): EUPDATE.INF is written only when
+   something in it changed. The text last read or written, as store_save
+   would write it, is kept to compare with; and the token as it was
+   sealed, since a new seal has a new nonce: the same token, the same
+   text */
+static char *inf_last;
+static long inf_last_len;
+static char token_kept[sizeof(opt.token)], sealed_kept[300];
+static void inf_text(SBUF *b);
+static void inf_keep(SBUF *b);
 
 static void defaults(void)
 {
@@ -128,8 +138,9 @@ static void shorts(const char *v, short *out, int n)
 	}
 }
 
-/* WINDOW= read already: an old MAIN= after it is not taken (D44) */
-static int had_window;
+/* WINDOW= or PANES= read already: an old MAIN= or PANE= after it is
+   not taken (D44) */
+static int had_window, had_panes;
 
 static void set_opt(const char *k, const char *v)
 {
@@ -143,6 +154,9 @@ static void set_opt(const char *k, const char *v)
 		if (!secret_decode(v, opt.token, sizeof(opt.token))) {
 			opt.token[0] = 0;
 			store_lost_token = 1;
+		} else if (strlen(v) < sizeof(sealed_kept)) {
+			str_copy(token_kept, opt.token, sizeof(token_kept));
+			str_copy(sealed_kept, v, sizeof(sealed_kept));
 		}
 	}
 	else if (!strcmp(k, "apibase")) {
@@ -159,7 +173,13 @@ static void set_opt(const char *k, const char *v)
 		if (!had_window)
 			shorts(v, &opt.main_x, 4);
 	}
-	else if (!strcmp(k, "pane")) opt.pane_h = n;
+	else if (!strcmp(k, "panes")) {	/* the family's key (D43) */
+		opt.pane_h = n;
+		had_panes = 1;
+	} else if (!strcmp(k, "pane")) {	/* 2.03's: read once, PANES= wins (D44) */
+		if (!had_panes)
+			opt.pane_h = n;
+	}
 	else if (!strcmp(k, "font")) {
 		const char *c = strrchr(v, ',');
 		if (*v >= '0' && *v <= '9') {	/* 2.02's FONT=id,pt: read once (D44) */
@@ -184,7 +204,10 @@ int store_init(const char *workdir)
 	short in_opts = 0, first = 0, j;
 
 	defaults();
-	had_window = 0;
+	had_window = had_panes = 0;
+	token_kept[0] = sealed_kept[0] = 0;
+	free(inf_last);
+	inf_last = 0;
 	str_copy(opt.workdir, workdir, sizeof(opt.workdir));
 	path_join(inf_path, sizeof(inf_path), workdir, "eupdate.inf");
 	path_join(kf, sizeof(kf), workdir, "eupdate.key");
@@ -257,6 +280,14 @@ int store_init(const char *workdir)
 			else if (n == 2 && f[1] == ':')
 				path_join(f, sizeof(repos[j]->folder), workdir, "");	/* C: -> C:\ */
 		}
+	if (!first) {
+		/* what is in force now, to compare with (6.1); after a first
+		   start from DEFAULTS.INF the first save writes EUPDATE.INF */
+		SBUF b;
+		sb_init(&b);
+		inf_text(&b);
+		inf_keep(&b);
+	}
 	return nrepos;
 }
 
@@ -281,13 +312,12 @@ static void put_fmt(SBUF *b, const char *note, const char *key, const char *fmt,
 	put_str(b, note, key, val);
 }
 
-int store_save(void)
+/* EUPDATE.INF's text for the settings as they are now */
+static void inf_text(SBUF *b0)
 {
-	SBUF b;
+	SBUF b = *b0;
 	short i;
-	int r;
 	char sealed[300];
-	sb_init(&b);
 	sb_adds(&b, "; EUpdate settings, written by EUPDATE.PRG. Lines starting with ; are notes.\r\n"
 		    "; Most of these are set in Options > Settings; see EUPDATE.HYP (Help).\r\n"
 		    "; 1 means on, 0 means off.\r\n\r\n[OPTIONS]\r\n");
@@ -299,7 +329,17 @@ int store_save(void)
 		opt.last_check);
 	put_fmt(&b, "1 = long names are shortened to 8+3 for TOS (EFTP-1.45.zip -> EFTP-1_4.ZIP); "
 		    "0 = kept (MiNT, MagiC)", "SHORTEN", "%d", opt.shorten);
-	secret_encode(opt.token, sealed, sizeof(sealed));
+	if (sealed_kept[0] && !strcmp(opt.token, token_kept)) {
+		str_copy(sealed, sealed_kept, sizeof(sealed));	/* the same seal */
+	} else {
+		secret_encode(opt.token, sealed, sizeof(sealed));
+		if (opt.token[0] && strlen(sealed) < sizeof(sealed_kept)) {
+			str_copy(token_kept, opt.token, sizeof(token_kept));
+			str_copy(sealed_kept, sealed, sizeof(sealed_kept));
+		} else {
+			sealed_kept[0] = 0;
+		}
+	}
 	put_str(&b, "a GitHub token, encrypted with EUPDATE.KEY: more questions an hour (Settings)",
 		"TOKEN", sealed);
 	put_str(&b, "GitHub's API: https://api.github.com, or a GitHub Enterprise server's https://HOST/api/v3",
@@ -311,7 +351,7 @@ int store_save(void)
 		opt.dsp);
 	put_fmt(&b, "the window: x,y,width,height in pixels; 0,0,0,0 = let EUpdate place it", "WINDOW",
 		"%d,%d,%d,%d", opt.main_x, opt.main_y, opt.main_w, opt.main_h);
-	put_fmt(&b, "the repositories pane's height, in pixels", "PANE", "%d", opt.pane_h);
+	put_fmt(&b, "the repositories pane's height, in pixels", "PANES", "%d", opt.pane_h);
 	put_fmt(&b, "text font: its name (System = the system font), size (system font: 0, 8 small, 16 large)",
 		"FONT", "%s,%d", opt.font_name[0] ? opt.font_name : "System", opt.font_pt);
 	put_fmt(&b, "where a bitmap font keeps its Hebrew letters: 0 = Atari places, 1 = ISO-8859-8, "
@@ -343,7 +383,33 @@ int store_save(void)
 			"LATEST", p->latest);
 		put_str(&b, 0, "LATESTDATE", p->latest_date);
 	}
-	r = b.s ? pf_save(inf_path, b.s, b.len) : -1;
+	*b0 = b;
+}
+
+/* the text as read: what a store_save with nothing changed would write */
+static void inf_keep(SBUF *b)
+{
+	free(inf_last);
+	inf_last = b->s;
+	inf_last_len = b->s ? b->len : 0;
+	b->s = 0;
+}
+
+int store_save(void)
+{
+	SBUF b;
+	int r;
+	sb_init(&b);
+	inf_text(&b);
+	if (!b.s)
+		return -1;
+	if (inf_last && inf_last_len == b.len && !memcmp(inf_last, b.s, b.len)) {
+		sb_free(&b);		/* nothing changed: the file isn't touched (6.1) */
+		return 0;
+	}
+	r = pf_save(inf_path, b.s, b.len);
+	if (!r)
+		inf_keep(&b);
 	sb_free(&b);
 	return r;
 }
