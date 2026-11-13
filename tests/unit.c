@@ -704,12 +704,16 @@ static void test_store(void)
 		CHECK(!strcmp(repos[0]->full, "whomper/EMail") && !strcmp(repos[0]->folder, "C:\\NET"));
 		CHECK(!strcmp(repos[0]->rule[0].folder, "C:\\") && !strcmp(repos[0]->have_date, "2026-10-01"));
 		CHECK(!strcmp(repos[1]->full, "whomper/EWeb") && !strcmp(repos[1]->have, "v0.27"));
-		CHECK(store_save() == 0);	/* nothing changed: the file as it was (6.1) */
+		CHECK(store_save() == 0);	/* 1.1's form: written once in today's (6.1) */
 		{
-			long n;
-			char *text = load(path, &n);
-			CHECK(text && n == (long)sizeof(old11) - 1 && !memcmp(text, old11, n));
+			long n, n2;
+			char *text = load(path, &n), *again;
+			CHECK(text && !strstr(text, "DIALOGS3D") && strstr(text, "HOURS=12\r\n"));
+			CHECK(store_save() == 0);	/* and then left as it is */
+			again = load(path, &n2);
+			CHECK(text && again && n == n2 && !memcmp(text, again, n));
 			free(text);
+			free(again);
 		}
 		str_copy(repos[1]->have, "v0.28", sizeof(repos[1]->have));	/* a change: written */
 		CHECK(store_save() == 0);

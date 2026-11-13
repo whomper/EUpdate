@@ -26,8 +26,8 @@ int store_lost_token;
 
 static char inf_path[220];
 /* the 6.1 rule (Erez, 12 Nov 2026): EUPDATE.INF is written only when
-   something in it changed. The text last read or written, as store_save
-   would write it, is kept to compare with; and the token as it was
+   something in it changed. The text last read or written is kept to
+   compare with (EUpdate writes the same text for the same settings); and the token as it was
    sealed, since a new seal has a new nonce: the same token, the same
    text */
 static char *inf_last;
@@ -200,6 +200,7 @@ static void set_opt(const char *k, const char *v)
 int store_init(const char *workdir)
 {
 	char *buf, *line, *next, kf[220];
+	long len = 0;
 	REPO *cur = 0;
 	short in_opts = 0, first = 0, j;
 
@@ -224,7 +225,16 @@ int store_init(const char *workdir)
 	   name of EUpdate's own files is in lowercase (6.6): on MiNT's ext2
 	   the case is part of the name */
 	path_join(tls_ovl_path, sizeof(tls_ovl_path), workdir, "tls.ovl");
-	buf = pf_load(inf_path, 0);
+	buf = pf_load(inf_path, &len);
+	if (buf && (inf_last = malloc(len + 1)) != 0) {
+		/* the file as read, to compare with (6.1): EUpdate writes the same
+		   text for the same settings, so a save with nothing changed
+		   matches it byte for byte; a file in an older form (2.03's PANE=)
+		   is written once in the new one. Kept, not built here: building
+		   the text cost the start 65 ms on a stock Falcon */
+		memcpy(inf_last, buf, len);
+		inf_last_len = len;
+	}
 	if (!buf) {
 		/* a first start: the AERA programs to follow, from DEFAULTS.INF
 		   beside EUPDATE.PRG (EUpdate's own folder is ".") */
@@ -280,14 +290,6 @@ int store_init(const char *workdir)
 			else if (n == 2 && f[1] == ':')
 				path_join(f, sizeof(repos[j]->folder), workdir, "");	/* C: -> C:\ */
 		}
-	if (!first) {
-		/* what is in force now, to compare with (6.1); after a first
-		   start from DEFAULTS.INF the first save writes EUPDATE.INF */
-		SBUF b;
-		sb_init(&b);
-		inf_text(&b);
-		inf_keep(&b);
-	}
 	return nrepos;
 }
 
@@ -297,9 +299,18 @@ int store_init(const char *workdir)
  * 6.1), so each reads as its own paragraph. */
 static void put_str(SBUF *b, const char *note, const char *key, const char *val)
 {
-	if (note)
-		sb_printf(b, "; %s\r\n", note);
-	sb_printf(b, "%s=%s\r\n\r\n", key, val);
+	/* appended, not through sb_printf: its vsnprintf, some 200 times,
+	   cost the start 95 ms on a stock Falcon once the text was also
+	   built there (6.1's compare) */
+	if (note) {
+		sb_add(b, "; ", 2);
+		sb_adds(b, note);
+		sb_add(b, "\r\n", 2);
+	}
+	sb_adds(b, key);
+	sb_addc(b, '=');
+	sb_adds(b, val);
+	sb_add(b, "\r\n\r\n", 4);
 }
 
 static void put_fmt(SBUF *b, const char *note, const char *key, const char *fmt, ...)
