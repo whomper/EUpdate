@@ -102,6 +102,10 @@ EUpdate is in maintenance mode while EWeb, EPDF and EPlay go to 1.0 (AERA-Atari,
 - Work on `main` that isn't released stays unreleased.
 - Nothing runs in the background; the session waits for Erez or the hub.
 - Only Erez's explicit word ends this mode, for instance that every app is to take the latest shared code and release. The hub passes it on quoting him.
+- Lifted for Erez's speed round of 13 Nov 2026 (2.04: the INF only on change, PANES=, TLS.OVL 1.14;
+  2.05: the link order, the CRC a third faster), and back on since 2.05 ("stop with the performance
+  improvements", 13 Nov). From then on a speed change ships only if no row of the paired run is
+  slower by more than one tick (AERA-Atari 098183d).
 
 ## EUpdate
 
