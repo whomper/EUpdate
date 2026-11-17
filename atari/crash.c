@@ -27,7 +27,10 @@
 
 /* shared with crash.S */
 short crash_busy, crash_cpu, crash_fvec, crash_newsr;
-long crash_regs[15], crash_usp, crash_old[12], crash_old_term;
+long crash_regs[15], crash_usp;
+extern long crash_old_term;		/* crash.S, in crash_term's XBRA header */
+extern long *const crash_slot[12];	/* crash.S: each entry's XBRA "before" slot */
+#define crash_old(i) (*crash_slot[i])
 long crash_stack_top;
 void crash_e2(void), crash_e3(void), crash_e4(void), crash_e5(void),
      crash_e6(void), crash_e7(void), crash_e8(void), crash_e11(void), crash_term(void);
@@ -82,6 +85,16 @@ void crash_note(const char *what)
 static long frame(const unsigned short *f, long vec, long *addr, short *has)
 {
 	long size;
+#ifdef __mcoldfire__
+	/* a ColdFire's frame: the format and vector, SR, PC, and as many bytes
+	   again as the stack was out of line (the format, 4 to 7, less 4); an
+	   access error's address is in the MMU's register, not the frame */
+	(void)vec;
+	(void)addr;
+	*has = 0;
+	size = f[0] >> 12;
+	return size >= 4 && size <= 7 ? 8 + size - 4 : 0;
+#endif
 	*has = 1;
 	if (!crash_cpu && vec <= 3) {	/* the 68000's long bus/address error frame */
 		*addr = (long)f[1] << 16 | f[2];
@@ -120,6 +133,19 @@ static volatile long *low(long a);
    (Super(0) read it steady over the ten on all four) */
 static long savptr_user, savptr_nested;
 
+/* savptr inside a Supexec made from user mode (one block below
+   savptr_user), and the interrupt level user mode runs at: a fault in the
+   program's code in supervisor mode is landed (GEMDOS, the AES, Pterm)
+   only from there, a Supexec or Super() of its own. Taken at interrupt
+   time (an interrupt routine of the program's: a sound tick, the DSP's
+   host port, a VBL), the main program may be inside GEMDOS, which isn't
+   re-entrant: the landing's Fopen/Fwrite then wrote GEMDOS's half-done
+   FAT and directory buffers to that drive (a tester's CT60, 16 Nov 2026:
+   the partition EPlay loaded an MP3 from damaged after each crash). Such
+   a fault goes on to TOS, as one outside the program does */
+static long savptr_one = -1;
+static unsigned short ipl_user = 0x0700;
+
 static void sup_nested(void)
 {
 	savptr_nested = *low(0x4A2L);
@@ -141,9 +167,13 @@ static int ours_running(void)
    TOS); notes what happened. Runs in the exception. */
 long crash_take(unsigned short *f, long vec)
 {
+#ifdef __mcoldfire__
+	const unsigned short *s = f + 1;	/* (a ColdFire's: SR and PC after the format word) */
+#else
 	const unsigned short *s = !crash_cpu && vec <= 3 ? f + 4 : f;
+#endif
 	long size;
-	u32 pc = (u32)s[1] << 16 | s[2], old = (u32)crash_old[vec];
+	u32 pc = (u32)s[1] << 16 | s[2], old = (u32)crash_old(vec);
 	/* a 68000 (and 68010) uses 24 bits of an address: TOS 1.x's own
 	   handlers carry the vector's number in the top byte ($08FC0B0A) */
 	u32 at = crash_cpu < 20 ? old & 0xFFFFFFUL : old;
@@ -155,6 +185,16 @@ long crash_take(unsigned short *f, long vec)
 		   record of the bombs for the next start */
 		if (pc < text_lo || pc >= text_hi)
 			return 0;
+		/* not at interrupt time (the level above user mode's), and not
+		   inside another BIOS or XBIOS call (savptr neither user mode's
+		   nor one Supexec's): see ipl_user */
+		if ((s[0] & 0x0700) > ipl_user)
+			return 0;
+		if (savptr_user) {
+			long sp = *low(0x4A2L);
+			if (sp != savptr_user && sp != savptr_one)
+				return 0;
+		}
 	} else if (pc < text_lo || pc >= prog_hi) {
 		/* in someone else's code, with a handler of theirs before ours:
 		   theirs. STinG gets into supervisor mode by running "or.w #0,sr"
@@ -190,17 +230,84 @@ static volatile long *low(long a)
 	return p;
 }
 
+/* who had hooked a vector over ours by the time the program ended
+   (crash_over): "bus error: NVDI" and so on */
+static char over[160];
+static int over_n;
+static unsigned short hooked;	/* the vectors sup_install put the catcher on, by bit */
+static int hk_safe(u32 a);
+
+/* one piece onto over[], ", " between the vectors; by hand, as it runs
+   from etv_term on the ending process's stack (no vsnprintf there) */
+static void over_put(const char *t)
+{
+	if (t[0] != ':' && over_n)
+		over[over_n++] = ',', over[over_n++] = ' ';
+	while (*t && over_n < (int)sizeof(over) - 1)
+		over[over_n++] = *t++;
+}
+
+/* ours off vector v: from the vector itself when ours is on top, else out
+   of the XBRA chain of the programs that hooked it after us (the one whose
+   "before" slot holds ours gets ours's "before"); supervisor mode. A chain
+   without XBRA on top of ours can't be walked: noted, as an unhook that
+   failed leaves the vector leading into the program's memory */
+static void unhook(long v, long ours, long old, const char *what)
+{
+	u32 a = (u32)*low(v);
+	int n;
+	if (a == (u32)ours) {
+		*low(v) = old;
+		return;
+	}
+	if (crash_cpu < 20)
+		a &= 0xFFFFFFUL;
+	for (n = 0; n < 16 && hk_safe(a); n++) {
+		long *p = (long *)a;
+		if (p[-3] != 0x58425241L)	/* 'XBRA' */
+			break;
+		if (over_n < (int)sizeof(over) - 48) {
+			u32 id = (u32)p[-2];
+			int i;
+			over_put(what);
+			over_put(": ");
+			for (i = 24; i >= 0; i -= 8) {
+				char c = (char)(id >> i);
+				over[over_n++] = c > ' ' && c < 127 ? c : '?';
+			}
+		}
+		if ((u32)p[-1] == (u32)ours || (crash_cpu < 20 && ((u32)p[-1] & 0xFFFFFFUL) == (u32)ours)) {
+			p[-1] = old;			/* out of the chain */
+			return;
+		}
+		a = (u32)p[-1];
+		if (crash_cpu < 20)
+			a &= 0xFFFFFFUL;
+	}
+	if (over_n < (int)sizeof(over) - 72) {
+		over_put(what);
+		over_put(": hooked over, not taken off");
+	}
+}
+
+const char *crash_over(void)
+{
+	return over;
+}
+
 /* the vectors as they were; supervisor mode */
 void crash_restore(void)
 {
 	int i;
 	if (!installed)
 		return;
+	over_n = 0;
 	for (i = 2; i <= 11; i++)
-		if (CAUGHT(i) && *low(i * 4L) == (long)entry[i])
-			*low(i * 4L) = crash_old[i];
-	if (*low(0x408L) == (long)crash_term)
-		*low(0x408L) = crash_old_term;
+		if (CAUGHT(i) && (hooked & (1 << i)))
+			unhook(i * 4L, (long)entry[i], crash_old(i), names[i]);
+	unhook(0x408L, (long)crash_term, crash_old_term, "etv_term");
+	over[over_n] = 0;
+	hooked = 0;
 	installed = 0;
 }
 
@@ -290,12 +397,19 @@ static void sup_install(void)
 	Supexec(sup_nested);
 	block = in - savptr_nested;
 	savptr_user = block > 0 && block <= 128 ? in + block : 0;
+	savptr_one = in;
+	{
+		unsigned short sr;
+		__asm__ volatile("move.w %%sr,%0" : "=d"(sr));
+		ipl_user = sr & 0x0700;		/* (a Supexec keeps its caller's level) */
+	}
 	for (i = 2; i <= 11; i++) {
 		if (i == 11 && tos1)
 			continue;
 		if (CAUGHT(i)) {
-			crash_old[i] = *low(i * 4L);
+			crash_old(i) = *low(i * 4L);
 			*low(i * 4L) = (long)entry[i];
+			hooked |= 1 << i;
 		}
 	}
 	crash_old_term = *low(0x408L);	/* etv_term */
@@ -529,6 +643,10 @@ void crash_install(const char *workdir, const char *name, const char *version)
 		path[n++] = '\\', path[n] = 0;
 	strncat(path, "crash.log", sizeof(path) - strlen(path) - 1);
 	crash_cpu = (short)get_cookie(0x5F435055L);	/* _CPU: 0 on a plain ST */
+#ifdef __mcoldfire__
+	if (crash_cpu < 20)
+		crash_cpu = 40;		/* (a ColdFire's addresses are 32 bits, whatever the cookie says) */
+#endif
 	text_lo = (u32)bp[2];
 	text_hi = text_lo + (u32)bp[3];
 	prog_hi = (u32)bp[6] + (u32)bp[7];		/* the end of the BSS */

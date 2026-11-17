@@ -67,7 +67,7 @@ def run(machine, kind, reset=False):
     env = dict(os.environ, SDL_VIDEODRIVER="dummy", SDL_AUDIODRIVER="dummy")
     h = subprocess.Popen(args, env=env, stdout=open(log, "w"), stderr=subprocess.STDOUT)
     want = "CRASHT previous" if reset else "CRASHT repeat done" if kind == "r" else "CRASHT cleanup"
-    done = ("CRASHT no crash", "CRASHT protect", "CRASHT line F not ours", "CRASHT emulator")
+    done = ("CRASHT no crash", "CRASHT protect", "CRASHT over", "CRASHT line F not ours", "CRASHT emulator")
     t_end = time.time() + (240 if kind == "r" else 60)
     reset_sent = False
     try:
@@ -154,6 +154,15 @@ for machine in [m for m in ("st", "falcon") if m in tos_for]:
         check("CrashTest 1.0: " + NAMES["f"] in rep and
               ("(CrashTest+$" in rep.split("\r\n")[2] if rep.count("\r\n") > 2 else False),
               tag + " the program's own line F caught, in its code")
+    # another program hooks vector 2 and etv_term over the catcher and
+    # stays: the catcher comes out of both chains (Erez, 10 Nov 2026: two
+    # bombs just after EFTP quit, now and then)
+    d, con, rep = run(machine, "o")
+    tag = "%s hooked over by another program:" % machine
+    check("CRASHT over bus-ok" in con, tag + " out of vector 2's chain")
+    check("term-ok" in con, tag + " out of etv_term's chain")
+    check(re.search(r"CRASHT over \S+ \S+: bus error, 2 bombs: OVER, etv_term: OVER", con) is not None,
+          tag + " named (crash_over)")
     # ten crashes caught in supervisor mode in one boot: TOS's savptr
     # ($4A2) and the supervisor stack hold steady
     d, con, rep = run(machine, "r")
@@ -169,5 +178,15 @@ for machine in [m for m in ("st", "falcon") if m in tos_for]:
           tag + " CRASH.LOG has TOS's record")
     check("CRASHT previous none" in con, tag + " not counted as the program's (it wasn't in its code)")
     check(re.search(r"hooks now .* VBL AERT \$[0-9A-F]{6};", rep) is not None, tag + " the hooks named (VBL AERT)")
+    # a fault in the program's own code at interrupt time (a VBL routine
+    # of its): never landed (no GEMDOS while the main program may be in
+    # it: a tester's CT60, the partition damaged, 16 Nov 2026); TOS's
+    # bombs and record, as for one outside the program
+    d, con, rep = run(machine, "q", reset=True)
+    tag = "%s bus error at interrupt time in the program:" % machine
+    check("CRASHT previous" in con, tag + " the program ran again after a reset")
+    check(not os.path.exists(os.path.join(d, "CLEANUP.TXT")), tag + " not landed (no crash_cleanup)")
+    check("found TOS's record of a crash before this run" in rep and "bus error, 2 bombs at" in rep,
+          tag + " CRASH.LOG has TOS's record")
 print("%d failed" % failed)
 sys.exit(1 if failed else 0)
