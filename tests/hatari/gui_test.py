@@ -7,7 +7,10 @@ make itest's) through FAKESTNG: the check at the start, Find, an owner's
 repositories, Follow with its rules, the download into the folders, Get
 info, Settings and the About box. Screenshots in WORK/shots.
 
-    gui_test.py WORK [MACHINE]     (Xvfb, xdotool; MACHINE: Falcon:16)
+    [NATFEATS=0] gui_test.py WORK [MACHINE]   (Xvfb, xdotool; MACHINE: Falcon:16)
+
+NATFEATS=0: the INF has no NATFEATS= (the regression gate's row 12); at the
+end, in any case, no CRASH.LOG beside EUPDATE.PRG.
 """
 import os
 import shutil
@@ -40,7 +43,9 @@ def drive_c():
     for f in ("eupdate.prg", "tls.ovl", "cacert.pem", "roots.dat"):
         shutil.copy(os.path.join(TOP, "binary", f), hd)
     with open(os.path.join(hd, "eupdate.inf"), "w", newline="") as f:
-        f.write("[OPTIONS]\r\nNATFEATS=1\r\nCHECK=1\r\nLOG=1\r\nAPIBASE=http://127.0.0.1:%d\r\nFOLDER=C:\\NET\r\n"
+        # NATFEATS=0 in the environment: the INF without the key, the
+        # gate's row 12 (a real machine's way: no probe at all)
+        f.write("[OPTIONS]\r\n" + ("" if os.environ.get("NATFEATS") == "0" else "NATFEATS=1\r\n") + "CHECK=1\r\nLOG=1\r\nAPIBASE=http://127.0.0.1:%d\r\nFOLDER=C:\\NET\r\n"
                 "[REPO]\r\nREPO=whomper/EUpdate\r\nFOLDER=C:\\NET\\EUPDATE\r\nUNZIP=1\r\nHAVE=v1.0\r\n"
                 "HAVEDATE=2026-10-01\r\nRULE=README.TXT;-\r\n"
                 "[REPO]\r\nREPO=whomper/EDOS\r\nFOLDER=C:\\XL\\EDOS\r\n" % PORT)
@@ -212,6 +217,7 @@ def main():
         r.stop()
         m.stop()
         srv.kill()
+    check(not os.path.exists(ci_path(hd, "crash.log")), "no CRASH.LOG")
     print("%d failed" % fails)
     sys.exit(fails != 0)
 
