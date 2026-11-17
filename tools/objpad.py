@@ -1,35 +1,36 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Copyright (C) 2026 AERA | Erez Yaary
-"""objpad.py: each function, table and variable at a release's place,
-modulo the 68030's 256-byte caches, with pads between the objects.
+"""objpad.py: the shipped build's functions, tables and variables at a
+release's places, modulo the 68030's 256-byte caches, with pads between
+the objects.
 
-  objpad.py pads BASE.map NEW.map [PADS] > PADS   the pads that put NEW.map's
-        sections at BASE.map's places (PADS: those NEW.map was linked with)
-  objpad.py check BASE.map NEW.map                fails where a section
+  objpad.py step BASE.map NEW.map PADS [NAME]  puts the first object out of
+        place right in PADS (made if missing); 1 when none is: link
+        again after each step (an alignment fill makes one pass wrong)
+  objpad.py check BASE.map NEW.map             fails where a section
         both maps hold sits elsewhere mod 256
-  objpad.py asm PADS OBJ > pad_OBJ.S              the pad that goes before
+  objpad.py asm PADS OBJ > pad_OBJ.S           the pad that goes before
         OBJ.o in the link
 
 Why (17 Nov 2026, 2.08): the MiNTnet fix grew net_tos.o by 450 bytes and
 everything after it moved; a Falcon's start came out 10 ms slower in both
 pairs with no work added at the start (the hub's rule, AERA-Atari
-098183d: code-placement rows get a pad round before they go to Erez). And
-the speed rig times build/prof (-DAES_PROFILE), whose own code and
-strings put every section at another place than the shipped build's: its
-pads (make prof) put it back at build/'s places, so that a pair of
-profiling builds compares two shipped layouts.
+098183d: code-placement rows get a pad round before they go to Erez).
+atari/pads.txt was made with it against v2.07's map. The speed rig's
+timed build is put at the shipped build's places by common's
+tools/profpad.py instead (make prof).
 
 EPlay's tools/mkpad.py pads after each section and sorts the link by
 name; EUpdate's link keeps the objects' order (common/atari/link.ld, the
 link order of 2.05), so a pad is an object of its own, put before the
 object whose sections it moves: its .text before that object's code, its
 .rodata before its constants, its .data and .bss likewise. A pad inside
-an object can't be: where an object's own sections changed (gem.o's in
-the profiling build), the sections after them in it stay moved, and the
-next object is put back. The strings (.rodata.str1.1) are merged into the
-first object that has any, so a string added anywhere moves the constants
-after that object, and the pad goes there.
+an object can't be: where an object's own sections changed, the sections
+after them in it stay moved, and the next object is put back. The strings
+(.rodata.str1.1) are merged into the first object that has any, so a
+string added anywhere moves the constants after that object, and the pad
+goes there.
 
 PADS: a line each, "OBJ KIND BYTES" (KIND text, rodata, data or bss)."""
 import os
