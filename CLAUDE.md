@@ -41,13 +41,26 @@ These come from AERA-Atari's repo template and are the same in every app's CLAUD
   Work lands on `main`; to try a fix on real hardware, release it. If a release doesn't work, roll back
   with a release: revert on `main`, release the next number, and run the Withdraw workflow
   (`.github/workflows/withdraw.yml`) on the bad one: it puts "Withdrawn: use vX.Y" at the top of its notes.
-- **Releases go out without asking Erez** (his decision, 23 Oct 2026; guidelines 1.2). Release when
-  work on `main` is ready:
-  - this repo's checks pass;
-  - the rigs on his TOS pass, where this file asks for them;
-  - the hub's family checks pass.
+- **Releases go out without asking Erez** (his decision, 23 Oct 2026; guidelines 1.2), through
+  **the regression gate** (Erez, 17 Nov 2026: "we need to be extra careful with regression issues
+  as there are users of our software. This means testing across all configurations" and "make sure
+  we don't loose performance"; guidelines 1.2, AERA-Atari a22574e). Every code candidate, in order:
+  1. this repo's checks;
+  2. the rigs on every row of `standards/TEST-MATRIX.md`'s gate table EUpdate runs on, on Erez's TOS
+     images and NVDI (EmuTOS is no evidence for a release), each row named by `describe()`, a row
+     that can't run said with why. EUpdate's: Erez's configuration; `Falcon-4:16` without NVDI;
+     `Falcon:65536`; TT; MiNT + XaAES (plain, ct60, ext2); a 68060; the FireBee stand-in; on an ST
+     only its alert (`st_test.py`: cpucheck.c is its only 68000 code); the network path it has
+     (Direct, TLS.OVL and tlsfb.ovl, through STinG and MiNTnet); one boot with NatFeats off. No
+     accessory, no Gateway;
+  3. the paired speed run against the last release (`make prof`, at the shipped layout by
+     common's `profpad.py`) on Erez's configuration and `Falcon-4:16`: no row slower beyond a tick
+     on either; fix it first, and only Erez accepts one;
+  4. the candidate commit and the results to the hub, who runs the family check (the real programs
+     together) and answers go or the faults;
+  5. only then the release.
 
-  Then give Erez the link in one line, with anything he has to do, and send the hub the link. Roll
+  A fault a user reports becomes a case in the rigs, in the release that fixes it. Then give Erez the link in one line, with anything he has to do, and send the hub the link. Roll
   back a bad release the same way. Decisions that are his still go to him first.
 - **Who decides what** (Erez, 31 Oct 2026; the guidelines' "Who decides what"). Erez's part, put
   to him before the work as a decision with a short context:
@@ -188,6 +201,6 @@ D42, D43, D44, D50, D51, W1, W2, W6, W7. Still open:
 
 From the next release made anyway: the speed rig's NVDI run on `Falcon-4:16` becomes Erez's own
 configuration, `Falcon-4:256` with `AERA_WITH_NVDI=1` (`machines.ERZ_MACHINE`, `machines.erz_env()`);
-the plain `Falcon-4:16` run stays only for a drawing change. A replacement, not an extra run. Without
-TOS images or NVDI here it runs on EmuTOS and the report says "stand-in". Tell the hub in one line
-when the rigs are next touched.
+the plain `Falcon-4:16` run stays only for a drawing change. A replacement, not an extra run. Since
+the regression gate (17 Nov 2026) `Falcon-4:16` without NVDI is paired for speed too, and every rig
+runs on Erez's TOS images and NVDI: a row without them is named as not run, not run on EmuTOS.
