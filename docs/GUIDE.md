@@ -38,6 +38,7 @@ drive:
 ```
 EUPDATE.PRG   the program
 TLS.OVL       its TLS, loaded when EUpdate first talks to GitHub
+TLSFB.OVL     the same for a FireBee, loaded there instead
 EUPDATE.HYP   this guide, for EHypView or ST-Guide (the Help key opens it)
 DEFAULTS.INF  what EUpdate follows on its first start
 CACERT.PEM    the root certificates GitHub's are checked against

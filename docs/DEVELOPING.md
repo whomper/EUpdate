@@ -41,7 +41,7 @@ Enterprise server, `APIBASE=` in `EUPDATE.INF`.
 
 ```sh
 sudo apt install gcc-m68k-linux-gnu python3   # Debian/Ubuntu; no MiNTLib needed
-make            # binary/eupdate.prg, tls.ovl (common's), cacert.pem, roots.dat
+make            # binary/eupdate.prg, tls.ovl and tlsfb.ovl (common's), cacert.pem, roots.dat
 make test       # the core on this computer, with AddressSanitizer and UBSan
 make itest      # eupd-cli against a GitHub of the tests' own (tests/server.py), HTTP and TLS
 make fuzz       # the parsers under libFuzzer (clang)

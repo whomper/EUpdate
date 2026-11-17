@@ -6,7 +6,8 @@
 #
 #   make            binary/eupdate.prg (68030 code), TLS.OVL beside it (its
 #                   TLS: BearSSL, RSA and the curves on the Falcon's DSP;
-#                   the family's, the guidelines 7.4) and the root
+#                   the family's, the guidelines 7.4), TLSFB.OVL (its
+#                   ColdFire build, for a FireBee) and the root
 #                   certificates, with a stock m68k ELF cross compiler
 #                   (Debian/Ubuntu: apt install gcc-m68k-linux-gnu). No
 #                   MiNTLib: the program is freestanding, on common/'s
@@ -34,7 +35,11 @@ CROSS   ?= m68k-linux-gnu-
 CC      := $(CROSS)gcc
 GCCINC  := $(shell $(CC) -print-file-name=include 2>/dev/null)
 INC     := -Isrc -Icommon/src -Iatari -Icommon/atari -Iui -Icommon/ui -Icommon/third_party/bearssl/inc
-CFLAGS  := -m68030 -O2 -fomit-frame-pointer -ffreestanding -fno-builtin -fno-pic -fno-pie \
+# -mtune=68020-60: 68030 code, without the 64-bit mulu.l/divu.l that GCC
+# uses for a division by a constant, which a 68060 and the FireBee's
+# ColdFire lack (17 Nov 2026: 2.08 stopped at its first log line on the
+# FireBee stand-in, exception 61, before it could load TLSFB.OVL)
+CFLAGS  := -m68030 -mtune=68020-60 -O2 -fomit-frame-pointer -ffreestanding -fno-builtin -fno-pic -fno-pie \
            -fno-tree-loop-distribute-patterns -fno-asynchronous-unwind-tables \
            -ffunction-sections -fdata-sections -Wall -Wno-pointer-sign \
            -DEU_TOS -nostdinc -isystem $(GCCINC) -Icommon/atari/include $(INC)
@@ -77,12 +82,17 @@ OBJS    := $(foreach o,$(OBJS0),$(if $(filter $(basename $(notdir $(o))),$(PADAT
 HDRS    := $(wildcard src/*.h atari/*.h ui/*.h common/src/*.h common/atari/*.h \
            common/atari/include/*.h common/ui/*.h common/dsp/*.h)
 
-all: binary/eupdate.prg binary/tls.ovl binary/roots.dat
+all: binary/eupdate.prg binary/tls.ovl binary/tlsfb.ovl binary/roots.dat
 
 binary/eupdate.prg: $(OBJDIR)/eupdate.elf common/tools/elf2tos.py | binary
 	PRGFLAGS=7 python3 common/tools/elf2tos.py $< $@
 # the family's TLS.OVL, as it comes with common/: copied, never built here
 binary/tls.ovl: common/tlsovl/tls.ovl | binary
+	cp $< $@
+# and its ColdFire build, which tls_ovl.c loads on a FireBee (the _CF_
+# cookie; the guidelines' "TLSFB.OVL for the FireBee", Erez 15 and 17 Nov
+# 2026): copied too, from the same common
+binary/tlsfb.ovl: common/tlsovl/tlsfb.ovl | binary
 	cp $< $@
 
 # the version: VERSION holds the last release (major.minor), and the
@@ -267,7 +277,7 @@ itest: $(OBJDIR)/eupd-cli
 # dist/eupdate-x.y.zip (the icons in icons/), for the release workflow: every
 # file and folder named in lowercase (the guidelines 6.6: MiNT's ext2 tells
 # the cases apart)
-DIST    := binary/eupdate.prg binary/tls.ovl binary/cacert.pem binary/roots.dat binary/eupdate.hyp binary/defaults.inf
+DIST    := binary/eupdate.prg binary/tls.ovl binary/tlsfb.ovl binary/cacert.pem binary/roots.dat binary/eupdate.hyp binary/defaults.inf
 ICONS   := icons/eupdate.rsc icons/eupdnv.rsc icons/eupdate.icn icons/eupdmk.icn
 dist: all help binary/defaults.inf
 	rm -rf dist

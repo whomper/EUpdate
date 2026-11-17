@@ -541,6 +541,21 @@ static void test_tlsovl(void)
 	str_copy(r.rule[0].names, "TLS.OVL", sizeof(r.rule[0].names));
 	str_copy(r.rule[0].folder, "-", sizeof(r.rule[0].folder));
 	CHECK(up_chosen(&r, &e, which) == 1 && which[0] == 0);
+	{
+		/* TLSFB.OVL, the FireBee's, goes with it too, and a "-" leaves
+		   it out alone */
+		static const char *const fbr[] = { "EWEB.PRG", "TLS.OVL", "TLSFB.OVL", "EWEB.HYP" };
+		GHREL f = release_of(fbr, 4);
+		REPO q;
+		memset(&q, 0, sizeof(q));
+		str_copy(q.files, "*.PRG", sizeof(q.files));
+		CHECK(up_chosen(&q, &f, which) == 3 && which[0] == 0 && which[1] == 1 && which[2] == 2);
+		str_copy(q.rule[0].names, "TLSFB.OVL", sizeof(q.rule[0].names));
+		str_copy(q.rule[0].folder, "-", sizeof(q.rule[0].folder));
+		CHECK(up_chosen(&q, &f, which) == 2 && which[0] == 0 && which[1] == 1);
+		memset(&q, 0, sizeof(q));
+		CHECK(up_chosen(&q, &f, which) == 4);		/* no zip: every file */
+	}
 
 	/* an ST edition by hand beside the accessory: replaced once the
 	   release has no ST edition; switched off (.ACX), left; the program

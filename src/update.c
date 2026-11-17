@@ -116,7 +116,7 @@ static int is_program(const char *name)
 
 int up_chosen(const REPO *r, const GHREL *rel, short *which)
 {
-	short i, n = 0, zips = 0, ovl = -1, prog = 0;
+	short i, n = 0, zips = 0, ovl = -1, fb = -1, prog = 0;
 	for (i = 0; i < rel->nasset; i++)
 		zips += is_zip(rel->asset[i].name);
 	for (i = 0; i < rel->nasset; i++) {
@@ -126,12 +126,18 @@ int up_chosen(const REPO *r, const GHREL *rel, short *which)
 			prog |= is_program(name);
 		} else if (!strcasecmp(name, "tls.ovl") && !left_out(r, name)) {
 			ovl = i;
+		} else if (!strcasecmp(name, "tlsfb.ovl") && !left_out(r, name)) {
+			fb = i;
 		}
 	}
 	/* an AERA program's TLS (the guidelines 7.4) goes with it, whatever
-	   the patterns say: without it the program can't connect */
+	   the patterns say: without it the program can't connect; and its
+	   ColdFire build, TLSFB.OVL, which a FireBee loads instead (the
+	   guidelines' "TLSFB.OVL for the FireBee") */
 	if (prog && ovl >= 0)
 		which[n++] = ovl;
+	if (prog && fb >= 0)
+		which[n++] = fb;
 	return n;
 }
 

@@ -28,6 +28,7 @@ or all together in the zip:
 |---|---|
 | `EUPDATE.PRG` | the program (68030) |
 | `TLS.OVL` | its TLS, the AERA family's: needed to reach GitHub |
+| `TLSFB.OVL` | the same for a FireBee (its ColdFire build), loaded there instead |
 | `CACERT.PEM`, `ROOTS.DAT` | the root certificates |
 | `EUPDATE.HYP` | the user guide; the Help key opens it |
 | `DEFAULTS.INF` | what it follows on its first start: the AERA programs |
@@ -52,7 +53,7 @@ Falcon, TT:  Atari (EUpdate, TLS 1.2, the DSP) ---TLS---> api.github.com
 
 ```sh
 sudo apt install gcc-m68k-linux-gnu python3
-make            # binary/eupdate.prg, tls.ovl, cacert.pem, roots.dat
+make            # binary/eupdate.prg, tls.ovl, tlsfb.ovl, cacert.pem, roots.dat
 make dist       # dist/eupdate-x.y.zip, as on the Releases page
 ```
 

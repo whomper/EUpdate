@@ -156,7 +156,16 @@ EUpdate is in maintenance mode while EWeb, EPDF and EPlay go to 1.0 (AERA-Atari,
 - **The tests' GitHub** is `tests/server.py` (its repository is `tests/github/repo.json`, a real
   one as the API gave it): `APIBASE=` points EUpdate at it, as at a GitHub Enterprise server.
   GitHub's real API isn't asked by any test.
-- **A release** carries `EUPDATE.PRG`, `TLS.OVL` (common's, copied), `EUPDATE.HYP`, `CACERT.PEM`,
+- **TLSFB.OVL for the FireBee** (the guidelines' rule of 15 Nov 2026, AERA-Atari a99ea65; for
+  EUpdate Erez, 17 Nov: "every application that has a TLS must have this dual approach"):
+  `tlsfb.ovl`, TLS.OVL's ColdFire build, ships beside `tls.ovl`, both copied from the same
+  common commit and of one version; common's `tls_ovl.c` loads it where the `_CF_` cookie is
+  set, and `update.c` carries it with a program as it carries TLS.OVL. The program is built
+  `-mtune=68020-60`: 68030 code without the 64-bit `mulu.l`/`divu.l` a 68060 and a ColdFire
+  lack. `HAVE=tls.ovl tests/hatari/noovl_test.py WORK FireBee` (and `HAVE=tlsfb.ovl`) checks
+  the file chosen on machines.py's FireBee stand-in, a 68060: it runs no ColdFire code to the
+  end (AERA-Atari's `common/tests/coldfire` does), nor FireTOS's own emulation.
+- **A release** carries `EUPDATE.PRG`, `TLS.OVL` (common's, copied), `TLSFB.OVL`, `EUPDATE.HYP`, `CACERT.PEM`,
   `ROOTS.DAT`, `DEFAULTS.INF` and the icon (`icons/`, `make icons`), from `make dist`. `DEFAULTS.INF` (Erez, 24 Oct 2026) is
   what a first start follows, with no `EUPDATE.INF` yet: the AERA programs into `C:\AERA\NAME`,
   accessories to `C:\`, EUpdate in its own folder (`.`) at the release's version
