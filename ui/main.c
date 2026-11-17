@@ -233,14 +233,16 @@ static void idle(void)
 	win_sliders();
 }
 
-/* a step of the job in EUPDATE.LOG, written out at once: should TOS
-   go down, the log's last line says where EUpdate was */
+/* a step of the job in EUPDATE.LOG, written at once to the file conn.c
+   keeps open; the event wait closes it a second after a line, conn.c at
+   an error, a connection and the quit (the guidelines 6.5, Erez 17 Nov
+   2026: the close, where GEMDOS writes the FAT and the directory, cost
+   140 ms a line on a DFB1's IDE). A freeze loses a second's lines at most */
 static void log_step(const char *msg)
 {
 	if (!opt.log)
 		return;
 	conn_log("EUPD", " -- ", msg, strlen(msg));
-	conn_log_flush();
 }
 
 /* what the job does (update.c), with how far a download has come */
