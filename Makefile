@@ -64,6 +64,16 @@ OBJDIR  := build
 HOT     := unzip inflate
 OBJS    := $(OBJDIR)/crt0.o $(OBJDIR)/sting_s.o $(OBJDIR)/nf.o $(OBJDIR)/crash_s.o $(OBJDIR)/inflate_fast.o \
            $(addprefix $(OBJDIR)/,$(addsuffix .o,$(HOT) $(filter-out $(HOT),$(OWN) $(CORE)) $(ATARI) $(UI)))
+# the pads (tools/objpad.py): each section at 2.07's place mod the 68030's
+# 256-byte caches, a pad object before each object it moves (17 Nov 2026,
+# 2.08); atari/pads.txt made by "objpad.py pads" against v2.07's map, the
+# map beside the program to recheck them with, PADS=no to link without
+# them. make prof pads the profiling build to build/'s places in turn
+PADFILE ?= atari/pads.txt
+PADAT   := $(if $(PADS),,$(shell grep -v '^\#' $(PADFILE) 2>/dev/null | awk 'NF == 3 { print $$1 }' | sort -u))
+PADLD   := $(if $(PADS),,$(shell grep -v '^\#' $(PADFILE) 2>/dev/null | awk 'NF == 3 { print "-Wl,-u,eu_pad_" $$1 "_" $$2 }'))
+OBJS0   := $(OBJS)
+OBJS    := $(foreach o,$(OBJS0),$(if $(filter $(basename $(notdir $(o))),$(PADAT)),$(OBJDIR)/pad_$(notdir $(o))) $(o))
 HDRS    := $(wildcard src/*.h atari/*.h ui/*.h common/src/*.h common/atari/*.h \
            common/atari/include/*.h common/ui/*.h common/dsp/*.h)
 
@@ -93,8 +103,14 @@ icons:
 	python3 common/tools/appicon.py EUPDATE --rsc icons/eupdate.rsc --rscnv icons/eupdnv.rsc \
 		--icn icons/eupdate.icn --mask icons/eupdmk.icn --headers ui --docs docs
 
-$(OBJDIR)/eupdate.elf: $(OBJS) $(OBJDIR)/version.o common/atari/link.ld
-	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(OBJDIR)/version.o -lgcc
+$(OBJDIR)/eupdate.elf: $(OBJS) $(OBJDIR)/version.o common/atari/link.ld $(if $(PADS),,$(wildcard $(PADFILE)))
+	$(CC) $(LDFLAGS) $(PADLD) -Wl,-Map,$(OBJDIR)/eupdate.map -o $@ $(OBJS) $(OBJDIR)/version.o -lgcc
+# without the pads, what objpad.py measures them on
+$(OBJDIR)/nopad.elf: $(OBJS0) $(OBJDIR)/version.o common/atari/link.ld
+	$(CC) $(LDFLAGS) -Wl,-Map,$(OBJDIR)/nopad.map -o $@ $(OBJS0) $(OBJDIR)/version.o -lgcc
+$(OBJDIR)/pad_%.o: $(wildcard $(PADFILE)) tools/objpad.py | $(OBJDIR)
+	python3 tools/objpad.py asm $(PADFILE) $* > $(OBJDIR)/pad_$*.S
+	$(CC) $(CFLAGS) -c -o $@ $(OBJDIR)/pad_$*.S
 
 $(OBJDIR)/%.o: src/%.c $(HDRS) | $(OBJDIR)
 	$(CC) $(CFLAGS) $(OWNWARN) -c -o $@ $<
@@ -142,8 +158,19 @@ $(OBJDIR) binary:
 ifdef PROF
 CFLAGS += -DAES_PROFILE=$(PROF)
 endif
-prof:
-	$(MAKE) OBJDIR=build/prof PROF=20 build/prof/eupdate.prg
+# The rig times this build, so its sections are padded to build/'s places
+# mod 256 (tools/objpad.py; the hub, 17 Nov 2026: a profiling build's own
+# code and strings had moved everything), and the link fails where they
+# don't hold
+prof: build/eupdate.elf
+	rm -f build/prof/pads.txt
+	for i in $$(seq 1 60); do \
+		$(MAKE) -s OBJDIR=build/prof PROF=20 PADFILE=build/prof/pads.txt build/prof/eupdate.elf || exit 1; \
+		python3 tools/objpad.py step build/eupdate.map build/prof/eupdate.map build/prof/pads.txt \
+			"build/eupdate.map" >/dev/null || break; \
+	done
+	python3 tools/objpad.py check build/eupdate.map build/prof/eupdate.map | tee build/prof/padcheck.txt | head -1
+	$(MAKE) OBJDIR=build/prof PROF=20 PADFILE=build/prof/pads.txt build/prof/eupdate.prg
 build/prof/eupdate.prg: build/prof/eupdate.elf common/tools/elf2tos.py
 	PRGFLAGS=7 python3 common/tools/elf2tos.py $< $@
 

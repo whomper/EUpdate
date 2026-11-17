@@ -1,0 +1,4 @@
+# written by tools/objpad.py against v2.07's build/eupdate.map: do not edit
+# 2 pads, 329 bytes
+inflate rodata 231
+sting text 98
