@@ -35,11 +35,7 @@ CROSS   ?= m68k-linux-gnu-
 CC      := $(CROSS)gcc
 GCCINC  := $(shell $(CC) -print-file-name=include 2>/dev/null)
 INC     := -Isrc -Icommon/src -Iatari -Icommon/atari -Iui -Icommon/ui -Icommon/third_party/bearssl/inc
-# -mtune=68020-60: 68030 code, without the 64-bit mulu.l/divu.l that GCC
-# uses for a division by a constant, which a 68060 and the FireBee's
-# ColdFire lack (17 Nov 2026: 2.08 stopped at its first log line on the
-# FireBee stand-in, exception 61, before it could load TLSFB.OVL)
-CFLAGS  := -m68030 -mtune=68020-60 -O2 -fomit-frame-pointer -ffreestanding -fno-builtin -fno-pic -fno-pie \
+CFLAGS  := -m68030 -O2 -fomit-frame-pointer -ffreestanding -fno-builtin -fno-pic -fno-pie \
            -fno-tree-loop-distribute-patterns -fno-asynchronous-unwind-tables \
            -ffunction-sections -fdata-sections -Wall -Wno-pointer-sign \
            -DEU_TOS -nostdinc -isystem $(GCCINC) -Icommon/atari/include $(INC)
@@ -63,6 +59,15 @@ UI      := main win draw lists dialogs font about theme \
            panebar notify aboutline cpucheck hebkey text arrowed tooltip
 
 OBJDIR  := build
+# the objects where GCC's -m68030 divides by a constant with a 64-bit
+# mulu.l, which a 68060 and the FireBee's ColdFire lack (17 Nov 2026: 2.08
+# stopped at its first log line on the FireBee stand-in, exception 61,
+# before it could load TLSFB.OVL): tuned for the 68020-60, still 68030
+# code without it. Only these, so the rest keeps -m68030's code (the
+# whole program tuned cost the window's redraw a tick); tools/no64.py
+# fails the link where one is left, naming its function
+TUNE64  := text unzip conn ctime libc win fontsel panebar aboutline
+$(addprefix $(OBJDIR)/,$(addsuffix .o,$(TUNE64))): CFLAGS += -mtune=68020-60
 # the link order (the guidelines' Speed, Erez 13 Nov 2026): the main flows'
 # hot loops first, after the start's assembly, so they sit together in
 # memory (link.ld keeps input order): unzip's CRC and inflate's piece loop
@@ -125,6 +130,7 @@ $(OBJDIR)/eupdate.elf: $(OBJS) $(OBJDIR)/version.o common/atari/link.ld build/eu
 else
 $(OBJDIR)/eupdate.elf: $(OBJS) $(OBJDIR)/version.o common/atari/link.ld $(if $(PADS),,$(wildcard $(PADFILE)))
 	$(CC) $(LDFLAGS) $(PADLD) -Wl,-Map,$@.map -o $@ $(OBJS) $(OBJDIR)/version.o -lgcc
+	python3 tools/no64.py $@ || { rm -f $@; exit 1; }
 endif
 # without the pads, what objpad.py measures them on
 $(OBJDIR)/nopad.elf: $(OBJS0) $(OBJDIR)/version.o common/atari/link.ld
