@@ -81,12 +81,15 @@ def main():
     out = os.path.join(work, "w", "ext2" if how == "ext2" else "out")
     log = find(out, "eupdate.log")
     text = open(log, errors="replace").read() if log else ""
-    check("EUpdate " in text and " on " in text, "EUPDATE.LOG: it started (the machine line)")
+    check("quit: out of the AES" in text, "EUPDATE.LOG: it ran and quit, to its last step")
     check(find(out, "crash.log") is None, "no CRASH.LOG")
     hl = os.path.join(work, "w", "hatari.log")
     htext = open(hl, errors="replace").read() if os.path.exists(hl) else ""
-    check("Exception" not in htext and "Panic" not in htext and "BUS ERROR" not in htext.upper(),
-          "no exception in Hatari's log")
+    # (Hatari logs every bus error as a warning, the hardware probes of
+    # EmuTOS and MiNT's AUTO programs among them: what counts is an
+    # exception nothing took, a panic)
+    check("Panic" not in htext and "Exception number" not in htext,
+          "no unhandled exception or panic in Hatari's log")
     if fails and text:
         print(text[-1500:])
     print("%d failed" % fails)

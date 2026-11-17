@@ -89,8 +89,8 @@ def main():
                            stdout=subprocess.DEVNULL, env=dict(os.environ, AUTH_LOG=auth_log))
     wait_port(PORT)
     m = rig.machine(spec, work)
-    print("on", m.describe(), flush=True)
     r = rig.Rig(work, m, extra=m.network())
+    print("on", m.describe(), flush=True)  # after Rig(): NVDI is on the disk by then
     try:
         time.sleep(float(os.environ.get("BOOT", "45")))
         r.shot("start")

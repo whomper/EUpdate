@@ -53,8 +53,8 @@ def main():
         f.write("[OPTIONS]\r\nNATFEATS=1\r\nCHECK=1\r\nLOG=1\r\nAPIBASE=http://127.0.0.1:1\r\nFOLDER=C:\\NET\r\n"
                 "[REPO]\r\nREPO=whomper/EUpdate\r\nFOLDER=C:\\NET\\EUPDATE\r\nUNZIP=1\r\n")
     m = rig.machine(spec, work)
-    print("on", m.describe(), flush=True)
     r = rig.Rig(work, m, extra=m.network())
+    print("on", m.describe(), flush=True)  # after Rig(): NVDI is on the disk by then
     def log_path():
         return ci_path(hd, "eupdate.log")
     try:
