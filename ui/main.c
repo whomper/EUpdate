@@ -1100,6 +1100,7 @@ int app_main(void)
 	secret_warn = warn_plain;	/* before anything is saved */
 	pf_init();			/* one look at the directory a file */
 	store_init(dir);
+	nf_on = opt.natfeats;		/* before the first log line (tos.h) */
 	str_copy(gh_token, opt.token, sizeof(gh_token));
 	str_copy(gh_base, opt.api, sizeof(gh_base));
 	snprintf(http_user_agent, sizeof(http_user_agent), "EUpdate/%s (Atari)", app_version);

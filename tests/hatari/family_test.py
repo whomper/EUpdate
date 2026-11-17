@@ -104,7 +104,7 @@ def main():
     eftp = [n.upper() for n in os.listdir(os.path.join(cache, "EFTP", tags["EFTP"]))]  # any case (6.6)
     one_for_all = "TLS.OVL" in eftp and "EFTPST.PRG" not in eftp
     with open(os.path.join(hd, "eupdate.inf"), "w", newline="") as f:
-        f.write("[OPTIONS]\r\nCHECK=1\r\nFETCH=1\r\nLOG=1\r\nAPIBASE=https://127.0.0.1:%d\r\n" % PORT)
+        f.write("[OPTIONS]\r\nNATFEATS=1\r\nCHECK=1\r\nFETCH=1\r\nLOG=1\r\nAPIBASE=https://127.0.0.1:%d\r\n" % PORT)
         for repo, have in FOLLOW:
             f.write("[REPO]\r\nREPO=whomper/%s\r\nFOLDER=C:\\NET\\%s\r\nUNZIP=1\r\nHAVE=%s\r\n" %
                     (repo, repo.upper()[:8], tags[repo] if have else ""))

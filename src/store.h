@@ -52,6 +52,9 @@ typedef struct {
 	char api[64];		/* GitHub's API: https://api.github.com, or a GitHub
 				   Enterprise server's https://HOST/api/v3 */
 	short log;		/* write EUPDATE.LOG */
+	short natfeats;		/* NATFEATS=1: the test rigs' alone (the guidelines'
+				   "NatFeats only where a test asks"): in no
+				   Settings page, written back only when read */
 	short colour;		/* colours, on screens with 16 or more */
 	short dsp;		/* the DSP does TLS's sums */
 	short falcon;		/* TLS on this Atari: always, as there is no gateway

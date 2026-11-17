@@ -87,25 +87,28 @@ His rule for the whole family (18 Oct 2026): no progress or in-between messages;
 only when he has to decide something, with a short context and the decision. Findings: the
 information, your assessment and what he should do, nothing more.
 
-## Maintenance mode (Erez, 1 Nov 2026)
+## Maintenance mode (Erez, 1 Nov 2026; what it means since 17 Nov 2026)
 
-EUpdate is in maintenance mode while EWeb, EPDF and EPlay go to 1.0 (AERA-Atari, ATARI-APP-GUIDELINES.md, section 8). Until Erez ends it:
-- No new features, speed rounds, clean-ups, or catching up with new or changed guidelines.
-- No sync of the shared code (`common/`, `xl/`, `gateway/`). Shared code moving is no reason to rebuild or release.
-- A release only for:
-  - a security or data-loss fault;
-  - a crash or breakage Erez reports;
-  - something outside that stops it working (a certificate, GitHub's API);
-  - something EWeb, EPDF or EPlay need from it, such as how they are installed and updated.
-
-  Such a release takes only that fix (one change from AERA-Atari, not a sync), and its notes say why.
-- Work on `main` that isn't released stays unreleased.
-- Nothing runs in the background; the session waits for Erez or the hub.
-- Only Erez's explicit word ends this mode, for instance that every app is to take the latest shared code and release. The hub passes it on quoting him.
-- Lifted for Erez's speed round of 13 Nov 2026 (2.04: the INF only on change, PANES=, TLS.OVL 1.14;
-  2.05: the link order, the CRC a third faster), and back on since 2.05 ("stop with the performance
-  improvements", 13 Nov). From then on a speed change ships only if no row of the paired run is
-  slower by more than one tick (AERA-Atari 098183d).
+EUpdate is in maintenance mode while EWeb, EPDF and EPlay go to 1.0 (AERA-Atari,
+ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
+- No new features and no speed rounds of its own.
+- **Every family rule holds for it as for the focus apps** (Erez, 17 Nov 2026: "all applications
+  must adhere to family rules and be notified. We will review whether they need to issue a
+  release." and "Applications on maintenance does not mean they contain faults"). The hub
+  notifies EUpdate of each new or changed rule and each shared fix; EUpdate adopts it, with the
+  shared code it needs (a sync of `common/` with `tools/sync-common.sh`), and its row in the
+  guidelines' table is ticked. Its ✗, ~ and ? there are work for EUpdate.
+- Whether such a change needs a release is reviewed with Erez through the hub. A fault fix always
+  gets one, as do a security or data-loss fault, a crash or breakage, something outside that stops
+  it working (a certificate, GitHub's API), and something EWeb, EPDF or EPlay need from it. The
+  release notes say why.
+- Work on `main` that isn't released stays unreleased until that review.
+- Nothing runs in the background of its own accord; the session waits for Erez or the hub.
+- Only Erez's explicit word ends this mode; the hub passes it on quoting him.
+- Speed: a change ships only if no row of the paired run (`make prof`, padded to the shipped
+  places by common's `profpad.py`) is slower by more than one tick (AERA-Atari 098183d); a
+  change that moves code gets a pad round first (`tools/objpad.py`, `atari/pads.txt` against the
+  last release's map), and a row still slower goes to Erez through the hub.
 
 ## EUpdate
 

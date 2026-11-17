@@ -35,7 +35,7 @@ def main():
     for f in ("eupdate.prg", "tls.ovl", "cacert.pem", "roots.dat"):
         shutil.copy(os.path.join(TOP, "binary", f), hd)
     with open(os.path.join(hd, "eupdate.inf"), "w", newline="") as f:
-        f.write("[OPTIONS]\r\nCHECK=1\r\nAPIBASE=http://127.0.0.1:%d\r\nFOLDER=C:\\NET\r\n" % PORT)
+        f.write("[OPTIONS]\r\nNATFEATS=1\r\nCHECK=1\r\nAPIBASE=http://127.0.0.1:%d\r\nFOLDER=C:\\NET\r\n" % PORT)
         for name, have, folder in FOLLOWED:
             f.write("[REPO]\r\nREPO=whomper/%s\r\nFOLDER=%s\r\nHAVE=%s\r\nHAVEDATE=2026-10-20\r\n" %
                     (name, folder, have))

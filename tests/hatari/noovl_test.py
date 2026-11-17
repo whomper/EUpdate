@@ -50,7 +50,7 @@ def main():
     fb = spec.split(":")[0] == "FireBee"
     want = "tlsfb.ovl" if fb else "tls.ovl"
     with open(os.path.join(hd, "eupdate.inf"), "w", newline="") as f:
-        f.write("[OPTIONS]\r\nCHECK=1\r\nLOG=1\r\nAPIBASE=http://127.0.0.1:1\r\nFOLDER=C:\\NET\r\n"
+        f.write("[OPTIONS]\r\nNATFEATS=1\r\nCHECK=1\r\nLOG=1\r\nAPIBASE=http://127.0.0.1:1\r\nFOLDER=C:\\NET\r\n"
                 "[REPO]\r\nREPO=whomper/EUpdate\r\nFOLDER=C:\\NET\\EUPDATE\r\nUNZIP=1\r\n")
     m = rig.machine(spec, work)
     print("on", m.describe(), flush=True)

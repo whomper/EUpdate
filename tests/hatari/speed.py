@@ -44,7 +44,7 @@ def drive_c():
         shutil.copy(os.path.join(TOP, "binary", f), hd)
     # more repositories than the window shows, as they are after a check
     with open(os.path.join(hd, "eupdate.inf"), "w", newline="") as f:
-        f.write("[OPTIONS]\r\nCHECK=0\r\nLOG=1\r\nAPIBASE=http://127.0.0.1:1\r\nFOLDER=C:\\NET\r\n")
+        f.write("[OPTIONS]\r\nNATFEATS=1\r\nCHECK=0\r\nLOG=1\r\nAPIBASE=http://127.0.0.1:1\r\nFOLDER=C:\\NET\r\n")
         for i in range(NREPOS):
             f.write("[REPO]\r\nREPO=whomper/Repo%02d\r\nFOLDER=C:\\NET\\REPO%02d\r\nUNZIP=1\r\n"
                     "HAVE=v1.%d\r\nHAVEDATE=2026-10-01\r\nLATEST=v1.%d\r\nLATESTDATE=2026-10-20\r\n" %

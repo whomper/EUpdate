@@ -40,7 +40,7 @@ def drive_c():
     for f in ("eupdate.prg", "tls.ovl", "cacert.pem", "roots.dat"):
         shutil.copy(os.path.join(TOP, "binary", f), hd)
     with open(os.path.join(hd, "eupdate.inf"), "w", newline="") as f:
-        f.write("[OPTIONS]\r\nCHECK=1\r\nLOG=1\r\nAPIBASE=http://127.0.0.1:%d\r\nFOLDER=C:\\NET\r\n"
+        f.write("[OPTIONS]\r\nNATFEATS=1\r\nCHECK=1\r\nLOG=1\r\nAPIBASE=http://127.0.0.1:%d\r\nFOLDER=C:\\NET\r\n"
                 "[REPO]\r\nREPO=whomper/EUpdate\r\nFOLDER=C:\\NET\\EUPDATE\r\nUNZIP=1\r\nHAVE=v1.0\r\n"
                 "HAVEDATE=2026-10-01\r\nRULE=README.TXT;-\r\n"
                 "[REPO]\r\nREPO=whomper/EDOS\r\nFOLDER=C:\\XL\\EDOS\r\n" % PORT)

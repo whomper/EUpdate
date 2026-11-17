@@ -774,8 +774,22 @@ static void test_store(void)
 		store_init(dir);
 		CHECK(store_save() == 0);
 		text = load(path, &n);
-		CHECK(text && strstr(text, "FONT=System,0\r\n"));
+		CHECK(text && strstr(text, "FONT=System,0\r\n") && !strstr(text, "NATFEATS"));
 		free(text);
+		/* NATFEATS=1, a rig's alone: read, and kept when the file is
+		   written again; never written where it wasn't read (above) */
+		{
+			static const char nf[] = "[OPTIONS]\r\nNATFEATS=1\r\n";
+			CHECK(pf_save(path, nf, sizeof(nf) - 1) == 0);
+			store_init(dir);
+			CHECK(opt.natfeats == 1);
+			opt.log = 1;
+			CHECK(store_save() == 0);
+			text = load(path, &n);
+			CHECK(text && strstr(text, "NATFEATS=1\r\n") && strstr(text, "LOG=1\r\n"));
+			free(text);
+			pf_remove(path);
+		}
 		if (before)
 			CHECK(pf_save(path, before, nb) == 0);
 		free(before);

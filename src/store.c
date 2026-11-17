@@ -164,6 +164,7 @@ static void set_opt(const char *k, const char *v)
 			str_copy(opt.api, v, sizeof(opt.api));
 	}
 	else if (!strcmp(k, "log")) opt.log = n != 0;
+	else if (!strcmp(k, "natfeats")) opt.natfeats = n != 0;
 	else if (!strcmp(k, "colour")) opt.colour = n != 0;
 	else if (!strcmp(k, "dsp")) opt.dsp = n != 0;
 	else if (!strcmp(k, "window")) {	/* the family's key (D43) */
@@ -357,6 +358,8 @@ static void inf_text(SBUF *b0)
 		"APIBASE", opt.api);
 	put_fmt(&b, "1 = write the conversation with GitHub to EUPDATE.LOG (the token hidden)", "LOG", "%d",
 		opt.log);
+	if (opt.natfeats)	/* (a test rig's: only where it was read) */
+		put_fmt(&b, "1 = the emulator's console (the test rigs')", "NATFEATS", "%d", 1);
 	put_fmt(&b, "1 = colours on screens with 16 or more", "COLOUR", "%d", opt.colour);
 	put_fmt(&b, "1 = the DSP does the sums of the secure connections; 0 = the 68030 does", "DSP", "%d",
 		opt.dsp);
