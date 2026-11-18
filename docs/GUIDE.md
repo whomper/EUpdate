@@ -36,7 +36,8 @@ in `EUPDATE-x.y.zip`. Copy them into a folder of their own, on any
 drive:
 
 ```
-EUPDATE.PRG   the program
+EUPDATE.PRG   the program, for a Falcon or a TT
+EUPDFB.PRG    the same for the FireBee
 TLS.OVL       its TLS, loaded when EUpdate first talks to GitHub
 TLSFB.OVL     the same for a FireBee, loaded there instead
 EUPDATE.HYP   this guide, for EHypView or ST-Guide (the Help key opens it)

@@ -1032,10 +1032,20 @@ static void warn_plain(const char *keyfile)
 		 "Is the disk locked or full?][ OK ]", keyfile);
 }
 
+#ifdef __mcoldfire__
+/* EUPDFB.PRG, the FireBee's (tools/mkfirebee.py): common's cpucheck_cf.S
+   is main(), and says this anywhere without the _CF_ cookie */
+const char cpu_alert[] = "[3][EUPDFB.PRG is for the FireBee.|On a Falcon or a TT, run|EUPDATE.PRG.][ Quit ]";
+#else
 /* common's cpucheck.c is main(), built for the 68000: on an ST it says
-   this, and goes; on a 68020 or better it calls app_main */
+   this, and goes; on a 68020 or better it calls app_main; on a FireBee
+   (the _CF_ cookie) it says cpu_cf_alert, and goes: there the 68030 code
+   ran wrongly, a 68020 divide read as the ColdFire's remainder (a
+   tester's FireBee froze with 2.08 and 2.09, 17 Nov 2026) */
 const long cpu_need = 20;
 const char cpu_alert[] = "[3][EUpdate needs a 68020 or|better: a Falcon or a TT.][ Quit ]";
+const char cpu_cf_alert[] = "[3][EUPDATE.PRG is for the Falcon and|the TT. On the FireBee, run|EUPDFB.PRG.][ Quit ]";
+#endif
 int app_main(void);
 int app_main(void)
 {

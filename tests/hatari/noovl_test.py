@@ -6,13 +6,11 @@ at the start says TLS.OVL is missing in an alert and in EUPDATE.LOG, and
 EUpdate goes on when it is answered, its window there. Screenshots in
 WORK/shots.
 
-On the FireBee stand-in (machines.py's "FireBee": FireTOS's cookies on a
-68060 Falcon) the file it asks for is TLSFB.OVL, TLS.OVL's ColdFire build
-(the guidelines' "TLSFB.OVL for the FireBee"): HAVE=tls.ovl puts TLS.OVL
-beside it and the alert names TLSFB.OVL all the same; HAVE=tlsfb.ovl
-puts TLSFB.OVL alone beside it, and the log says it was loaded (the
-stand-in's 68060 can't run ColdFire code to the end: what it shows is
-the file chosen by name; common/tests/coldfire runs that code).
+HAVE=FILE,... puts those files beside it (HAVE=tls.ovl: the overlay
+there, its load in the log). Not on the FireBee stand-in: EUPDATE.PRG
+names EUPDFB.PRG there and goes (firebee_test.py), and EUPDFB.PRG's
+ColdFire code doesn't run on the stand-in's 68060; common's
+tests/firebee checks tls_ovl.c's choice of tlsfb.ovl there.
 
     [HAVE=FILE,...] noovl_test.py WORK [MACHINE]   (Xvfb, xdotool;
                                                      MACHINE: Falcon:16)
@@ -48,6 +46,8 @@ def main():
     for f in ["eupdate.prg", "cacert.pem", "roots.dat"] + have:
         shutil.copy(os.path.join(TOP, "binary", f), hd)
     fb = spec.split(":")[0] == "FireBee"
+    if fb:
+        sys.exit("noovl_test: not on the FireBee stand-in (firebee_test.py)")
     want = "tlsfb.ovl" if fb else "tls.ovl"
     with open(os.path.join(hd, "eupdate.inf"), "w", newline="") as f:
         f.write("[OPTIONS]\r\nNATFEATS=1\r\nCHECK=1\r\nLOG=1\r\nAPIBASE=http://127.0.0.1:1\r\nFOLDER=C:\\NET\r\n"

@@ -87,10 +87,16 @@ OBJS    := $(foreach o,$(OBJS0),$(if $(filter $(basename $(notdir $(o))),$(PADAT
 HDRS    := $(wildcard src/*.h atari/*.h ui/*.h common/src/*.h common/atari/*.h \
            common/atari/include/*.h common/ui/*.h common/dsp/*.h)
 
-all: binary/eupdate.prg binary/tls.ovl binary/tlsfb.ovl binary/roots.dat
+all: binary/eupdate.prg binary/eupdfb.prg binary/tls.ovl binary/tlsfb.ovl binary/roots.dat
 
 binary/eupdate.prg: $(OBJDIR)/eupdate.elf common/tools/elf2tos.py | binary
 	PRGFLAGS=7 python3 common/tools/elf2tos.py $< $@
+# EUPDFB.PRG, the FireBee's (ColdFire, -mcpu=5475; Erez, 18 Nov 2026): the
+# same rules again as ColdFire code (tools/mkfirebee.py), into build/cf/;
+# EUPDATE.PRG on a FireBee names it (cpu_cf_alert), it on any other machine
+# names EUPDATE.PRG (cpu_alert, common's cpucheck_cf.S)
+binary/eupdfb.prg: binary/eupdate.prg tools/mkfirebee.py common/atari/cpucheck_cf.S common/atari/ll64.c | binary
+	python3 tools/mkfirebee.py $@
 # the family's TLS.OVL, as it comes with common/: copied, never built here
 binary/tls.ovl: common/tlsovl/tls.ovl | binary
 	cp $< $@
@@ -283,7 +289,7 @@ itest: $(OBJDIR)/eupd-cli
 # dist/eupdate-x.y.zip (the icons in icons/), for the release workflow: every
 # file and folder named in lowercase (the guidelines 6.6: MiNT's ext2 tells
 # the cases apart)
-DIST    := binary/eupdate.prg binary/tls.ovl binary/tlsfb.ovl binary/cacert.pem binary/roots.dat binary/eupdate.hyp binary/defaults.inf
+DIST    := binary/eupdate.prg binary/eupdfb.prg binary/tls.ovl binary/tlsfb.ovl binary/cacert.pem binary/roots.dat binary/eupdate.hyp binary/defaults.inf
 ICONS   := icons/eupdate.rsc icons/eupdnv.rsc icons/eupdate.icn icons/eupdmk.icn
 dist: all help binary/defaults.inf
 	rm -rf dist

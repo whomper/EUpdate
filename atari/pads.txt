@@ -1,1 +1,3 @@
-# no pads: 2.09 measured at its own layout (17 Nov 2026)
+# written by tools/objpad.py against v2.09's build/eupdate.elf.map: do not edit
+# 1 pads, 168 bytes
+win rodata 168

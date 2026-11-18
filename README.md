@@ -26,7 +26,8 @@ or all together in the zip:
 
 | File | What it is |
 |---|---|
-| `EUPDATE.PRG` | the program (68030) |
+| `EUPDATE.PRG` | the program (68030): a Falcon or a TT |
+| `EUPDFB.PRG` | the same for the FireBee (ColdFire) |
 | `TLS.OVL` | its TLS, the AERA family's: needed to reach GitHub |
 | `TLSFB.OVL` | the same for a FireBee (its ColdFire build), loaded there instead |
 | `CACERT.PEM`, `ROOTS.DAT` | the root certificates |
