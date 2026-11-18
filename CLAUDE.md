@@ -180,7 +180,10 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
   an alert (`cpu_cf_alert`), it on any other machine names EUPDATE.PRG (`cpu_alert` under
   `__mcoldfire__`); `tests/hatari/firebee_test.py WORK wrong|falcon` checks both. EUpdate
   updates itself from its zip, so a FireBee gets EUPDFB.PRG too. Its own code on a ColdFire is
-  common's `tests/coldfire` (qemu-m68k -cpu cfv4e) and the tester's.
+  common's `tests/coldfire` (qemu-m68k -cpu cfv4e) and the tester's: 2.10's EUPDFB.PRG runs on
+  the tester's real FireBee (Erez, 18 Nov 2026: "The tester reported it now works"), which
+  closes 2.08's and 2.09's freeze. Should the tester send an EUPDATE.LOG, its machine block (no
+  addresses or tokens from it) becomes the FireBee's reference in the tests.
 - **TLSFB.OVL for the FireBee** (the guidelines' rule of 15 Nov 2026, AERA-Atari a99ea65; for
   EUpdate Erez, 17 Nov: "every application that has a TLS must have this dual approach"):
   `tlsfb.ovl`, TLS.OVL's ColdFire build, ships beside `tls.ovl`, both copied from the same
