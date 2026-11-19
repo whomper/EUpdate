@@ -120,7 +120,8 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
 - Only Erez's explicit word ends this mode; the hub passes it on quoting him.
 - Lifted for one speed fix (Erez, 19 Nov 2026, on the About box at 210 ms against its 150 on
   `Falcon-4:256` with NVDI: "Fix it"): the About box within its time on his configuration, with no
-  other row slower beyond a tick; back on once it is released.
+  other row slower beyond a tick; done in 2.11 (130 ms; the close 50 -> 120 accepted by Erez,
+  "Accept"), and maintenance is back on.
 - Speed: a change ships only if no row of the paired run (`make prof`, padded to the shipped
   places by common's `profpad.py`) is slower by more than one tick (AERA-Atari 098183d); a
   change that moves code gets a pad round first (`tools/objpad.py`, `atari/pads.txt` against the
