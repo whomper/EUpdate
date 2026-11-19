@@ -1175,8 +1175,14 @@ int app_main(void)
 				    wait, msg, &ev);
 		/* what the next stretch is: EUPDATE.LOG's slowest at quit, the
 		   speed rig's AESGAP lines (tests/hatari/speed.py) */
-		if (!(which & (MU_KEYBD | MU_BUTTON | MU_MESAG)))
+		if (!(which & (MU_KEYBD | MU_BUTTON | MU_MESAG))) {
+			static char warmed;
 			win_sliders();
+			if (!warmed) {		/* the first timer event: idle */
+				warmed = 1;
+				about_warm();
+			}
+		}
 		aes_profile_tag(which & MU_KEYBD ? "key" : which & MU_BUTTON ? "click" :
 				!(which & MU_MESAG) ? "timer" : msg[0] == WM_REDRAW ? "redraw" :
 				msg[0] == WM_ARROWED ? "arrowed" : msg[0] == WM_VSLID ? "vslid" :

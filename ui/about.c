@@ -41,6 +41,17 @@ void dlg_about(void)
 	about_show(&a);
 }
 
+/* the About box's 256-colour map made ahead, from the first timer event
+   after the start (common's about_prepare, a769b86): its first opening on
+   a stock Falcon in 256 colours under NVDI then saves the 36 ms (Erez,
+   19 Nov 2026: the About box within its 150) */
+void about_warm(void)
+{
+	ABOUT a = { "EUpdate", app_version, "", { 0, 0, 0 }, { 0, 0, 0 },
+		    icon_bits, icon16_px, icon16_rgb, icon256_px, icon256_rgb };
+	about_prepare(&a);
+}
+
 /* The iconified window: the icon, and how many have a newer release
    (common/ui/iconify.c). From a redraw message, area; from EUpdate
    itself (0), only when that changed */

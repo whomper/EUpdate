@@ -125,6 +125,7 @@ int  find_dialog(char *text, int size, int *owners);
 int  dlg_follow(REPO *r, const char *desc, int is_new, int *now);	/* 1 = OK */
 int  dlg_settings(void);
 void dlg_about(void);
+void about_warm(void);
 void keys_dialog(void);
 #include "alert.h"		/* alert(): common/ui */
 
