@@ -16,13 +16,16 @@ again for the ColdFire:
   cpucheck_cf.S: on a machine without the _CF_ cookie it shows
   ui/main.c's cpu_alert (under __mcoldfire__) and goes;
 - -lgcc (68020 code) becomes common's atari/ll64.c, the 64-bit multiply
-  and divide in C.
+  and divide in C;
+- it fails where the code has an EMAC instruction (a Line-A 0xa000 a
+  68000 build would run: on the ColdFire the EMAC's macw).
 
 No pads: the 68030's caches aren't the ColdFire's. TLS on the FireBee is
 TLSFB.OVL (common's, copied: the Makefile's binary/tlsfb.ovl).
 
     tools/mkfirebee.py OUT.PRG"""
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -83,6 +86,28 @@ def main():
     elf = words[words.index("-o") + 1]
     words += [OUT + "rt/ll64.o", "-Wl,-Map," + elf + ".map"]
     run(" ".join(shlex.quote(w) for w in words))
+    # no EMAC instruction in the code: on a ColdFire 0xa000 (Line-A on a
+    # 68000) is the EMAC's macw, which swallows the next word and leaves a0
+    # garbage (EWEBFB.PRG killed at its first scroll on a tester's FireBee;
+    # common 13a4971: no Line-A under __mcoldfire__); EUPDFB.PRG's About box
+    # had one in box_run before it. The code only: the read-only data
+    # follows it in .text
+    stop = None
+    for line in open(elf + ".map"):
+        if stop == "next":
+            m = re.search(r"0x([0-9a-f]+)", line)
+            if m:
+                stop = int(m.group(1), 16)
+                break
+        elif "*(.rodata .rodata.*)" in line:
+            stop = "next"
+    if not isinstance(stop, int):
+        sys.exit("mkfirebee: no read-only data line in " + elf + ".map")
+    emac = [l for l in run("m68k-linux-gnu-objdump -d -m m68k:cfv4e --stop-address=0x%x %s" % (stop, elf)).splitlines()
+            if re.search(r"\s(mac|msac|movclr)[.a-z]*\s|%acc", l)]
+    if emac:
+        sys.exit("mkfirebee: %d EMAC instructions in %s (Line-A run on a ColdFire), as\n%s"
+                 % (len(emac), elf, "\n".join(emac[:5])))
     env = dict(os.environ, PRGFLAGS="7")
     subprocess.run(["python3", "common/tools/elf2tos.py", elf, target], env=env, check=True)
     print("mkfirebee: %s, %d objects, %d bytes" % (target, n, os.path.getsize(target)))
