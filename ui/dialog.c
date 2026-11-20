@@ -462,6 +462,13 @@ static void win_paint_some(short i, short x, short y, short w, short h, int some
 	short rx, ry, rw, rh;
 	wind_update(BEG_UPDATE);
 	graf_mouse(M_OFF, 0);
+	if (dw[i].tree) {
+		/* the tree where the window is now: an AES that moves a window itself during a drag (real-time
+		   moving) can ask for a piece before our WM_MOVED has put the tree there, and the app's own drawing
+		   (filepick's list) went to the old place (a tester's V4SA, EPlay's Add files, 19 Nov 2026) */
+		short d1, d2;
+		wind_get(dw[i].h, WF_WORKXYWH, &dw[i].tree[0].ob_x, &dw[i].tree[0].ob_y, &d1, &d2);
+	}
 	wind_get(dw[i].h, WF_FIRSTXYWH, &rx, &ry, &rw, &rh);
 	while (rw > 0 && rh > 0) {
 		if (clip(&rx, &ry, &rw, &rh, x, y, w, h)) {
