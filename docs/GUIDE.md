@@ -99,6 +99,13 @@ The folder its files go to is in the last column, when there is room.
 Rest the mouse on a row for when the release was published and when you
 downloaded yours.
 
+**Repository > What's new** (^L) shows the notes of the selected
+repository's releases in the lower pane: those newer than the one you
+have, the newest first, or the notes of the one you have when it is the
+latest (the latest ten when you have none). Up, Down and the scroll bar
+move through them; ^C copies them; Backspace gives the pane back to what
+Find found. Get info's **What's new** button does the same.
+
 Click a row to select it, Shift+click to add or drop another, Control+click
 to add the rows from the last one clicked, ^A to select them
 all. Double-click a row (or Return) for **Get info**. Right-click a row,
@@ -148,7 +155,8 @@ files go. The dialog has:
 - **Download the latest release now**.
 
 **Get info** (^I) shows the same for a repository you follow, with the
-release you have, and changes it.
+release you have, and changes it; its **What's new** button closes it, as
+OK does, and shows the releases' notes.
 
 ## Where the files go
 
@@ -305,11 +313,12 @@ fixed-width GDOS font under NVDI or SpeedoGDOS.
 | ^D | update (the selected ones, else all that are new) |
 | Shift+^D | update all that are new |
 | ^I | get info |
+| ^L | what's new: the releases' notes, in the lower pane |
 | Delete | unfollow |
 | ^A | select all |
 | ^C | copy the names selected (in dialogs ^C ^X ^V) |
 | Return, double-click | get info; in Find, follow a repository or list an owner's |
-| Backspace | in Find, back to the owners |
+| Backspace | in the lower pane, back to the owners, or from the notes to what Find found |
 | Up, Down | the row above or below; with Shift, a page |
 | Clr/Home | the first row; with Shift, the last |
 | Tab | the other list |

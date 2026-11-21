@@ -103,13 +103,13 @@ def run(base, ca):
     check(rc == 1 and "limit" in err, "the hour's limit")
     # What's new...: the releases newer than the one had, no draft or pre-release, Markdown made plain
     rc, out, err = cli(base, ca, "notes", "whomper/EUpdate", "v1.0")
-    check(rc == 0 and out.startswith("2\nv1.1 - EUpdate 1.1 (2026-10-21)\nWhat is new: ") and
-          "v1.0.1 - EUpdate 1.0.1 (2026-10-10)\nFixes\n\n- Faster unzip\n- ^D again\n" in out and
+    check(rc == 0 and out.startswith("2\n\fv1.1 - EUpdate 1.1 (2026-10-21)\nWhat is new: ") and
+          "\fv1.0.1 - EUpdate 1.0.1 (2026-10-10)\nFixes\n\n- Faster unzip\n- ^D again\n" in out and
           "v9.9" not in out and "beta" not in out and "v1.0 (" not in out, "what is new since v1.0")
     rc, out, err = cli(base, ca, "notes", "whomper/EUpdate")
-    check(rc == 0 and out.startswith("3\n") and "v1.0 (2026-10-01)\n(no notes)\n" in out, "all of them, none had")
+    check(rc == 0 and out.startswith("3\n") and "\fv1.0 (2026-10-01)\n(no notes)\n" in out, "all of them, none had")
     rc, out, err = cli(base, ca, "notes", "whomper/EUpdate", "v1.1")
-    check(rc == 0 and "none: nothing newer" in out, "nothing newer than the one had")
+    check(rc == 0 and out.startswith("1\n\fv1.1 - EUpdate 1.1") and "v1.0.1" not in out, "the latest had: its own notes")
     rc, out, err = cli(base, ca, "notes", "whomper/Nothing")
     check(rc == 1 and "no such repository" in err, "what is new of no repository")
     rc, out, err = cli(base, ca, "latest", "whomper/EUpdate", token="bad-token")

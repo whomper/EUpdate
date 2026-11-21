@@ -122,6 +122,12 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
   `Falcon-4:256` with NVDI: "Fix it"): the About box within its time on his configuration, with no
   other row slower beyond a tick; done in 2.11 (130 ms; the close 50 -> 120 accepted by Erez,
   "Accept"), and maintenance is back on.
+- Lifted for one feature (Erez, 21 Nov 2026: "It would be nice to get a popup from GitHub with all
+  the latest changes of a specific release when you hover on that release ID in the list view";
+  his choices, put to him: a hint in the row's tip, since a tip is two lines of 60 (guidelines
+  3.4), and **What's new...** (^L, Get info's button, the row's menu) showing the notes in the
+  lower pane, Backspace back to Find's): `gh_whats_new`, `found_show_notes`. Maintenance is back
+  on once it is released.
 - Speed: a change ships only if no row of the paired run (`make prof`, padded to the shipped
   places by common's `profpad.py`) is slower by more than one tick (AERA-Atari 098183d); a
   change that moves code gets a pad round first (`tools/objpad.py`, `atari/pads.txt` against the

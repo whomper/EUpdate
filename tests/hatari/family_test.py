@@ -41,6 +41,16 @@ FOLLOW = (("ECal", True), ("EContact", True), ("EUpdate", False), ("ClaudeST", F
 SKIP = {"ECal": "ECALST.ACC", "EContact": "ECONTST.ACC", "EMail": "EMAILST.PRG", "EFTP": "EFTPST.PRG",
         "EWeb": "EWEBST.PRG"}
 ACCS = ("ECal", "EContact", "EHypView")   # their .ACC into C:\ by a rule
+ROW1 = 127                  # the Following list's first row (ECal), on a 640 x 480 screen
+PANE = (8, 320, 596, 470)   # the lower pane's rows
+
+
+def changed(a, b, box):
+    """the share of pixels in box that differ between two screenshots"""
+    from PIL import Image, ImageChops
+    x, y = Image.open(a).convert("RGB"), Image.open(b).convert("RGB")
+    d = ImageChops.difference(x.crop(box), y.crop(box)).convert("L").point(lambda v: 255 if v else 0)
+    return d.histogram()[255] / float((box[2] - box[0]) * (box[3] - box[1]))
 
 
 def certs():
@@ -160,6 +170,23 @@ def main():
         log = open(ci_path(hd, "eupdate.log"), errors="replace").read()
         check("RSA-2048 signature" in log and "ECDSA" not in log,
               "GitHub's RSA certificate asked for, not its ECDSA one")
+        # What's new... (^L, Erez 21 Nov 2026): ECal's row, its notes in the
+        # lower pane from GitHub's list of releases, Backspace gives Find's
+        # pane back as it was
+        r.click(100, ROW1)
+        time.sleep(2)
+        before = r.shot("notes-before")
+        r.ctrl("l")
+        time.sleep(int(os.environ.get("NOTES_WAIT", "40")))
+        notes = r.shot("notes")
+        log = open(ci_path(hd, "eupdate.log"), errors="replace").read()
+        check("GET /repos/whomper/ECal/releases?per_page=10 " in log, "What's new: GitHub's list of ECal's releases asked")
+        moved = changed(before, notes, PANE)
+        check(moved > 0.01, "What's new: the notes in the lower pane (%.3f of it changed)" % moved)
+        r.key(rig.K["BACKSPACE"])
+        time.sleep(3)
+        back = changed(before, r.shot("notes-back"), PANE)
+        check(back < 0.002, "Backspace: Find's pane as it was (%.4f differs)" % back)
         # the quit, each step in the log at once, and no crash after it
         # (EFTP's and EMail's bombs at quit, Erez 10 Nov 2026: the catcher
         # left in a chain another program hooked over it)

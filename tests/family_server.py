@@ -105,6 +105,17 @@ def main():
                 if len(p) == 6 and p[4] == "assets":
                     return self.send(302, b"", "text/html", extra=(
                         ("Location", "https://%s:%d/dl/%s?%s" % (FILES_HOST, files_port, p[5], SIGNED)),))
+                if p[2] in rel and len(p) == 4:
+                    # the list (What's new...): the latest with Markdown notes, then an older one
+                    tag, assets = rel[p[2]]
+                    one = {"url": "u", "tag_name": tag, "name": "%s %s" % (p[2], tag[1:]),
+                           "author": {"login": "github-actions[bot]"}, "draft": False, "prerelease": False,
+                           "published_at": "2026-10-21T09:05:00Z", "assets": assets,
+                           "body": "## What's new\r\n\r\n* **Faster** week view\r\n* [Alarms](https://x/1) keep "
+                                   "their zone\r\n" + "* a longer line of notes, to be wrapped at the pane's edge " * 3}
+                    old = dict(one, tag_name="v0.9", name="", assets=[], published_at="2026-10-01T09:00:00Z",
+                               body="The first one.")
+                    return self.send(200, [one, old])
                 if p[2] in rel:
                     tag, assets = rel[p[2]]
                     return self.send(200, {"url": "u", "tag_name": tag, "name": "%s %s" % (p[2], tag[1:]),

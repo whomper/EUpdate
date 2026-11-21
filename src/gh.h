@@ -75,10 +75,12 @@ int gh_download_mem(const char *full, const GHASSET *a, const char *file, long r
 		    char *err, int errlen);
 
 /* what is new: the notes of the releases newer than have (a tag; "" or 0
-   when none is had), up to max, newest first; drafts and pre-releases
+   when none is had), up to max, newest first; when have is the latest,
+   its own notes; drafts and pre-releases
    left out as releases/latest leaves them, as plain text malloc'ed into
-   *text: "TAG - TITLE (DATE)" a line, its notes under it, a blank line
-   between. The count, 0 when there is none (err says why), -1 on error */
+   *text: "\fTAG - TITLE (DATE)" a line (a form feed first: a release's
+   line, as a blank line in its notes can't tell), its notes under it, a
+   blank line between. The count, 0 when there is none (err says why), -1 on error */
 int gh_whats_new(const char *full, const char *have, int max, char **text, char *err, int errlen);
 /* GitHub's Markdown as plain text, in place (headings, emphasis and code
    marks, links and images to their text, list marks to "- ", comments

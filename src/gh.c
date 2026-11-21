@@ -673,17 +673,20 @@ int gh_whats_new(const char *full, const char *have, int max, char **text, char 
 			/* (as releases/latest: no drafts, no pre-releases) */
 			if (skip || !tag[0])
 				continue;
-			if (have && have[0] && !strcmp(tag, have))
+			/* down to the one had; when it is the latest, its own notes */
+			if (have && have[0] && !strcmp(tag, have) && n)
 				break;
 			date[10] = 0;
 			if (name[0] && strcmp(name, tag))
-				sb_printf(&out, "%s%s - %s (%s)\n", n ? "\n" : "", tag, name, date);
+				sb_printf(&out, "%s\f%s - %s (%s)\n", n ? "\n" : "", tag, name, date);
 			else
-				sb_printf(&out, "%s%s (%s)\n", n ? "\n" : "", tag, date);
+				sb_printf(&out, "%s\f%s (%s)\n", n ? "\n" : "", tag, date);
 			gh_plain(body);
 			sb_adds(&out, body[0] ? body : "(no notes)");
 			sb_addc(&out, '\n');
 			n++;
+			if (have && have[0] && !strcmp(tag, have))
+				break;
 		}
 	sb_free(&b);
 	free(body);
@@ -694,8 +697,7 @@ int gh_whats_new(const char *full, const char *have, int max, char **text, char 
 	}
 	if (!n) {
 		sb_free(&out);
-		str_copy(err, have && have[0] ? "nothing newer than the release you have" : "it has no release yet",
-			 errlen);
+		str_copy(err, "it has no release yet", errlen);
 		return 0;
 	}
 	if (!(*text = sb_steal(&out))) {

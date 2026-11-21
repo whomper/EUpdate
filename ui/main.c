@@ -67,6 +67,7 @@ static const MBAR_ITEM m_repo[] = {
 	{ "Download again", 0, C_AGAIN },
 	{ "-", 0, 0 },
 	{ "Get info...", "^I", C_INFO },
+	{ "What's new...", "^L", C_NOTES },
 	{ "Unfollow", "Del", C_UNFOLLOW },
 	{ 0, 0, 0 }
 };
@@ -107,7 +108,7 @@ static void enable(short cmd, int on)
 void menu_update(void)
 {
 	static const short cmds[] = { C_FIND, C_FOLLOW, C_COPY, C_SELALL, C_CHECK, C_UPDATE, C_UPDNEW,
-				      C_AGAIN, C_INFO, C_UNFOLLOW, C_SETTINGS };
+				      C_AGAIN, C_INFO, C_UNFOLLOW, C_SETTINGS, C_NOTES };
 	static long shown = -1;
 	long sel = repos_selected(), now;
 	int idle = !running, news = found_new_count() > 0, i;
@@ -123,11 +124,11 @@ void menu_update(void)
 	on[8] = idle && sel == 1;
 	on[9] = idle && sel > 0;
 	on[10] = idle;
-	on[11] = 0;		/* was the Hebrew keyboard's tick: F10 alone now (Erez, 7 Nov 2026) */
+	on[11] = idle && sel == 1;	/* What's new... (was the Hebrew keyboard's tick: F10 alone now) */
 	on[12] = opt.log != 0;
 	for (now = 0, i = 0; i < 13; i++)
 		now |= (long)on[i] << i;
-	for (i = 0; i < 11; i++)
+	for (i = 0; i < 12; i++)
 		if (shown < 0 || ((shown ^ now) >> i & 1))
 			enable(cmds[i], on[i]);
 	if (shown < 0 || ((shown ^ now) >> 12 & 1))
@@ -702,9 +703,9 @@ void follow(const char *full, const char *desc)
 void repo_info(REPO *r)
 {
 	static REPO tmp;
-	int now = 0;
+	int now = 0, how;
 	tmp = *r;
-	if (!dlg_follow(&tmp, 0, 0, &now))
+	if (!(how = dlg_follow(&tmp, 0, 0, &now)))
 		return;
 	str_copy(r->folder, tmp.folder, sizeof(r->folder));
 	str_copy(r->files, tmp.files, sizeof(r->files));
@@ -713,6 +714,41 @@ void repo_info(REPO *r)
 	keep_parent(r->folder);
 	store_save();
 	repo_redraw(r);
+	if (how == 2)		/* its What's new... button */
+		whats_new(r);
+}
+
+/* What's new...: the notes of the releases newer than the one downloaded
+   (the latest ten when none is; the one had when it is the latest), in
+   Find's pane (Erez, 21 Nov 2026) */
+void whats_new(REPO *r)
+{
+	char err[160], msg[120], since[48];
+	char *text;
+	int n;
+	if (!job_begin())
+		return;
+	snprintf(msg, sizeof(msg), "Asking GitHub what is new in %.60s...   (Esc stops)", r->full);
+	status(msg);
+	n = gh_whats_new(r->full, r->have, 10, &text, err, sizeof(err));
+	job_end();
+	if (n < 0) {
+		job_failed("GitHub can't be asked", err);
+		return;
+	}
+	if (n == 0) {
+		snprintf(msg, sizeof(msg), "%.60s: %s.", r->full, err);
+		status(msg);
+		return;
+	}
+	if (!r->have[0])
+		str_copy(since, "The latest releases, the newest first", sizeof(since));
+	else if (n == 1 && !strncmp(text + 1, r->have, strlen(r->have)) && strchr(" \n", text[1 + strlen(r->have)]))
+		snprintf(since, sizeof(since), "The release you have, %.24s", r->have);
+	else
+		snprintf(since, sizeof(since), "Newer than %.24s, the newest first", r->have);
+	found_show_notes(r->full, since, text, n);
+	status("The notes in the lower pane: Backspace gives back what Find found.");
 }
 
 void unfollow_selected(void)
@@ -879,6 +915,15 @@ static void command(short cmd)
 			}
 		break;
 	}
+	case C_NOTES: {
+		short i;
+		for (i = 0; i < nrepos; i++)
+			if (repos[i]->sel) {
+				whats_new(repos[i]);
+				break;
+			}
+		break;
+	}
 	case C_UNFOLLOW: unfollow_selected(); break;
 	case C_SETTINGS:
 		if (dlg_settings()) {
@@ -939,6 +984,7 @@ static int shortcut(short kstate, short key)
 		case 0x13: cmd = C_CHECK; break;	/* R */
 		case 0x20: cmd = kstate & (K_LSHIFT | K_RSHIFT) ? C_UPDNEW : C_UPDATE; break;	/* D: download */
 		case 0x17: cmd = C_INFO; break;		/* I */
+		case 0x26: cmd = C_NOTES; break;	/* L: What's new... */
 		case 0x33: cmd = C_SETTINGS; break;	/* , */
 		}
 		if (cmd != C_NONE) {

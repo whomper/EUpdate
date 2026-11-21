@@ -754,7 +754,7 @@ static int pick_folder(char *dir, int size, const char *title)
 
 int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 {
-	short f_folder, f_rule[NRULE], b_folder, b_rule[NRULE], ok, k, i, y;
+	short f_folder, f_rule[NRULE], b_folder, b_rule[NRULE], b_new = -1, ok, k, i, y, r2;
 	str_copy(fl_folder, r->folder, sizeof(fl_folder));
 	str_copy(fl_files, r->files, sizeof(fl_files));
 	for (k = 0; k < NRULE; k++) {
@@ -765,7 +765,7 @@ int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 	if (r->latest[0])
 		snprintf(fl_l2, sizeof(fl_l2), "Latest release %.20s, published %s", r->latest, r->latest_date);
 	else
-		snprintf(fl_l2, sizeof(fl_l2), "%.62s", r->note[0] ? r->note : "Its releases aren't known yet");
+		snprintf(fl_l2, sizeof(fl_l2), "%.*s", is_new ? 62 : 44, r->note[0] ? r->note : "Its releases aren't known yet");
 	if (r->have[0])
 		snprintf(fl_l3, sizeof(fl_l3), "Downloaded %.20s on %s", r->have, r->have_date);
 	else
@@ -785,6 +785,8 @@ int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 	d_text(2, ROW(0), fl_l1);
 	d_text(2, ROW(1), fl_l2);
 	y = 2;
+	if (!is_new)		/* (Erez, 21 Nov 2026: OK, then the notes in Find's pane) */
+		b_new = d_button(48, ROW(1), 14, "What's new...", EXIT);
 	if (!is_new) {
 		d_text(2, ROW(y), fl_l3);
 		y++;
@@ -814,7 +816,7 @@ int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 	d_end();
 	open_box(is_new ? "Follow" : "Get info");
 	for (;;) {
-		short r2 = form_loop(f_folder) & 0x7fff;
+		r2 = form_loop(f_folder) & 0x7fff;
 		if (tick_hit(r2))
 			continue;
 		if (r2 == b_folder || (r2 >= b_rule[0] && r2 <= b_rule[NRULE - 1])) {
@@ -834,7 +836,7 @@ int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 			continue;
 		}
 		close_box(r2);
-		if (r2 != ok)
+		if (r2 != ok && r2 != b_new)
 			return 0;
 		break;
 	}
@@ -849,7 +851,7 @@ int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 			str_copy(r->rule[i].folder, fl_rfolder[k], sizeof(r->rule[i].folder));
 			i++;
 		}
-	return 1;
+	return r2 == b_new ? 2 : 1;
 }
 
 /* ---------------- settings ----------------
@@ -1012,8 +1014,9 @@ void keys_dialog(void)
 		"^R  check for releases     ^D  update (the new ones)",
 		"Return, double-click: Get info; in Find, follow",
 		"   a repository or list an owner's repositories",
-		"Backspace  back to the owners   Tab  the other list",
+		"Backspace  back in the lower pane  Tab  the other list",
 		"^I  get info: folder, files, where they go",
+		"^L  what's new: the newer releases' notes",
 		"Del unfollow               ^A  select all",
 		"Shift+click  one more      Ctrl+click  a range",
 		"Shift+Up, Down  a page     Clr/Home  first; Shift: last",

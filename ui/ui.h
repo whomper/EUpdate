@@ -105,6 +105,10 @@ void found_copy(void);
 void found_show_repos(const char *title, GHREPO *list, int n, long total, int an_owners);
 void found_show_owners(const char *title, GHUSER *list, int n, long total);	/* list: as above */
 int  found_back(void);			/* Backspace: the owners again; 0 if none */
+/* What's new... (^L): full's release notes (gh_whats_new's text, n
+   releases; since: the column's title, what they are) in Find's pane;
+   text is the pane's from now on. Backspace gives back what Find found */
+void found_show_notes(const char *full, const char *since, char *text, int n);
 int  found_new_count(void);		/* repositories with a newer release */
 
 /* jobs (main.c) */
@@ -117,12 +121,13 @@ void update_repos(int which, int again);
 #define J_SELECTED 1
 #define J_NEW      2	/* those with a newer release */
 void repo_info(REPO *r);
+void whats_new(REPO *r);		/* What's new... (^L): its release notes in Find's pane */
 void unfollow_selected(void);
 
 /* dialogs (dialogs.c) */
 int  dlg_ask(const char *title, const char *label, char *buf, short len);
 int  find_dialog(char *text, int size, int *owners);
-int  dlg_follow(REPO *r, const char *desc, int is_new, int *now);	/* 1 = OK */
+int  dlg_follow(REPO *r, const char *desc, int is_new, int *now);	/* 1 = OK; 2 = OK, then What's new... */
 int  dlg_settings(void);
 void dlg_about(void);
 void about_warm(void);
@@ -136,7 +141,8 @@ enum {
 	C_COPY, C_SELALL,
 	C_CHECK, C_UPDATE, C_UPDNEW, C_AGAIN, C_INFO, C_UNFOLLOW,
 	C_SETTINGS, C_FONT, C_PLOG,
-	C_HELP, C_KEYS
+	C_HELP, C_KEYS,
+	C_NOTES
 };
 void ui_command(short cmd);
 void menu_update(void);

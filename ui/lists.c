@@ -305,11 +305,11 @@ static void repos_click(WIN *w, short mx, short my, short clicks, short kstate)
 static void repos_rclick(WIN *w, short mx, short my)
 {
 	static const char *const items[] = {
-		"Get info...          ^I", "-",
+		"Get info...          ^I", "What's new...        ^L", "-",
 		"Check for a release  ^R", "Update               ^D", "Download again", "-",
 		"Copy                 ^C", "-", "Unfollow            Del"
 	};
-	static const short cmds[] = { C_INFO, 0, C_CHECK, C_UPDATE, C_AGAIN, 0, C_COPY, 0, C_UNFOLLOW };
+	static const short cmds[] = { C_INFO, C_NOTES, 0, C_CHECK, C_UPDATE, C_AGAIN, 0, C_COPY, 0, C_UNFOLLOW };
 	long row = repo_at(w, my);
 	short r;
 	if (row < 0) {
@@ -384,9 +384,10 @@ static int repos_tip(WIN *w, short mx, short my, char *out, int size)
 	if (r->note[0])
 		snprintf(out, size, "%s|%s", r->full, r->note);
 	else if (r->latest[0])
-		snprintf(out, size, "%s: %s published on %s|%s%s%s", r->full, r->latest, r->latest_date,
-			 r->have[0] ? r->have : "", r->have[0] ? " downloaded on " : "Nothing downloaded yet",
-			 r->have_date);
+		/* (What's new: Erez, 21 Nov 2026; the tip's two lines of 60, 3.4) */
+		snprintf(out, size, "%s: %s published on %s|%s%s%s. What's new: ^L", r->full, r->latest,
+			 r->latest_date, r->have[0] ? r->have : "", r->have[0] ? " downloaded on " :
+			 "Nothing downloaded yet", r->have_date);
 	else
 		snprintf(out, size, "%s|Into %s", r->full, r->folder);
 	return 1;
@@ -402,8 +403,37 @@ static short nf_owners, showing_owners, have_owners;
 static long f_sel = -1;
 static char owners_title[80];
 
+/* What's new... (^L): a repository's release notes in the pane in place of
+   what Find found, which stays for Backspace (Erez, 21 Nov 2026). The text
+   is gh_whats_new's; n_line holds where each line starts, wrapped to the
+   pane's width when shown, a release's first line (its tag) marked by
+   N_HEAD. In the heap, as Find's lists */
+#define N_HEAD 0x40000000L
+static char *n_text;
+static long *n_line, n_lines;
+static short showing_notes;
+static char n_since[48];
+static char found_title[80], found_info[40];	/* what Backspace goes back to */
+static long found_total;
+
+static void notes_free(void)
+{
+	free(n_text);
+	free(n_line);
+	n_text = 0;
+	n_line = 0;
+	n_lines = 0;
+	showing_notes = 0;
+}
+
 static void found_set(const char *title, const char *info, long total)
 {
+	if (title != found_title) {
+		notes_free();
+		str_copy(found_title, title, sizeof(found_title));
+		str_copy(found_info, info, sizeof(found_info));
+		found_total = total;
+	}
 	win_title(&w_found, title);
 	win_info(&w_found, info);
 	w_found.total = total;
@@ -445,6 +475,11 @@ void found_show_owners(const char *title, GHUSER *list, int n, long total)
 int found_back(void)
 {
 	char info[16];
+	if (showing_notes) {
+		notes_free();
+		found_set(found_title, found_info, found_total);
+		return 1;
+	}
 	if (showing_owners || !have_owners)
 		return 0;
 	showing_owners = 1;
@@ -453,9 +488,99 @@ int found_back(void)
 	return 1;
 }
 
+/* the lines' starts, the text wrapped at a space to cols (a word longer
+   than that cut); a release's first line (its form feed) marked. The
+   count */
+static long notes_wrap(const char *s, short cols, long *at)
+{
+	long n = 0;
+	const char *p = s;
+	if (cols < 20)
+		cols = 20;
+	while (*p) {
+		const char *e = p, *cut = 0;
+		short k = 0;
+		int head = *p == '\f';
+		if (head)
+			e++;
+		while (*e && *e != '\n' && k < cols) {
+			if (*e == ' ')
+				cut = e;
+			e++;
+			k++;
+		}
+		if (at)
+			at[n] = (p - s) | (head ? N_HEAD : 0);
+		n++;
+		if (*e && *e != '\n' && cut && cut - p > cols / 3)
+			e = cut + 1;	/* the space goes */
+		else if (*e == '\n')
+			e++;
+		p = e;
+	}
+	return n;
+}
+
+void found_show_notes(const char *full, const char *since, char *text, int n)
+{
+	short cols = w_found.work.w / cw - 4;
+	long k = notes_wrap(text, cols, 0);
+	long *at = malloc((k + 1) * sizeof(long));
+	char title[80], info[40];
+	if (!at) {
+		free(text);
+		alert(1, "[3][Not enough memory.][ OK ]");
+		return;
+	}
+	notes_wrap(text, cols, at);
+	free(n_text);
+	free(n_line);
+	n_text = text;
+	n_line = at;
+	n_lines = k;
+	showing_notes = 1;
+	str_copy(n_since, since, sizeof(n_since));
+	snprintf(title, sizeof(title), "What's new: %.60s", full);
+	snprintf(info, sizeof(info), "%d release%s  Backspace: back", n, n == 1 ? "" : "s");
+	win_title(&w_found, title);
+	win_info(&w_found, info);
+	w_found.total = k;
+	w_found.top = 0;
+	f_sel = -1;
+	win_lines_changed(&w_found);
+	win_focus(&w_found);
+}
+
+/* a line of the notes, without its '\n' and cut at its wrap: its length */
+static long notes_line(long i, const char **s)
+{
+	long a = n_line[i] & ~N_HEAD, b = i + 1 < n_lines ? n_line[i + 1] & ~N_HEAD : (long)strlen(n_text);
+	if (n_text[a] == '\f')
+		a++;
+	*s = n_text + a;
+	while (b > a && (n_text[b - 1] == '\n' || n_text[b - 1] == ' '))
+		b--;
+	return b - a;
+}
+
 void found_copy(void)
 {
 	char line[90];
+	if (showing_notes) {
+		/* without the releases' form feeds */
+		long k = (long)strlen(n_text), i, j = 0;
+		char *c = malloc(k + 1);
+		if (!c) {
+			copied(0);
+			return;
+		}
+		for (i = 0; i < k; i++)
+			if (n_text[i] != '\f')
+				c[j++] = n_text[i];
+		copied(clip_put(c, j));
+		free(c);
+		return;
+	}
 	if (f_sel < 0 || f_sel >= w_found.total)
 		return;
 	snprintf(line, sizeof(line), "%s", showing_owners ? f_owners[f_sel].login : f_repos[f_sel].full);
@@ -472,6 +597,39 @@ static void found_draw(WIN *w, GRECT *clip)
 	x[1] = x[0] + cn + 1;
 	x[2] = x[1] + 7;
 	x[3] = x[2] + 12;
+	if (showing_notes) {
+		const char *ti[1];
+		ti[0] = n_since;
+		if (clip->y < w->work.y + w->head_h)
+			column_titles(w, ti, x, 1);
+		rows_in(w, clip, &row, &end);
+		for (; row < end; row++) {
+			GRECT r;
+			short y = w->work.y + w->head_h + (short)((row - w->top) * ch);
+			char line[160];
+			const char *s;
+			long k;
+			r.x = w->work.x;
+			r.y = y;
+			r.w = w->work.w;
+			r.h = ch;
+			fill(&r, 0);
+			if (row >= w->total || sliver(w, y))
+				continue;
+			k = notes_line(row, &s);
+			if (k > (long)sizeof(line) - 1)
+				k = sizeof(line) - 1;
+			memcpy(line, s, k);
+			line[k] = 0;
+			/* a release's line in the new release's colour; its notes plain,
+			   in either direction (Hebrew notes read right to left) */
+			if (n_line[row] & N_HEAD)
+				cell(r.x + x[0] * cw, y, line, cols - x[0] - 1, P_NEW, 0, TX_LTR);
+			else
+				cell(r.x + (x[0] + 1) * cw, y, line, cols - x[0] - 2, P_TEXT, 0, 0);
+		}
+		return;
+	}
 	if (clip->y >= w->work.y + w->head_h)
 		;
 	else if (showing_owners)
@@ -543,6 +701,8 @@ static void found_open(long row)
 static void found_click(WIN *w, short mx, short my, short clicks, short kstate)
 {
 	long row = found_at(w, my);
+	if (showing_notes)
+		return;
 	found_select(row);
 	if (clicks >= 2)
 		found_open(row);
@@ -553,6 +713,15 @@ static void found_rclick(WIN *w, short mx, short my)
 	const char *items[5];
 	short n = 0, r, back = -1;
 	long row = found_at(w, my);
+	if (showing_notes) {
+		static const char *const notes[] = { "Copy the notes   ^C", "-", "Back       Backspace" };
+		r = popup_m(mx, my, notes, 3);
+		if (r == 0)
+			found_copy();
+		else if (r == 2)
+			found_back();
+		return;
+	}
 	if (row < 0) {
 		static const char *const empty[] = { "Find on GitHub...  ^F" };
 		if (popup_m(mx, my, empty, 1) == 0)
@@ -579,6 +748,27 @@ static void found_rclick(WIN *w, short mx, short my)
 static int found_key(WIN *w, short kstate, short key)
 {
 	short scan = KEY_SCAN(key);
+	if (showing_notes) {
+		long last = w->total - win_rows(w);
+		if (last < 0)
+			last = 0;
+		switch (scan) {
+		case 0x48:		/* a line; with Shift a page */
+		case 0x50:
+			win_scroll_to(w, list_step(w->top, last + 1, scan == 0x48 ? -1 : 1, list_page(w, kstate, key)));
+			return 1;
+		case 0x47:		/* Clr/Home: the start; Shift: the end */
+			win_scroll_to(w, key_shift(kstate, key) ? last : 0);
+			return 1;
+		case 0x0e:		/* Backspace */
+			found_back();
+			return 1;
+		case 0x52:		/* Insert */
+			found_rclick(w, w->work.x + 4 * cw, w->work.y + w->head_h + ch);
+			return 1;
+		}
+		return 0;
+	}
 	switch (scan) {
 	case 0x48:
 	case 0x50:
@@ -607,7 +797,7 @@ static int found_key(WIN *w, short kstate, short key)
 static int found_tip(WIN *w, short mx, short my, char *out, int size)
 {
 	long row = found_at(w, my);
-	if (row < 0 || showing_owners)
+	if (row < 0 || showing_owners || showing_notes)
 		return 0;
 	snprintf(out, size, "%s%s|%s", f_repos[row].full, f_repos[row].archived ? " (archived)" :
 		 f_repos[row].fork ? " (a fork)" : "", f_repos[row].desc[0] ? f_repos[row].desc : "No description");
@@ -625,6 +815,8 @@ void lists_init(void)
 	w_repos.total = nrepos;
 	str_copy(w_found.title, "Find", sizeof(w_found.title));
 	str_copy(w_found.info, "^F looks on GitHub", sizeof(w_found.info));
+	str_copy(found_title, w_found.title, sizeof(found_title));
+	str_copy(found_info, w_found.info, sizeof(found_info));
 	w_found.draw = found_draw;
 	w_found.click = found_click;
 	w_found.rclick = found_rclick;
