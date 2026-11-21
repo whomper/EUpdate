@@ -176,6 +176,13 @@ def main():
         r.click(100, ROW1)
         time.sleep(2)
         before = r.shot("notes-before")
+        # its tip, once the pointer has moved and rests: the hint on its second line
+        r.move(140, ROW1)
+        time.sleep(3)
+        tip = changed(before, r.shot("notes-tip"), (140, ROW1 + 8, 640, ROW1 + 60))
+        check(tip > 0.05, "the row's tip shown (%.2f under the pointer changed)" % tip)
+        r.move(100, ROW1)
+        time.sleep(2)
         r.ctrl("l")
         time.sleep(int(os.environ.get("NOTES_WAIT", "40")))
         notes = r.shot("notes")

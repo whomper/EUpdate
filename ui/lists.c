@@ -409,6 +409,8 @@ static char owners_title[80];
    pane's width when shown, a release's first line (its tag) marked by
    N_HEAD. In the heap, as Find's lists */
 #define N_HEAD 0x40000000L
+#define N_HANG(i) ((long)(i) << 24)	/* a wrapped line's indent, in characters (0-63) */
+#define N_AT     0x00FFFFFFL		/* where it starts in the text */
 static char *n_text;
 static long *n_line, n_lines;
 static short showing_notes;
@@ -495,27 +497,45 @@ static long notes_wrap(const char *s, short cols, long *at)
 {
 	long n = 0;
 	const char *p = s;
+	short hang = 0;		/* the indent of the lines a long one wraps to */
+	int first = 1;		/* p starts a line of the text, not a wrapped part */
 	if (cols < 20)
 		cols = 20;
 	while (*p) {
 		const char *e = p, *cut = 0;
-		short k = 0;
+		short k, room;
 		int head = *p == '\f';
 		if (head)
 			e++;
-		while (*e && *e != '\n' && k < cols) {
+		if (first) {
+			/* a list item's text lines up under its text, not its dash */
+			const char *q = e;
+			while (*q == ' ')
+				q++;
+			hang = (short)(q - e) + (q[0] == '-' && q[1] == ' ' ? 2 : 0);
+			if (hang > cols / 2)
+				hang = 0;
+		}
+		room = first ? cols : cols - hang;
+		k = 0;
+		while (*e && *e != '\n' && k < room) {
 			if (*e == ' ')
 				cut = e;
 			e++;
 			k++;
 		}
 		if (at)
-			at[n] = (p - s) | (head ? N_HEAD : 0);
+			at[n] = (p - s) | (head ? N_HEAD : 0) | (first ? 0 : N_HANG(hang));
 		n++;
-		if (*e && *e != '\n' && cut && cut - p > cols / 3)
+		first = 0;
+		if (*e && *e != '\n' && cut && cut - p > room / 3) {
 			e = cut + 1;	/* the space goes */
-		else if (*e == '\n')
+		} else if (*e == '\n') {
 			e++;
+			first = 1;
+		} else if (!*e) {
+			first = 1;
+		}
 		p = e;
 	}
 	return n;
@@ -554,7 +574,7 @@ void found_show_notes(const char *full, const char *since, char *text, int n)
 /* a line of the notes, without its '\n' and cut at its wrap: its length */
 static long notes_line(long i, const char **s)
 {
-	long a = n_line[i] & ~N_HEAD, b = i + 1 < n_lines ? n_line[i + 1] & ~N_HEAD : (long)strlen(n_text);
+	long a = n_line[i] & N_AT, b = i + 1 < n_lines ? n_line[i + 1] & N_AT : (long)strlen(n_text);
 	if (n_text[a] == '\f')
 		a++;
 	*s = n_text + a;
@@ -625,8 +645,10 @@ static void found_draw(WIN *w, GRECT *clip)
 			   in either direction (Hebrew notes read right to left) */
 			if (n_line[row] & N_HEAD)
 				cell(r.x + x[0] * cw, y, line, cols - x[0] - 1, P_NEW, 0, TX_LTR);
-			else
-				cell(r.x + (x[0] + 1) * cw, y, line, cols - x[0] - 2, P_TEXT, 0, 0);
+			else {
+				short h = (short)(n_line[row] >> 24 & 0x3F);
+				cell(r.x + (x[0] + 1 + h) * cw, y, line, cols - x[0] - 2 - h, P_TEXT, 0, 0);
+			}
 		}
 		return;
 	}
