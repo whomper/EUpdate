@@ -1,5 +1,6 @@
-# written by tools/objpad.py against v2.12's build/eupdate.elf.map: do not edit
-# 12 pads, 1964 bytes
+# written by tools/objpad.py against v2.13's build/eupdate.elf.map: do not edit
+# 14 pads, 2412 bytes
+alert text 198
 dialogs bss 70
 dialogs rodata 238
 dialogs text 216
@@ -7,6 +8,7 @@ field text 144
 font rodata 252
 font text 54
 inflate rodata 254
+libc text 250
 store text 4
 tls_ovl bss 252
 tls_ovl text 140

@@ -192,7 +192,11 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
   updates itself from its zip, so a FireBee gets EUPDFB.PRG too. Its own code on a ColdFire is
   common's `tests/coldfire` (qemu-m68k -cpu cfv4e) and the tester's: 2.10's EUPDFB.PRG runs on
   the tester's real FireBee (Erez, 18 Nov 2026: "The tester reported it now works"), which
-  closes 2.08's and 2.09's freeze. Should the tester send an EUPDATE.LOG, its machine block (no
+  closes 2.08's and 2.09's freeze. A second tester's FireBee crashed the system when EUpdate started
+  with HypView open from the boot (21 Nov 2026); the suspected cause, common's cache push after an
+  overlay's load without a nop to drain the ColdFire's store buffer, is fixed in common (AERA-Atari
+  aa30896), and `tests/hatari/resident_test.py WORK plain|ct60|ct60-prot` (`hold.c`, a viewer's
+  stand-in resident from boot; MiNTnet through common's `run.py --inet`) is its rig case. Should the tester send an EUPDATE.LOG, its machine block (no
   addresses or tokens from it) becomes the FireBee's reference in the tests.
 - **TLSFB.OVL for the FireBee** (the guidelines' rule of 15 Nov 2026, AERA-Atari a99ea65; for
   EUpdate Erez, 17 Nov: "every application that has a TLS must have this dual approach"):
