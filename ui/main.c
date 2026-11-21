@@ -718,39 +718,6 @@ void repo_info(REPO *r)
 		whats_new(r);
 }
 
-/* What's new...: the notes of the releases newer than the one downloaded
-   (the latest ten when none is; the one had when it is the latest), in
-   Find's pane (Erez, 21 Nov 2026) */
-void whats_new(REPO *r)
-{
-	char err[160], msg[120], since[48];
-	char *text;
-	int n;
-	if (!job_begin())
-		return;
-	snprintf(msg, sizeof(msg), "Asking GitHub what is new in %.60s...   (Esc stops)", r->full);
-	status(msg);
-	n = gh_whats_new(r->full, r->have, 10, &text, err, sizeof(err));
-	job_end();
-	if (n < 0) {
-		job_failed("GitHub can't be asked", err);
-		return;
-	}
-	if (n == 0) {
-		snprintf(msg, sizeof(msg), "%.60s: %s.", r->full, err);
-		status(msg);
-		return;
-	}
-	if (!r->have[0])
-		str_copy(since, "The latest releases, the newest first", sizeof(since));
-	else if (n == 1 && !strncmp(text + 1, r->have, strlen(r->have)) && strchr(" \n", text[1 + strlen(r->have)]))
-		snprintf(since, sizeof(since), "The release you have, %.24s", r->have);
-	else
-		snprintf(since, sizeof(since), "Newer than %.24s, the newest first", r->have);
-	found_show_notes(r->full, since, text, n);
-	status("The notes in the lower pane: Backspace gives back what Find found.");
-}
-
 void unfollow_selected(void)
 {
 	long n = repos_selected();
@@ -1326,4 +1293,37 @@ int app_main(void)
 	appl_exit();
 	log_step("quit: out of the AES");
 	return 0;
+}
+
+/* What's new...: the notes of the releases newer than the one downloaded
+   (the latest ten when none is; the one had when it is the latest), in
+   Find's pane (Erez, 21 Nov 2026) */
+void whats_new(REPO *r)
+{
+	char err[160], msg[120], since[48];
+	char *text;
+	int n;
+	if (!job_begin())
+		return;
+	snprintf(msg, sizeof(msg), "Asking GitHub what is new in %.60s...   (Esc stops)", r->full);
+	status(msg);
+	n = gh_whats_new(r->full, r->have, 10, &text, err, sizeof(err));
+	job_end();
+	if (n < 0) {
+		job_failed("GitHub can't be asked", err);
+		return;
+	}
+	if (n == 0) {
+		snprintf(msg, sizeof(msg), "%.60s: %s.", r->full, err);
+		status(msg);
+		return;
+	}
+	if (!r->have[0])
+		str_copy(since, "The latest releases, the newest first", sizeof(since));
+	else if (n == 1 && !strncmp(text + 1, r->have, strlen(r->have)) && strchr(" \n", text[1 + strlen(r->have)]))
+		snprintf(since, sizeof(since), "The release you have, %.24s", r->have);
+	else
+		snprintf(since, sizeof(since), "Newer than %.24s, the newest first", r->have);
+	found_show_notes(r->full, since, text, n);
+	status("The notes in the lower pane: Backspace gives back what Find found.");
 }

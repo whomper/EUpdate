@@ -428,22 +428,9 @@ static void notes_free(void)
 	showing_notes = 0;
 }
 
-static void found_set(const char *title, const char *info, long total)
-{
-	if (title != found_title) {
-		notes_free();
-		str_copy(found_title, title, sizeof(found_title));
-		str_copy(found_info, info, sizeof(found_info));
-		found_total = total;
-	}
-	win_title(&w_found, title);
-	win_info(&w_found, info);
-	w_found.total = total;
-	w_found.top = 0;
-	f_sel = total ? 0 : -1;
-	win_lines_changed(&w_found);
-	win_focus(&w_found);
-}
+/* (at the end: new code last, 2.13) */
+void found_set(const char *title, const char *info, long total);
+long notes_wrap(const char *s, short cols, long *at);
 
 void found_show_repos(const char *title, GHREPO *list, int n, long total, int an_owners)
 {
@@ -488,87 +475,6 @@ int found_back(void)
 	snprintf(info, sizeof(info), "%d", nf_owners);
 	found_set(owners_title, info, nf_owners);
 	return 1;
-}
-
-/* the lines' starts, the text wrapped at a space to cols (a word longer
-   than that cut); a release's first line (its form feed) marked. The
-   count */
-static long notes_wrap(const char *s, short cols, long *at)
-{
-	long n = 0;
-	const char *p = s;
-	short hang = 0;		/* the indent of the lines a long one wraps to */
-	int first = 1;		/* p starts a line of the text, not a wrapped part */
-	if (cols < 20)
-		cols = 20;
-	while (*p) {
-		const char *e = p, *cut = 0;
-		short k, room;
-		int head = *p == '\f';
-		if (head)
-			e++;
-		if (first) {
-			/* a list item's text lines up under its text, not its dash */
-			const char *q = e;
-			while (*q == ' ')
-				q++;
-			hang = (short)(q - e) + (q[0] == '-' && q[1] == ' ' ? 2 : 0);
-			if (hang > cols / 2)
-				hang = 0;
-		}
-		room = first ? cols : cols - hang;
-		k = 0;
-		while (*e && *e != '\n' && k < room) {
-			if (*e == ' ')
-				cut = e;
-			e++;
-			k++;
-		}
-		if (at)
-			at[n] = (p - s) | (head ? N_HEAD : 0) | (first ? 0 : N_HANG(hang));
-		n++;
-		first = 0;
-		if (*e && *e != '\n' && cut && cut - p > room / 3) {
-			e = cut + 1;	/* the space goes */
-		} else if (*e == '\n') {
-			e++;
-			first = 1;
-		} else if (!*e) {
-			first = 1;
-		}
-		p = e;
-	}
-	return n;
-}
-
-void found_show_notes(const char *full, const char *since, char *text, int n)
-{
-	short cols = w_found.work.w / cw - 4;
-	long k = notes_wrap(text, cols, 0);
-	long *at = malloc((k + 1) * sizeof(long));
-	char title[80], info[40];
-	if (!at) {
-		free(text);
-		alert(1, "[3][Not enough memory.][ OK ]");
-		return;
-	}
-	notes_wrap(text, cols, at);
-	free(n_text);
-	free(n_line);
-	n_text = text;
-	n_line = at;
-	n_lines = k;
-	showing_notes = 1;
-	str_copy(n_since, since, sizeof(n_since));
-	snprintf(title, sizeof(title), "What's new: %.60s", full);
-	snprintf(info, sizeof(info), "%d release%s  Backspace: back", n, n == 1 ? "" : "s");
-	win_title(&w_found, title);
-	win_info(&w_found, info);
-	w_found.total = k;
-	w_found.top = 0;
-	f_sel = -1;
-	win_lines_changed(&w_found);
-	win_focus(&w_found);
 }
 
 /* a line of the notes, without its '\n' and cut at its wrap: its length */
@@ -844,4 +750,102 @@ void lists_init(void)
 	w_found.rclick = found_rclick;
 	w_found.key = found_key;
 	w_found.tip = found_tip;
+}
+
+/* the lines' starts, the text wrapped at a space to cols (a word longer
+   than that cut); a release's first line (its form feed) marked. The
+   count */
+long notes_wrap(const char *s, short cols, long *at)
+{
+	long n = 0;
+	const char *p = s;
+	short hang = 0;		/* the indent of the lines a long one wraps to */
+	int first = 1;		/* p starts a line of the text, not a wrapped part */
+	if (cols < 20)
+		cols = 20;
+	while (*p) {
+		const char *e = p, *cut = 0;
+		short k, room;
+		int head = *p == '\f';
+		if (head)
+			e++;
+		if (first) {
+			/* a list item's text lines up under its text, not its dash */
+			const char *q = e;
+			while (*q == ' ')
+				q++;
+			hang = (short)(q - e) + (q[0] == '-' && q[1] == ' ' ? 2 : 0);
+			if (hang > cols / 2)
+				hang = 0;
+		}
+		room = first ? cols : cols - hang;
+		k = 0;
+		while (*e && *e != '\n' && k < room) {
+			if (*e == ' ')
+				cut = e;
+			e++;
+			k++;
+		}
+		if (at)
+			at[n] = (p - s) | (head ? N_HEAD : 0) | (first ? 0 : N_HANG(hang));
+		n++;
+		first = 0;
+		if (*e && *e != '\n' && cut && cut - p > room / 3) {
+			e = cut + 1;	/* the space goes */
+		} else if (*e == '\n') {
+			e++;
+			first = 1;
+		} else if (!*e) {
+			first = 1;
+		}
+		p = e;
+	}
+	return n;
+}
+
+void found_show_notes(const char *full, const char *since, char *text, int n)
+{
+	short cols = w_found.work.w / cw - 4;
+	long k = notes_wrap(text, cols, 0);
+	long *at = malloc((k + 1) * sizeof(long));
+	char title[80], info[40];
+	if (!at) {
+		free(text);
+		alert(1, "[3][Not enough memory.][ OK ]");
+		return;
+	}
+	notes_wrap(text, cols, at);
+	free(n_text);
+	free(n_line);
+	n_text = text;
+	n_line = at;
+	n_lines = k;
+	showing_notes = 1;
+	str_copy(n_since, since, sizeof(n_since));
+	snprintf(title, sizeof(title), "What's new: %.60s", full);
+	snprintf(info, sizeof(info), "%d release%s  Backspace: back", n, n == 1 ? "" : "s");
+	win_title(&w_found, title);
+	win_info(&w_found, info);
+	w_found.total = k;
+	w_found.top = 0;
+	f_sel = -1;
+	win_lines_changed(&w_found);
+	win_focus(&w_found);
+}
+
+void found_set(const char *title, const char *info, long total)
+{
+	if (title != found_title) {
+		notes_free();
+		str_copy(found_title, title, sizeof(found_title));
+		str_copy(found_info, info, sizeof(found_info));
+		found_total = total;
+	}
+	win_title(&w_found, title);
+	win_info(&w_found, info);
+	w_found.total = total;
+	w_found.top = 0;
+	f_sel = total ? 0 : -1;
+	win_lines_changed(&w_found);
+	win_focus(&w_found);
 }
