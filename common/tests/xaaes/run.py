@@ -59,6 +59,9 @@ and its output (NatFeats, MiNT's boot messages) in WORK/hatari.log.
 --mem-prot  FreeMiNT's memory protection on (MEM_PROT=YES in mint.ini, Hatari --mmu on), for a program that
             touches its own memory from an interrupt or while another process runs (PRGFLAGS: private by
             default, bits 4-5; 0x10 is global). The default is off, as before
+--inet      MiNTnet's sockets: FreeMiNT's inet4.xdd (from the archive fetch.py took) in the mint folder, so
+            Fsocket answers and a program that waits for a network stack goes on (its connections to
+            127.0.0.1 refused, the rest unanswered: there is no interface but the loopback)
 --start P   what XAAES.CNF starts instead of C:\\PRG, e.g. "d:\\eweb.prg"
             for a release folder given as --ext2 (PRG may then be left out;
             given, it is copied to C: all the same)
@@ -94,7 +97,12 @@ BASE = os.path.join(HERE, "build", "base")
 
 def ext2_xfs():
     """FreeMiNT's ext2.xfs (68020 and up), from the archive fetch.py took"""
-    out = os.path.join(HERE, "build", "ext2.xfs")
+    return from_archive("ext2.xfs", "driver/xfs/ext2.xfs")
+
+
+def from_archive(name, member):
+    """a file of the FreeMiNT archive fetch.py took, kept in build as name"""
+    out = os.path.join(HERE, "build", name)
     if not os.path.exists(out):
         import zipfile
         zips = [f for f in os.listdir(os.path.join(HERE, "build")) if f.startswith("freemint-") and f.endswith(".zip")]
@@ -102,7 +110,7 @@ def ext2_xfs():
             sys.exit("no FreeMiNT archive in build: make base")
         with zipfile.ZipFile(os.path.join(HERE, "build", zips[0])) as z:
             with open(out, "wb") as f:
-                f.write(z.read("driver/xfs/ext2.xfs"))
+                f.write(z.read(member))
     return out
 
 
@@ -151,6 +159,8 @@ def main():
                          "MMU makes Hatari slow (the steps' waits may need to be longer)")
     ap.add_argument("--dsp", default="none", choices=["none", "dummy", "emu"],
                     help="Hatari's --dsp (default none; emu for a program that plays through the DSP)")
+    ap.add_argument("--inet", action="store_true",
+                    help="MiNTnet's sockets (FreeMiNT's inet4.xdd): a program that needs a network stack runs on")
     a = ap.parse_args()
     if not a.prg and not a.start:
         ap.error("a PRG, or --start")
@@ -251,6 +261,8 @@ def run(a):
     if a.start:
         first = a.start
     img2 = None
+    if a.inet:
+        shutil.copy(from_archive("inet4.xdd", "driver/xdd/inet4.xdd"), os.path.join(mintdir, ver, "inet4.xdd"))
     if a.ext2:
         shutil.copy(ext2_xfs(), os.path.join(mintdir, ver, "ext2.xfs"))
         img2 = os.path.join(work, "ext2.img")
