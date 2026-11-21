@@ -700,7 +700,7 @@ int gh_whats_new(const char *full, const char *have, int max, char **text, char 
 		str_copy(err, "it has no release yet", errlen);
 		return 0;
 	}
-	if (!(*text = sb_steal(&out))) {
+	if (!(*text = out.s)) {	/* (n > 0: it holds the lines, unless memory ran out) */
 		str_copy(err, "not enough memory", errlen);
 		return -1;
 	}
