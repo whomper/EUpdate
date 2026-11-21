@@ -11,6 +11,9 @@ repository's, as the API gave it), over HTTP or TLS.
   /search/users          two owners
   /users/LOGIN/repos     LOGIN's, chunked: whomper's are the AERA family
   /repos/O/N/releases/latest
+  /repos/O/N/releases?per_page=K   the list, newest first: the latest, a
+                         draft and a pre-release (left out by EUpdate), and
+                         two older ones with Markdown notes; per_page kept
       whomper/EUpdate    v1.1: EUpdate-1.1.zip (tests/data/good.zip) and EUPDATE.HYP
                          (the family's others: the same files, their own tags)
       whomper/EDOS       no release (404, and the repository is there)
@@ -86,6 +89,21 @@ def files_of(full, tag):
     if full in ("whomper/ECal", "whomper/EContact", "whomper/EHypView"):
         names += [stem + ".ACC", st + ".ACC"]
     return [(n, ZIP if n.endswith(".zip") else HYP) for n in names]
+
+
+def releases(full, tag, per_page):
+    """the list, newest first, as GitHub gives it: a draft and a pre-release
+    on top (EUpdate leaves them out, as releases/latest does), the latest,
+    then v1.0.1 and v1.0 with Markdown notes"""
+    latest = release(full, tag)
+    draft = dict(latest, tag_name="v9.9", name="draft", draft=True, body="not yet")
+    pre = dict(latest, tag_name="v2.0-beta", name="beta", prerelease=True, body="try it")
+    older = [dict(latest, tag_name="v1.0.1", name="%s 1.0.1" % full.split("/")[1], assets=[],
+                  published_at="2026-10-10T09:00:00Z",
+                  body="## Fixes\r\n\r\n* **Faster** [unzip](https://x/1)\r\n* `^D` again\r\n"),
+             dict(latest, tag_name="v1.0", name="v1.0", assets=[], published_at="2026-10-01T09:00:00Z",
+                  body="")]
+    return ([draft, pre, latest] + older)[:per_page]
 
 
 def release(full, tag):
@@ -187,6 +205,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(302, b"", "text/html", extra=(("Location", "/dl/%s?%s" % (p[5], SIGNED)),))
             if full == "whomper/Limit":
                 return self.send(403, {"message": "API rate limit exceeded"})
+            if full in TAGS and len(p) == 4:
+                per = int(dict(kv.partition("=")[::2] for kv in query.split("&") if kv).get("per_page", "30"))
+                return self.send(200, releases(full, TAGS[full], per), chunked=True)
             if full in TAGS:
                 return self.send(200, release(full, TAGS[full]))
             return self.send(404, {"message": "Not Found"})

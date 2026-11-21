@@ -514,3 +514,193 @@ int gh_download(const char *full, const GHASSET *a, SBUF *out, long max, char *e
 	}
 	return 1;
 }
+
+/* ---------------- what is new: the releases' notes ---------------- */
+
+/* the end of a link's or an image's text at s (just past its '['), when
+   "](" and a ')' follow on the line: the ']', else 0 */
+static char *link_end(char *s)
+{
+	char *e = s;
+	while (*e && *e != '\n' && *e != ']')
+		e++;
+	if (*e != ']' || e[1] != '(')
+		return 0;
+	if (!strchr(e + 2, ')') || (strchr(e + 2, '\n') && strchr(e + 2, '\n') < strchr(e + 2, ')')))
+		return 0;
+	return e;
+}
+
+long gh_plain(char *s)
+{
+	char *r = s, *w = s;
+	int blank = 1;		/* the last line written was blank (or none yet) */
+	while (*r) {
+		char *line = w, *e;
+		int n = 0;
+		/* the line's start: its indent, a heading's #s, a list's mark, a quote's > */
+		while (*r == ' ' || *r == '\t') {
+			if (n < 6)
+				*w++ = ' ', n++;
+			r++;
+		}
+		if (*r == '#') {
+			e = r;
+			while (*e == '#')
+				e++;
+			if (*e == ' ' || *e == '\t' || *e == '\n' || *e == '\r' || !*e) {
+				r = e;
+				while (*r == ' ' || *r == '\t')
+					r++;
+			}
+		} else if (*r == '>') {
+			r++;
+			if (*r == ' ')
+				r++;
+		} else if ((*r == '*' || *r == '+' || *r == '-') && (r[1] == ' ' || r[1] == '\t')) {
+			/* a rule (--- or * * *) is no list mark */
+			*w++ = '-';
+			*w++ = ' ';
+			r += 2;
+		}
+		/* a rule line: ---, ***, ___ */
+		e = r;
+		while (*e == '-' || *e == '*' || *e == '_' || *e == ' ')
+			e++;
+		if ((*e == '\n' || *e == '\r' || !*e) && e - r >= 3 && (*r == '-' || *r == '*' || *r == '_')) {
+			/* (gone whole, no blank line for it) */
+			w = line;
+			r = *e == '\r' ? e + 1 : e;
+			if (*r == '\n')
+				r++;
+			continue;
+		}
+		/* the rest of the line, its marks taken out */
+		while (*r && *r != '\n') {
+			if (*r == '\r') {
+				r++;
+			} else if (r[0] == '<' && r[1] == '!' && r[2] == '-' && r[3] == '-') {
+				char *c = strstr(r + 4, "-->");
+				r = c ? c + 3 : r + strlen(r);
+			} else if ((r[0] == '*' && r[1] == '*') || (r[0] == '_' && r[1] == '_') || (r[0] == '~' && r[1] == '~')) {
+				r += 2;
+			} else if (*r == '`') {
+				r++;
+			} else if ((*r == '[' || (r[0] == '!' && r[1] == '[')) && (e = link_end(r + (*r == '!') + 1)) != 0) {
+				char *t = r + (*r == '!') + 1;
+				memmove(w, t, e - t);	/* w <= t: in place */
+				w += e - t;
+				r = strchr(e, ')') + 1;
+			} else {
+				*w++ = *r++;
+			}
+		}
+		if (*r == '\n')
+			r++;
+		/* trailing spaces off; a blank line kept only after a line of text */
+		while (w > line && w[-1] == ' ')
+			w--;
+		if (w == line) {
+			if (!blank)
+				*w++ = '\n';
+			blank = 1;
+		} else {
+			*w++ = '\n';
+			blank = 0;
+		}
+	}
+	/* no blank lines at the end */
+	while (w > s && w[-1] == '\n' && (w - 1 == s || w[-2] == '\n'))
+		w--;
+	*w = 0;
+	return w - s;
+}
+
+#define NOTEMAX 32000L		/* of one release's notes: GitHub allows 125,000 */
+
+int gh_whats_new(const char *full, const char *have, int max, char **text, char *err, int errlen)
+{
+	char path[160], key[24], tag[40], name[64], date[24];
+	char *body;
+	SBUF b, out;
+	JSON js;
+	int st, n = 0;
+	*text = 0;
+	if (!gh_valid_full(full)) {
+		str_copy(err, "not a repository's name", errlen);
+		return -1;
+	}
+	if (!(body = malloc(NOTEMAX))) {
+		str_copy(err, "not enough memory", errlen);
+		return -1;
+	}
+	snprintf(path, sizeof(path), "/repos/%s/releases?per_page=%d", full, max);
+	sb_init(&b);
+	sb_init(&out);
+	st = ask(path, HTTP_GZIP, &b, MAXANSWER, err, errlen);
+	if (st == 404) {
+		str_copy(err, "GitHub has no such repository", errlen);
+		st = -1;
+	}
+	if (st < 0) {
+		sb_free(&b);
+		free(body);
+		return -1;
+	}
+	json_init(&js, b.s, b.len);
+	if (json_array(&js))
+		while (n < max && json_next(&js)) {
+			int skip = 0;
+			tag[0] = name[0] = date[0] = body[0] = 0;
+			if (!json_object(&js)) {
+				json_skip(&js);
+				continue;
+			}
+			while (json_key(&js, key, sizeof(key))) {
+				if (!strcmp(key, "tag_name"))
+					json_string(&js, tag, sizeof(tag));
+				else if (!strcmp(key, "name"))
+					json_string(&js, name, sizeof(name));
+				else if (!strcmp(key, "published_at"))
+					json_string(&js, date, sizeof(date));
+				else if (!strcmp(key, "body"))
+					json_string(&js, body, NOTEMAX);
+				else if (!strcmp(key, "draft") || !strcmp(key, "prerelease"))
+					skip |= json_bool(&js);
+				else
+					json_skip(&js);
+			}
+			/* (as releases/latest: no drafts, no pre-releases) */
+			if (skip || !tag[0])
+				continue;
+			if (have && have[0] && !strcmp(tag, have))
+				break;
+			date[10] = 0;
+			if (name[0] && strcmp(name, tag))
+				sb_printf(&out, "%s%s - %s (%s)\n", n ? "\n" : "", tag, name, date);
+			else
+				sb_printf(&out, "%s%s (%s)\n", n ? "\n" : "", tag, date);
+			gh_plain(body);
+			sb_adds(&out, body[0] ? body : "(no notes)");
+			sb_addc(&out, '\n');
+			n++;
+		}
+	sb_free(&b);
+	free(body);
+	if (js.err) {
+		sb_free(&out);
+		str_copy(err, "GitHub's answer didn't make sense", errlen);
+		return -1;
+	}
+	if (!n) {
+		sb_free(&out);
+		str_copy(err, have && have[0] ? "nothing newer than the release you have" : "it has no release yet",
+			 errlen);
+		return 0;
+	}
+	if (!(*text = sb_steal(&out))) {
+		str_copy(err, "not enough memory", errlen);
+		return -1;
+	}
+	return n;
+}

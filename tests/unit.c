@@ -877,12 +877,35 @@ static void test_download_mem(void)
 	free(ans);
 }
 
+/* GitHub's Markdown as plain text (What's new..., gh_plain) */
+static void plain_is(const char *md, const char *want)
+{
+	char buf[512];
+	str_copy(buf, md, sizeof(buf));
+	gh_plain(buf);
+	CHECK(!strcmp(buf, want));
+	if (strcmp(buf, want))
+		printf("  got \"%s\"\n  want \"%s\"\n", buf, want);
+}
+
+static void test_plain(void)
+{
+	plain_is("## What's new\r\n\r\n* **Fast** scrolling\r\n- `^L` shows [the notes](https://x/y)\r\n",
+		 "What's new\n\n- Fast scrolling\n- ^L shows the notes\n");
+	plain_is("Line one\n\n\n\nLine two\n\n", "Line one\n\nLine two\n");
+	plain_is("<!-- hidden\nstill hidden -->Shown\n---\n> quoted\n", "Shown\nquoted\n");
+	plain_is("  + nested ~~old~~ new\n![logo](a.png) and [x] alone\n", "  - nested old new\nlogo and [x] alone\n");
+	plain_is("#hashtag stays, snake_case_name stays, 2 * 3\n", "#hashtag stays, snake_case_name stays, 2 * 3\n");
+	plain_is("", "");
+}
+
 int main(void)
 {
 	pf_init();
 	test_json();
 	test_http();
 	test_gh();
+	test_plain();
 	test_zip();
 	test_tlsovl();
 	test_download_mem();

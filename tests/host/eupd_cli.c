@@ -11,6 +11,7 @@
  *     owner LOGIN           an owner's repositories
  *     latest OWNER/NAME     its latest release and its files
  *     get OWNER/NAME DIR [FILES]   download it into DIR (FILES: "*.PRG,...")
+ *     notes OWNER/NAME [HAVE]      what is new since the release HAVE
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,6 +88,14 @@ int main(int argc, char **argv)
 		}
 		if (n < 0)
 			str_copy(err, r->note, sizeof(err));
+	} else if (!strcmp(argv[0], "notes")) {
+		char *text;
+		n = gh_whats_new(argv[1], argc >= 3 ? argv[2] : "", 10, &text, err, sizeof(err));
+		if (n > 0)
+			printf("%d\n%s", n, text);
+		else if (n == 0)
+			printf("none: %s\n", err);
+		free(text);
 	} else {
 		return 2;
 	}
