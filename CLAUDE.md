@@ -126,8 +126,8 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
   the latest changes of a specific release when you hover on that release ID in the list view";
   his choices, put to him: a hint in the row's tip, since a tip is two lines of 60 (guidelines
   3.4), and **What's new...** (^L, Get info's button, the row's menu) showing the notes in the
-  lower pane, Backspace back to Find's): `gh_whats_new`, `found_show_notes`. Maintenance is back
-  on once it is released.
+  lower pane, Backspace back to Find's): `gh_whats_new`, `found_show_notes`. Done in 2.13
+  (the hub's go, 21 Nov 2026), and maintenance is back on.
 - Speed: a change ships only if no row of the paired run (`make prof`, padded to the shipped
   places by common's `profpad.py`) is slower by more than one tick (AERA-Atari 098183d); a
   change that moves code gets a pad round first (`tools/objpad.py`, `atari/pads.txt` against the
