@@ -767,7 +767,8 @@ int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 	else
 		snprintf(fl_l2, sizeof(fl_l2), "%.*s", is_new ? 62 : 44, r->note[0] ? r->note : "Its releases aren't known yet");
 	if (r->have[0])
-		snprintf(fl_l3, sizeof(fl_l3), "Downloaded %.20s on %s", r->have, r->have_date);
+		snprintf(fl_l3, sizeof(fl_l3), "Downloaded %.20s%s%s", r->have, r->have_date[0] ? " on " : "",
+			 r->have_date);
 	else
 		str_copy(fl_l3, "Nothing downloaded yet", sizeof(fl_l3));
 	nticks = 0;

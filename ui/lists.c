@@ -386,8 +386,8 @@ static int repos_tip(WIN *w, short mx, short my, char *out, int size)
 	else if (r->latest[0])
 		/* (What's new: Erez, 21 Nov 2026; the tip's two lines of 60, 3.4) */
 		snprintf(out, size, "%s: %s published on %s|%s%s%s. What's new: ^L", r->full, r->latest,
-			 r->latest_date, r->have[0] ? r->have : "", r->have[0] ? " downloaded on " :
-			 "Nothing downloaded yet", r->have_date);
+			 r->latest_date, r->have[0] ? r->have : "", !r->have[0] ? "Nothing downloaded yet" :
+			 r->have_date[0] ? " downloaded on " : " downloaded", r->have[0] ? r->have_date : "");
 	else
 		snprintf(out, size, "%s|Into %s", r->full, r->folder);
 	return 1;
