@@ -105,7 +105,8 @@ def have(hd):
 def run(hd, tag, stage):
     """EUPDFB.PRG started from the desktop's auto, until EUpdate has tag"""
     m = rig.machine("FireBee:16", work)
-    r = rig.Rig(work, m, display=os.environ.get("XDISPLAY", ":99"), auto="C:\\EUPDFB.PRG")
+    r = rig.Rig(work, m, display=os.environ.get("XDISPLAY", ":99"), auto="C:\\EUPDFB.PRG",
+                extra=m.network(rate=int(os.environ.get("RATE", "100000"))))
     print("on", m.describe(), flush=True)
     try:
         for _ in range(60):
