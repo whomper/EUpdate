@@ -201,14 +201,17 @@ def main():
               "2.14's EUPDFB.PRG gone, EUPDATE.PRG in its place")
         check(os.path.exists(ci_path(hd, "ehypview.acc")) and
               os.path.getsize(ci_path(hd, "ehypview.acc")) ==
-              os.path.getsize(ci_path(os.path.join(cache, "EHypView", tags["EHypView"]), "ehypview.acc")),
+              os.path.getsize(ci_path(os.path.join(cache, "EHypView", tags["EHypView"]), "ehypview.acc")) +
+              (len(MARK) if FB else 0),
               "EHYPVIEW.ACC into C:\\, by its rule")
         st = os.path.exists(ci_path(hd, "NET/EFTP/eftpst.prg"))
         if one_for_all:
-            check(os.path.exists(ci_path(hd, "NET/EFTP/tls.ovl")) and
-                  os.path.getsize(ci_path(hd, "NET/EFTP/tls.ovl")) ==
-                  os.path.getsize(ci_path(os.path.join(cache, "EFTP", tags["EFTP"]), "tls.ovl")),
-                  "EFTP %s: TLS.OVL beside EFTP.PRG" % tags["EFTP"])
+            ovl = "NET/EFTP/tlsfb.ovl" if FB else "NET/EFTP/tls.ovl"   # the FireBee's package: TLSFB.OVL
+            check(os.path.exists(ci_path(hd, ovl)) and
+                  os.path.getsize(ci_path(hd, ovl)) ==
+                  os.path.getsize(ci_path(os.path.join(cache, "EFTP", tags["EFTP"]), "tls.ovl")) +
+                  (len(MARK) if FB else 0),
+                  "EFTP %s: %s beside EFTP.PRG" % (tags["EFTP"], os.path.basename(ovl).upper()))
             check(not st, "EFTP %s: the hand-copied EFTPST.PRG replaced" % tags["EFTP"])
             log = open(ci_path(hd, "eupdate.log"), errors="replace").read()
             check("eftpst.prg replaced by eftp.prg" in log.lower(), "and the log says so")
