@@ -9,10 +9,9 @@ GitHub's, the files from a second host at signed addresses, idle
 connections closed), the network at a NetUSBee's pace through FAKESTNG,
 and the rules EUpdate suggests: the ST editions left out, the accessories
 into C:\\. The check at the start downloads all that is new (FETCH=1).
-Each release has the FireBee's package too (name-x.y-firebee.zip, the same
-names; the guidelines 7.4): on a Falcon it is never taken; on FireBee:16
-(machines.py's stand-in, the _CF_ cookie) it alone is, and the loose files
-aren't. There EUPDATE.PRG is make cftest's (without its FireBee alert),
+Each release is two zips (name-x.y.zip and name-x.y-firebee.zip, the same
+names; the guidelines 7.4): on a Falcon the FireBee's is never taken; on
+FireBee:16 (machines.py's stand-in, the _CF_ cookie) it alone is. There EUPDATE.PRG is make cftest's (without its FireBee alert),
 over plain HTTP, PLAIN=1 for tests/family_server.py: the stand-in, a 68060
 without the 060 package, runs neither TLSFB.OVL's ColdFire code nor
 TLS.OVL's 64-bit multiplies (exception 61 at the first handshake).
@@ -129,13 +128,14 @@ def main():
     os.makedirs(os.path.join(hd, "NET", "EFTP"))
     with open(os.path.join(hd, "NET", "EFTP", "EFTPST.PRG"), "wb") as f:
         f.write(b"by hand")
-    eftp = [n.upper() for n in os.listdir(os.path.join(cache, "EFTP", tags["EFTP"]))]  # any case (6.6)
+    eftp = [n.upper() for n in os.listdir(os.path.join(cache, "EFTP", "ref"))]  # any case (6.6)
     one_for_all = "TLS.OVL" in eftp and "EFTPST.PRG" not in eftp
     with open(os.path.join(hd, "eupdate.inf"), "w", newline="") as f:
         f.write("[OPTIONS]\r\nNATFEATS=1\r\nCHECK=1\r\nFETCH=1\r\nLOG=1\r\nAPIBASE=%s://127.0.0.1:%d\r\n" % ("http" if FB else "https", PORT))
         for repo, have in FOLLOW:
-            f.write("[REPO]\r\nREPO=whomper/%s\r\nFOLDER=C:\\NET\\%s\r\nUNZIP=1\r\nHAVE=%s\r\n" %
-                    (repo, repo.upper()[:8], tags[repo] if have else ""))
+            # EHypView's UNZIP off: an AERA release of zips alone is unpacked anyway
+            f.write("[REPO]\r\nREPO=whomper/%s\r\nFOLDER=C:\\NET\\%s\r\nUNZIP=%d\r\nHAVE=%s\r\n" %
+                    (repo, repo.upper()[:8], repo != "EHypView", tags[repo] if have else ""))
             if repo in SKIP:
                 f.write("RULE=%s;-\r\n" % SKIP[repo])
             if repo in ACCS:
@@ -191,9 +191,8 @@ def main():
                 wrong.append(n)
         check(not wrong, "every file from the %s package%s" % ("FireBee's" if FB else "standard",
                                                                (": not " + " ".join(wrong)) if wrong else ""))
-        check(os.path.exists(ci_path(hd, "NET/EMAIL/tlsfb.ovl")) == FB and
-              os.path.exists(ci_path(hd, "NET/EMAIL/tls.ovl")) != FB,
-              "EMail's TLS: %s" % ("TLSFB.OVL, no TLS.OVL" if FB else "TLS.OVL, no TLSFB.OVL"))
+        check(FB == (open(ci_path(hd, "NET/EMAIL/tls.ovl"), "rb").read(len(MARK)) == MARK),
+              "EMail's TLS.OVL the %s" % ("FireBee's" if FB else "standard"))
         check(FB == (open(ci_path(hd, "NET/EPDF/econvert/econvert.prg"), "rb").read(len(MARK)) == MARK),
               "EPDF's ECONVERT\\ECONVERT.PRG from the zip's folder, the %s" % ("FireBee's" if FB else "standard"))
         check(not os.path.exists(ci_path(hd, "NET/EUPDATE/eupdfb.prg")) and
@@ -201,15 +200,15 @@ def main():
               "2.14's EUPDFB.PRG gone, EUPDATE.PRG in its place")
         check(os.path.exists(ci_path(hd, "ehypview.acc")) and
               os.path.getsize(ci_path(hd, "ehypview.acc")) ==
-              os.path.getsize(ci_path(os.path.join(cache, "EHypView", tags["EHypView"]), "ehypview.acc")) +
+              os.path.getsize(ci_path(os.path.join(cache, "EHypView", "ref"), "ehypview.acc")) +
               (len(MARK) if FB else 0),
               "EHYPVIEW.ACC into C:\\, by its rule")
         st = os.path.exists(ci_path(hd, "NET/EFTP/eftpst.prg"))
         if one_for_all:
-            ovl = "NET/EFTP/tlsfb.ovl" if FB else "NET/EFTP/tls.ovl"   # the FireBee's package: TLSFB.OVL
+            ovl = "NET/EFTP/tls.ovl"
             check(os.path.exists(ci_path(hd, ovl)) and
                   os.path.getsize(ci_path(hd, ovl)) ==
-                  os.path.getsize(ci_path(os.path.join(cache, "EFTP", tags["EFTP"]), "tls.ovl")) +
+                  os.path.getsize(ci_path(os.path.join(cache, "EFTP", "ref"), "tls.ovl")) +
                   (len(MARK) if FB else 0),
                   "EFTP %s: %s beside EFTP.PRG" % (tags["EFTP"], os.path.basename(ovl).upper()))
             check(not st, "EFTP %s: the hand-copied EFTPST.PRG replaced" % tags["EFTP"])

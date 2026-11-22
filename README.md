@@ -21,14 +21,14 @@ them with a click or on a schedule.
 
 ## Getting started
 
-Download the **[latest release](https://github.com/whomper/EUpdate/releases/latest)**, file by file
-or all together in the zip; on a FireBee, the `-firebee.zip`, the same files built for its ColdFire:
+Download the **[latest release](https://github.com/whomper/EUpdate/releases/latest)**: `eupdate-x.y.zip`
+for a Falcon or a TT, `eupdate-x.y-firebee.zip` for the FireBee (the same files built for its ColdFire),
+and unpack it into a folder of its own:
 
 | File | What it is |
 |---|---|
-| `EUPDATE.PRG` | the program (68030): a Falcon or a TT; in the FireBee's package, the FireBee's |
+| `EUPDATE.PRG` | the program |
 | `TLS.OVL` | its TLS, the AERA family's: needed to reach GitHub |
-| `TLSFB.OVL` | in the FireBee's package: its ColdFire build, loaded there instead |
 | `CACERT.PEM`, `ROOTS.DAT` | the root certificates |
 | `EUPDATE.HYP` | the user guide; the Help key opens it |
 | `DEFAULTS.INF` | what it follows on its first start: the AERA programs |

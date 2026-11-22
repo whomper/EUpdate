@@ -18,10 +18,11 @@ import random
 import sys
 import zipfile
 
-# repo: (tag, [(name in the zip, size in KB, packs?)]); the release carries
-# the zip and each file beside it, as GitHub has them, and the FireBee's
-# package, name-x.y-firebee.zip: the same names with other bytes, TLSFB.OVL
-# for TLS.OVL (the guidelines 7.4, Erez 22 Nov 2026), only in its zip
+# repo: (tag, [(name in the zip, size in KB, packs?)]); a release is two
+# zips, as the guidelines' 7.4 has them (Erez 22 Nov 2026): name-x.y.zip
+# and name-x.y-firebee.zip, the same names with other bytes, the FireBee's
+# first; no loose files. Each file as the standard zip has it is in
+# CACHE/<Repo>/ref/, for the tests (not served)
 FAMILY = {
     "ECal": ("v9.1", [("ecal.acc", 300, 1), ("ecalst.acc", 180, 1), ("ecal.prg", 300, 1), ("ecal.hyp", 40, 1),
                       ("ecal.ref", 1, 1), ("ecal.rsc", 5, 1), ("cacert.pem", 182, 1), ("roots.dat", 52, 0),
@@ -67,16 +68,17 @@ def data(rnd, kb, packs):
 
 def make(cache):
     for repo, (tag, files) in FAMILY.items():
-        d = os.path.join(cache, repo, tag)
+        d, ref = os.path.join(cache, repo, tag), os.path.join(cache, repo, "ref")
         os.makedirs(d, exist_ok=True)
+        os.makedirs(ref, exist_ok=True)
         rnd = random.Random(repo)         # the same bytes each time
         z = os.path.join(d, "%s-%s.zip" % (repo.lower(), tag[1:]))
         with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED) as zf:
             for name, kb, packs in files:
                 b = data(rnd, kb, packs)
                 zf.writestr(name, b, zipfile.ZIP_DEFLATED if packs else zipfile.ZIP_STORED)
-                if "/" not in name:       # beside the zip too, as each release has them
-                    with open(os.path.join(d, name), "wb") as f:
+                if "/" not in name:
+                    with open(os.path.join(ref, name), "wb") as f:
                         f.write(b)
         # the FireBee's, uploaded before the standard zip (old EUpdates
         # take every zip, in the release's order: the last one wins)
@@ -84,7 +86,7 @@ def make(cache):
         fz = os.path.join(d, "%s-%s-firebee.zip" % (repo.lower(), tag[1:]))
         with zipfile.ZipFile(fz, "w", zipfile.ZIP_DEFLATED) as zf:
             for name, kb, packs in files:
-                zf.writestr("tlsfb.ovl" if name == "tls.ovl" else name, FB_MARK + data(rnd, kb, packs),
+                zf.writestr(name, FB_MARK + data(rnd, kb, packs),
                             zipfile.ZIP_DEFLATED if packs else zipfile.ZIP_STORED)
         with open(os.path.join(cache, repo, "TAG"), "w") as f:
             f.write(tag + "\n")

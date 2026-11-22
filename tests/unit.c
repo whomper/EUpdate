@@ -920,6 +920,13 @@ static void test_firebee(void)
 	CHECK(up_fb_package("ecal-2.60-firebee.zip") && up_fb_package("X/EWEB-1.0-FIREBEE.ZIP") &&
 	      !up_fb_package("ecal-2.60.zip") && !up_fb_package("firebee.zip.txt"));
 	memset(&r, 0, sizeof(r));
+	/* another author's: as before, both zips, whatever the machine */
+	str_copy(r.full, "someone/Tool", sizeof(r.full));
+	CHECK(!up_aera(&r));
+	up_firebee = 1;
+	CHECK(up_chosen(&r, &e, which) == 2 && which[0] == 3 && which[1] == 4);
+	str_copy(r.full, "WHOMPER/EUpdate", sizeof(r.full));
+	CHECK(up_aera(&r));
 	up_firebee = 0;
 	CHECK(up_chosen(&r, &e, which) == 1 && which[0] == 4);		/* the standard zip */
 	str_copy(r.files, "*.zip", sizeof(r.files));
@@ -932,6 +939,7 @@ static void test_firebee(void)
 	str_copy(r.rule[0].folder, "-", sizeof(r.rule[0].folder));
 	CHECK(up_chosen(&r, &e, which) == 1 && which[0] == 4);		/* a rule's "-": as elsewhere */
 	memset(&r, 0, sizeof(r));
+	str_copy(r.full, "whomper/EUpdate", sizeof(r.full));
 	/* no standard zip: the loose files elsewhere, as today */
 	e = release_of(loose, 4);
 	up_firebee = 0;
@@ -971,6 +979,39 @@ static void test_firebee(void)
 	http_close_all();
 	CHECK(pf_size("build/unit-fb/eupdfb.prg") < 0);
 	CHECK(!strcmp(replaced_old, "eupdfb.prg") && !strcmp(replaced_now, "eupdate.prg"));
+
+	/* an AERA release of zips alone: unpacked though UNZIP is off
+	   (tests/data/onefor.zip: ECAL.ACC, TLS.OVL, ECAL.HYP, icons/ECAL.RSC),
+	   and the TLSFB.OVL beside the TLS.OVL written goes */
+	{
+		static const char *const zips[] = { "ecal-3.0-firebee.zip", "ecal-3.0.zip" };
+		long n;
+		char *z = load("tests/data/onefor.zip", &n), *ans = malloc(n + 80);
+		int k = snprintf(ans, 80, "HTTP/1.1 200 OK\r\nContent-Length: %ld\r\n\r\n", n);
+		memcpy(ans + k, z, n);
+		CHECK(pf_save("build/unit-fb/tlsfb.ovl", "old", 3) == 0);
+		memset(&r, 0, sizeof(r));
+		str_copy(r.full, "whomper/ECal", sizeof(r.full));
+		str_copy(r.folder, dir, sizeof(r.folder));
+		e = release_of(zips, 2);
+		e.asset[0].size = e.asset[1].size = n;
+		up_firebee = 0;
+		fuzz_net_set((unsigned char *)ans, k + n);
+		CHECK(up_install(&r, &e));
+		http_close_all();
+		CHECK(pf_size("build/unit-fb/ECAL.ACC") == 256 && pf_size("build/unit-fb/ecal-3_0.zip") < 0);
+		CHECK(pf_size("build/unit-fb/tlsfb.ovl") < 0);
+		/* another author's: as UNZIP says */
+		str_copy(r.full, "someone/ECal", sizeof(r.full));
+		e = release_of(zips + 1, 1);
+		e.asset[0].size = n;
+		fuzz_net_set((unsigned char *)ans, k + n);
+		CHECK(up_install(&r, &e));
+		http_close_all();
+		CHECK(pf_size("build/unit-fb/ecal-3_0.zip") == n);
+		free(ans);
+		free(z);
+	}
 	up_replaced = 0;
 	str_copy(gh_base, "https://api.github.com", sizeof(gh_base));
 	rm_rf(dir);

@@ -30,17 +30,15 @@ runs.
 
 ## Installing
 
-The files are in the latest release on EUpdate's GitHub page
-(github.com/whomper/EUpdate/releases), each on its own and all together
-in `EUPDATE-x.y.zip`; on a FireBee, take `EUPDATE-x.y-FIREBEE.ZIP`
-instead, the same files built for its ColdFire. Copy them into a folder
-of their own, on any drive:
+The latest release on EUpdate's GitHub page
+(github.com/whomper/EUpdate/releases) is two zips: `EUPDATE-x.y.zip` for
+a Falcon or a TT, and `EUPDATE-x.y-FIREBEE.ZIP` for the FireBee, the same
+files built for its ColdFire. Unpack the one for your machine into a
+folder of its own, on any drive:
 
 ```
-EUPDATE.PRG   the program: for a Falcon or a TT, or in the FireBee's package
-              for the FireBee
+EUPDATE.PRG   the program
 TLS.OVL       its TLS, loaded when EUpdate first talks to GitHub
-TLSFB.OVL     the same in the FireBee's package, loaded there instead
 EUPDATE.HYP   this guide, for EHypView or ST-Guide (the Help key opens it)
 DEFAULTS.INF  what EUpdate follows on its first start
 CACERT.PEM    the root certificates GitHub's are checked against
@@ -214,19 +212,22 @@ copy it again from EUpdate's latest release.
 
 ### The FireBee's package
 
-An AERA release has two packages: `NAME-x.y.zip`, for the ST, the TT and
+An AERA release is two packages: `NAME-x.y.zip`, for the ST, the TT and
 the Falcon, and `NAME-x.y-firebee.zip`, the very same files built for
-the FireBee's ColdFire. EUpdate takes the one for the machine it runs on,
-with no rule:
+the FireBee's ColdFire. For AERA's repositories (`whomper/...`) EUpdate
+takes the one for the machine it runs on, with no rule:
 
 - On a FireBee it takes the FireBee's package alone, whatever **Files**
-  says; on any other Atari, never. A release without one (another
-  author's, or an older one) is taken as before.
+  says; on any other Atari, never. An AERA release without one (an
+  older one) is taken as before.
+- A release of zips alone is unpacked, even with **Unpack** off.
 - Both packages have the same names, so either replaces the files in
   place.
-- The FireBee editions of before (`EUPDFB.PRG` and the like) go once the
-  program of the standard name is written beside them, and EUpdate says
-  which to start from now on.
+- The FireBee editions of before (`EUPDFB.PRG`, `TLSFB.OVL` and the like)
+  go once the file of the standard name is written beside them, and
+  EUpdate says which program to start from now on.
+
+Every other repository is taken exactly as its release has it.
 
 ## Checking and updating
 

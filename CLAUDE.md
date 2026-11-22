@@ -129,15 +129,19 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
   lower pane, Backspace back to Find's): `gh_whats_new`, `found_show_notes`. Done in 2.13
   (the hub's go, 21 Nov 2026), and maintenance is back on.
 - Lifted for one item (Erez, 22 Nov 2026, through the hub: "Make the other apps native on the
-  FireBee too", then "Shall we just create two packages, one for FireBee and the other for
-  standard ST? ... EUpdate can then download the right package based on the running platform",
-  the same names in both; guidelines 7.4, AERA-Atari cc13e75): `up_chosen` takes a release's
-  `-firebee.zip` alone where `_CF_` is set (`up_firebee`), and never elsewhere; a release without
-  one as before. `make dist` makes `eupdate-x.y-firebee.zip` (EUPDATE.PRG the ColdFire build,
-  TLSFB.OVL). `retire()` removes 2.10-2.14's EUPDFB.PRG (and EWeb's, EPlay's *FB.PRG) once the
-  standard name is written and the release no longer has it, with an alert on the FireBee.
-  Rig: `family_test.py WORK FireBee:16` (`make cftest`: EUPDATE.PRG without its FireBee alert;
-  plain HTTP, the stand-in runs no TLS) and on a Falcon; the stand-ins carry a FireBee package.
+  FireBee too", then two packages, "Remove all files from root and just have two ZIP files, one for
+  each platform", the same names, and "this special FireBee treatment is just for AERA
+  applications"; guidelines 7.4, AERA-Atari 8c94c08). For a `whomper/` repository (`up_aera`),
+  `up_chosen` takes the `-firebee.zip` alone where `_CF_` is set (`up_firebee`) and never
+  elsewhere, and a release of zips alone is unpacked whatever UNZIP says; every other repository
+  as before. `retire()` removes EUPDFB.PRG, EWEBFB.PRG, EPLAYFB.PRG and TLSFB.OVL once the
+  standard name is written and the release no longer has them, with an alert on the FireBee.
+  EUpdate's own release is two zips, the FireBee's uploaded first (2.14 and older unpack every zip
+  in the release's order). **2.15 is the bridge**: its FireBee zip carries EUPDFB.PRG and TLSFB.OVL
+  once more, so a FireBee on 2.14's EUPDFB.PRG (which unpacks both zips) becomes 2.15; built on
+  common 173309d0, whose ColdFire build loads TLSFB.OVL. 2.16, on 8c94c08's common, drops them.
+  Rig: `family_test.py WORK FireBee:16` (`make cftest`; plain HTTP, the stand-in runs no TLS) and
+  on a Falcon; the stand-ins are zips only.
 - Speed: a change ships only if no row of the paired run (`make prof`, padded to the shipped
   places by common's `profpad.py`) is slower by more than one tick (AERA-Atari 098183d); a
   change that moves code gets a pad round first (`tools/objpad.py`, `atari/pads.txt` against the
@@ -218,8 +222,10 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
   tlsfb.ovl (common's `tests/firebee` checks that choice); the stand-in, a 68060, runs no
   ColdFire code (an illegal instruction at once: AERA-Atari's `common/tests/coldfire` runs
   common's under qemu).
-- **A release** carries `EUPDATE.PRG`, `EUPDFB.PRG`, `TLS.OVL` (common's, copied), `TLSFB.OVL`, `EUPDATE.HYP`, `CACERT.PEM`,
-  `ROOTS.DAT`, `DEFAULTS.INF` and the icon (`icons/`, `make icons`), from `make dist`. `DEFAULTS.INF` (Erez, 24 Oct 2026) is
+- **A release** is two zips from `make dist` (the guidelines 7.4): `eupdate-x.y.zip` with
+  `EUPDATE.PRG`, `TLS.OVL` (common's, copied), and `eupdate-x.y-firebee.zip` with the ColdFire
+  `EUPDATE.PRG` and (2.15, the bridge) `EUPDFB.PRG` and `TLSFB.OVL`; both with `EUPDATE.HYP`,
+  `CACERT.PEM`, `ROOTS.DAT`, `DEFAULTS.INF` and the icon (`icons/`, `make icons`). `DEFAULTS.INF` (Erez, 24 Oct 2026) is
   what a first start follows, with no `EUPDATE.INF` yet: the AERA programs into `C:\AERA\NAME`,
   accessories to `C:\`, EUpdate in its own folder (`.`) at the release's version
   (`HAVE=v@VERSION@`, filled in by make). A new AERA program is added there.

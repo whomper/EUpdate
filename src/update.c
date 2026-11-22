@@ -118,20 +118,22 @@ static int is_program(const char *name)
 int up_chosen(const REPO *r, const GHREL *rel, short *which)
 {
 	short i, n = 0, zips = 0, ovl = -1, fb = -1, prog = 0;
-	/* a release with the FireBee's package (the guidelines 7.4, Erez 22
-	   Nov 2026: "EUpdate can then download the right package based on
-	   the running platform"): on a FireBee that zip alone, elsewhere
-	   anything but it */
-	for (i = 0; up_firebee && i < rel->nasset; i++)
+	int aera = up_aera(r);
+	/* an AERA release with the FireBee's package (the guidelines 7.4,
+	   Erez 22 Nov 2026: "EUpdate can then download the right package
+	   based on the running platform", and "this special FireBee
+	   treatment is just for AERA applications"): on a FireBee that zip
+	   alone, elsewhere anything but it */
+	for (i = 0; aera && up_firebee && i < rel->nasset; i++)
 		if (up_fb_package(rel->asset[i].name) && !left_out(r, rel->asset[i].name)) {
 			which[0] = i;
 			return 1;
 		}
 	for (i = 0; i < rel->nasset; i++)
-		zips += is_zip(rel->asset[i].name) && !up_fb_package(rel->asset[i].name);
+		zips += is_zip(rel->asset[i].name) && !(aera && up_fb_package(rel->asset[i].name));
 	for (i = 0; i < rel->nasset; i++) {
 		const char *name = rel->asset[i].name;
-		if (up_fb_package(name))
+		if (aera && up_fb_package(name))
 			continue;
 		if ((r->files[0] ? listed(r->files, name) : !zips || is_zip(name)) && !left_out(r, name)) {
 			which[n++] = i;
@@ -277,6 +279,7 @@ typedef struct {
 static struct {
 	int on;
 	short nprog, nseen;
+	int unzip;			/* an AERA release of zips alone: unpacked */
 	char prog[NPROG][260];
 	char seen[NSEEN][13];
 } inst;
@@ -308,6 +311,7 @@ static const char *const st_edition[][2] = {
 	{ "eupdfb.prg", "eupdate.prg" },
 	{ "ewebfb.prg", "eweb.prg" },
 	{ "eplayfb.prg", "eplay.prg" },
+	{ "tlsfb.ovl", "tls.ovl" },
 };
 
 /* an ST edition on the disk beside the program that now takes its place,
@@ -462,7 +466,7 @@ static int file_end(void *ud, int whole)
 		cant_write(j);
 		return 1;
 	}
-	if (inst.on && inst.nprog < NPROG && is_program(j->path))
+	if (inst.on && inst.nprog < NPROG && (is_program(j->path) || !strcasecmp(base_of(j->path), "tls.ovl")))
 		str_copy(inst.prog[inst.nprog++], j->path, sizeof(inst.prog[0]));
 	return 0;
 }
@@ -516,7 +520,7 @@ int up_put(REPO *r, const char *name, const unsigned char *data, long len, char 
 	JOB j;
 	int ok;
 	job_init(&j, r);
-	if (r->unzip && is_zip(name)) {
+	if ((r->unzip || (inst.on && inst.unzip)) && is_zip(name)) {
 		say("Unpacking %s...%s", name, "");
 		ok = unzip_to(data, len, &to_disk, &j, j.err, sizeof(j.err)) >= 0;
 	} else {
@@ -532,7 +536,7 @@ int up_put_file(REPO *r, const char *name, const char *src, char *err, int errle
 	JOB j;
 	int ok;
 	job_init(&j, r);
-	if (r->unzip && is_zip(name)) {
+	if ((r->unzip || (inst.on && inst.unzip)) && is_zip(name)) {
 		say("Unpacking %s...%s", name, "");
 		ok = unzip_file(src, &to_disk, &j, j.err, sizeof(j.err)) >= 0;
 	} else {
@@ -564,6 +568,11 @@ int up_install(REPO *r, const GHREL *rel)
 	}
 	memset(&inst, 0, sizeof(inst));
 	inst.on = 1;
+	if (up_aera(r)) {
+		inst.unzip = 1;
+		for (i = 0; i < rel->nasset; i++)
+			inst.unzip &= is_zip(rel->asset[i].name);
+	}
 	for (i = 0; i < rel->nasset; i++)
 		seen(rel->asset[i].name);
 	for (i = 0; i < n; i++) {
@@ -613,4 +622,10 @@ int up_install(REPO *r, const GHREL *rel)
 int up_fb_package(const char *name)
 {
 	return wild_match("*-firebee.zip", name);
+}
+
+/* one of AERA's repositories (the guidelines 7.4: its two packages) */
+int up_aera(const REPO *r)
+{
+	return !strncasecmp(r->full, "whomper/", 8);
 }

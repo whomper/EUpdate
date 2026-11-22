@@ -47,11 +47,14 @@ const RULE *up_rule(const REPO *r, const char *name);
 void up_suggest(REPO *r, const GHREL *rel, int st_machine);
 extern int up_boot_drive;	/* 0 = A:, 2 = C: (the Atari's; for up_suggest) */
 
-/* where the _CF_ cookie is (a FireBee): up_chosen takes a release's
-   FireBee package, NAME-X.Y-firebee.zip, alone where it has one; elsewhere
+/* where the _CF_ cookie is (a FireBee): up_chosen takes an AERA
+   release's FireBee package, NAME-X.Y-firebee.zip, alone where it has one; elsewhere
    never (the guidelines 7.4) */
 extern int up_firebee;
 int up_fb_package(const char *name);
+/* AERA's (whomper/...): only its releases are told apart by package, and
+   one of zips alone is unpacked whatever r->unzip says */
+int up_aera(const REPO *r);
 
 /* name and pattern, case aside: '*' any run, '?' one character */
 int wild_match(const char *pat, const char *name);
