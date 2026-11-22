@@ -150,6 +150,7 @@ def main():
     finally:
         for s in srv:
             s.kill()
+            s.wait()
     rd = lambda n: open(ci_path(hd, n), "rb").read() if os.path.exists(ci_path(hd, n)) else None
     check(have(hd) == "v2.15", "2.14 (as EUPDFB.PRG) took 2.15")
     check(rd("eupdfb.prg") == cf_prg, "EUPDFB.PRG is 2.15's FireBee build now (the bridge)")
@@ -179,6 +180,7 @@ def main():
     finally:
         for s in srv:
             s.kill()
+            s.wait()
     check(have(hd) == "v2.16", "2.15 (as EUPDFB.PRG) took 2.16")
     check(rd("eupdate.prg") == cf_prg and rd("tls.ovl") == tls16,
           "EUPDATE.PRG and TLS.OVL the FireBee's: its zip alone")
