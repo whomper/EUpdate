@@ -128,6 +128,15 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
   3.4), and **What's new...** (^L, Get info's button, the row's menu) showing the notes in the
   lower pane, Backspace back to Find's): `gh_whats_new`, `found_show_notes`. Done in 2.13
   (the hub's go, 21 Nov 2026), and maintenance is back on.
+- Lifted for one item (Erez, 22 Nov 2026, through the hub: "Make the other apps native on the
+  FireBee too"): every app gets FireBee editions (NAMEFB.PRG, NAMEFB.ACC), and EUpdate's part is
+  the installer. A built-in, not a suggested rule (those are made only at Follow): `up_fb_kinds`,
+  `up_fb_other`, `up_fb_switch_off` in `update.c`. Where `_CF_` is set (`up_firebee`), a release's
+  FB ones of a kind (.PRG, .ACC) that has both are taken and the others left out; elsewhere the
+  other way. The other machine's accessory beside the one written is renamed .ACX. One line under
+  Get info's rules says so. Its rig: `family_test.py WORK FireBee:16` (`make cftest`: EUPDATE.PRG
+  without its FireBee alert, TLS.OVL as its TLSFB.OVL) and on a Falcon; the stand-ins carry FB
+  files.
 - Speed: a change ships only if no row of the paired run (`make prof`, padded to the shipped
   places by common's `profpad.py`) is slower by more than one tick (AERA-Atari 098183d); a
   change that moves code gets a pad round first (`tools/objpad.py`, `atari/pads.txt` against the

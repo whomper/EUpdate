@@ -19,31 +19,41 @@ import sys
 import zipfile
 
 # repo: (tag, [(name in the zip, size in KB, packs?)]); the release carries
-# the zip and each file beside it, as GitHub has them
+# the zip and each file beside it, as GitHub has them; each program with
+# its FireBee edition, NAMEFB.PRG and NAMEFB.ACC, and TLS.OVL with
+# TLSFB.OVL (Erez, 22 Nov 2026: "Make the other apps native on the
+# FireBee too")
 FAMILY = {
-    "ECal": ("v9.1", [("ecal.acc", 300, 1), ("ecalst.acc", 180, 1), ("ecal.prg", 300, 1), ("ecal.hyp", 40, 1),
+    "ECal": ("v9.1", [("ecal.acc", 300, 1), ("ecalst.acc", 180, 1), ("ecal.prg", 300, 1), ("ecalfb.acc", 310, 1),
+                      ("ecalfb.prg", 310, 1), ("ecal.hyp", 40, 1),
                       ("ecal.ref", 1, 1), ("ecal.rsc", 5, 1), ("cacert.pem", 182, 1), ("roots.dat", 52, 0),
-                      ("tls.ovl", 138, 1)]),
+                      ("tls.ovl", 138, 1), ("tlsfb.ovl", 189, 1)]),
     "EContact": ("v9.1", [("econtact.acc", 260, 1), ("econtst.acc", 160, 1), ("econtact.prg", 260, 1),
+                          ("econtfb.acc", 270, 1), ("econtfb.prg", 270, 1),
                           ("econtact.hyp", 30, 1), ("econtact.def", 2, 1), ("cacert.pem", 182, 1),
-                          ("roots.dat", 52, 0), ("tls.ovl", 138, 1)]),
-    "EMail": ("v9.1", [("email.prg", 520, 1), ("emailst.prg", 400, 1), ("email.hyp", 40, 1), ("email.rsc", 5, 1),
-                       ("cacert.pem", 182, 1), ("roots.dat", 52, 0), ("tls.ovl", 138, 1)]),
+                          ("roots.dat", 52, 0), ("tls.ovl", 138, 1), ("tlsfb.ovl", 189, 1)]),
+    "EMail": ("v9.1", [("email.prg", 520, 1), ("emailst.prg", 400, 1), ("emailfb.prg", 540, 1),
+                       ("emailchk.acc", 120, 1), ("emchkfb.acc", 125, 1), ("email.hyp", 40, 1), ("email.rsc", 5, 1),
+                       ("cacert.pem", 182, 1), ("roots.dat", 52, 0), ("tls.ovl", 138, 1), ("tlsfb.ovl", 189, 1)]),
     # one program and TLS.OVL, no ST edition (the guidelines 7.4)
-    "EFTP": ("v9.1", [("eftp.prg", 420, 1), ("eftp.hyp", 30, 1), ("eftp.rsc", 5, 1), ("cacert.pem", 182, 1),
-                      ("roots.dat", 52, 0), ("tls.ovl", 138, 1)]),
-    "EHypView": ("v9.1", [("ehypview.prg", 200, 1), ("ehypview.acc", 200, 1), ("ehypview.hyp", 25, 1),
+    "EFTP": ("v9.1", [("eftp.prg", 420, 1), ("eftpfb.prg", 430, 1), ("eftp.hyp", 30, 1), ("eftp.rsc", 5, 1), ("cacert.pem", 182, 1),
+                      ("roots.dat", 52, 0), ("tls.ovl", 138, 1), ("tlsfb.ovl", 189, 1)]),
+    "EHypView": ("v9.1", [("ehypview.prg", 200, 1), ("ehypview.acc", 200, 1),
+                          ("ehypfb.prg", 205, 1), ("ehypfb.acc", 205, 1), ("ehypview.hyp", 25, 1),
                           ("ehypview.rsc", 5, 1)]),
-    "ClaudeST": ("v9.1", [("claudest.prg", 170, 1), ("claudest.hyp", 20, 1), ("icons/claudest.rsc", 5, 1),
+    "ClaudeST": ("v9.1", [("claudest.prg", 170, 1), ("claudefb.prg", 175, 1), ("claudest.hyp", 20, 1), ("icons/claudest.rsc", 5, 1),
                           ("icons/claudest.icn", 1, 1)]),
     # the largest: a 2.7 MB font that doesn't pack, 4.4 MB in all (eweb-0.74)
-    "EWeb": ("v9.1", [("eweb.prg", 1165, 1), ("ewebst.prg", 712, 1), ("eweb.fnt", 2718, 0), ("eweb.hyp", 29, 1),
+    "EWeb": ("v9.1", [("eweb.prg", 1165, 1), ("ewebst.prg", 712, 1), ("ewebfb.prg", 1190, 1), ("eweb.fnt", 2718, 0), ("eweb.hyp", 29, 1),
                       ("ewebjs.ovl", 905, 1), ("icons/eweb.rsc", 5, 1), ("icons/eweb.icn", 1, 1),
-                      ("cacert.pem", 182, 1), ("roots.dat", 52, 0), ("tls.ovl", 138, 1)]),
-    "EPDF": ("v9.1", [("epdf.prg", 900, 1), ("epdf.hyp", 30, 1), ("notices.txt", 9, 1),
-                      ("econvert/econvert.prg", 815, 1), ("econvert/fonts/sans.ttf", 400, 0)]),
-    "EUpdate": ("v9.1", [("eupdate.prg", 230, 1), ("eupdate.hyp", 25, 1), ("eupdate.rsc", 5, 1),
-                         ("cacert.pem", 182, 1), ("roots.dat", 52, 0), ("tls.ovl", 138, 1)]),
+                      ("cacert.pem", 182, 1), ("roots.dat", 52, 0), ("tls.ovl", 138, 1),
+                      ("tlsfb.ovl", 189, 1)]),
+    "EPDF": ("v9.1", [("epdf.prg", 900, 1), ("epdffb.prg", 920, 1), ("epdf.hyp", 30, 1), ("notices.txt", 9, 1),
+                      ("econvert/econvert.prg", 815, 1),
+                      ("econvert/econvfb.prg", 830, 1), ("econvert/fonts/sans.ttf", 400, 0)]),
+    "EUpdate": ("v9.1", [("eupdate.prg", 230, 1), ("eupdfb.prg", 240, 1), ("eupdate.hyp", 25, 1), ("eupdate.rsc", 5, 1),
+                         ("cacert.pem", 182, 1), ("roots.dat", 52, 0), ("tls.ovl", 138, 1),
+                         ("tlsfb.ovl", 189, 1)]),
 }
 
 

@@ -191,6 +191,17 @@ $(OBJDIR) binary:
 ifdef PROF
 CFLAGS += -DAES_PROFILE=$(PROF)
 endif
+# the FireBee stand-in's build (tests/hatari/family_test.py WORK FireBee:16):
+# EUPDATE.PRG without its FireBee alert (cpu_cf_alert), so that its
+# installer runs where the _CF_ cookie is; the stand-in, a 68060, runs no
+# ColdFire code, so EUPDFB.PRG itself is the tester's
+ifdef CFTEST
+CFLAGS += -DEU_CF_TEST
+endif
+cftest: build/eupdate.elf
+	$(MAKE) OBJDIR=build/cft CFTEST=1 build/cft/eupdate.prg
+build/cft/eupdate.prg: build/cft/eupdate.elf common/tools/elf2tos.py
+	PRGFLAGS=7 python3 common/tools/elf2tos.py $< $@
 # the speed rig's build (its link pads it to build/'s places, above)
 prof: build/eupdate.elf
 	$(MAKE) OBJDIR=build/prof PROF=20 build/prof/eupdate.prg
@@ -307,4 +318,4 @@ binary/defaults.inf: defaults.inf VERSION | binary
 clean:
 	rm -rf $(OBJDIR) binary dist
 
-.PHONY: all help icons dist test itest clean fuzz prof FORCE
+.PHONY: all help icons dist test itest clean fuzz prof cftest FORCE

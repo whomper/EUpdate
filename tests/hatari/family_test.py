@@ -9,11 +9,17 @@ GitHub's, the files from a second host at signed addresses, idle
 connections closed), the network at a NetUSBee's pace through FAKESTNG,
 and the rules EUpdate suggests: the ST editions left out, the accessories
 into C:\\. The check at the start downloads all that is new (FETCH=1).
+Each release has its FireBee editions too (NAMEFB.PRG, NAMEFB.ACC; Erez,
+22 Nov 2026): on a Falcon they are left out, on FireBee:16 (machines.py's
+stand-in, the _CF_ cookie; make cftest's EUPDATE.PRG, without its FireBee
+alert, with TLS.OVL as its TLSFB.OVL: the stand-in runs no ColdFire code)
+they are taken and the others left out, and the other machine's accessory
+already in C:\\ is switched off as .ACX, with an alert.
 No other AERA program is fetched or loaded (Erez, 8 Nov 2026; the
 guidelines 1.2): the real ones together, as accessories too, are the
 hub's family checks (AERA-Atari, common/tests/family/acc_all.py).
 
-    family_test.py WORK [MACHINE]      (MACHINE: Falcon:16; Xvfb, xdotool)
+    family_test.py WORK [MACHINE]      (MACHINE: Falcon:16, FireBee:16; Xvfb, xdotool)
 
 Erez's TOS 4.04 and NVDI are used when this machine has them
 (machines.py: ~/.aera/tos, AERA_WITH_NVDI=1); EmuTOS otherwise.
@@ -31,6 +37,7 @@ from gui_test import wait_port, check, TOP
 
 work = os.path.abspath(sys.argv[1])
 spec = sys.argv[2] if len(sys.argv) > 2 else "Falcon:16"
+FB = spec.startswith("FireBee")
 PORT = 18760
 FILES_HOST = "127.0.0.2"      # GitHub's files are on a host of their own
 # Erez's list (22 Oct 2026); ECal and EContact current, the others not yet downloaded
@@ -40,7 +47,10 @@ FOLLOW = (("ECal", True), ("EContact", True), ("EUpdate", False), ("ClaudeST", F
 # the rules EUpdate suggests for them on a Falcon (update.c, up_suggest)
 SKIP = {"ECal": "ECALST.ACC", "EContact": "ECONTST.ACC", "EMail": "EMAILST.PRG", "EFTP": "EFTPST.PRG",
         "EWeb": "EWEBST.PRG"}
-ACCS = ("ECal", "EContact", "EHypView")   # their .ACC into C:\ by a rule
+ACCS = ("ECal", "EContact", "EHypView", "EMail")   # their .ACC into C:\ by a rule
+# the other machine's accessory there already (by hand, or the machine's
+# disk moved): switched off as .ACX when EHypView's comes
+TWIN = "ehypview.acc" if FB else "ehypfb.acc"
 ROW1 = 127                  # the Following list's first row (ECal), on a 640 x 480 screen
 PANE = (8, 320, 596, 470)   # the lower pane's rows
 
@@ -102,8 +112,13 @@ def main():
     certs()
     hd = os.path.join(work, "hd")
     os.makedirs(hd)
-    shutil.copy(os.environ.get("PRG", os.path.join(TOP, "binary", "eupdate.prg")), os.path.join(hd, "eupdate.prg"))
+    shutil.copy(os.environ.get("PRG", os.path.join(TOP, "build", "cft", "eupdate.prg") if FB else
+                               os.path.join(TOP, "binary", "eupdate.prg")), os.path.join(hd, "eupdate.prg"))
     shutil.copy(os.path.join(TOP, "binary", "tls.ovl"), os.path.join(hd, "tls.ovl"))
+    if FB:      # what common's tls_ovl.c loads where _CF_ is: here the 68030's
+        shutil.copy(os.path.join(TOP, "binary", "tls.ovl"), os.path.join(hd, "tlsfb.ovl"))
+    with open(os.path.join(hd, TWIN), "wb") as f:
+        f.write(b"the other machine's")
     shutil.copy(os.path.join(work, "root.pem"), os.path.join(hd, "cacert.pem"))
     tags = {r: open(os.path.join(cache, r, "TAG")).read().strip() for r, _ in FOLLOW}
     # an ST edition copied by hand beside its program (the guidelines 7.4):
@@ -141,7 +156,13 @@ def main():
             inf = open(ci_path(hd, "eupdate.inf"), errors="replace").read()   # lines end "\n" here
             if inf.count("HAVE=v") == len(FOLLOW):
                 break
-        r.shot("end")
+        time.sleep(10)
+        alert = r.shot("end")
+        # the alert: the other machine's accessory switched off
+        r.key(rig.K["RETURN"])
+        time.sleep(3)
+        gone = changed(alert, r.shot("end-ok"), (160, 160, 480, 320))
+        check(gone > 0.05, "an alert (the accessory switched off) answered (%.2f changed)" % gone)
         have = {}
         for part in inf.split("[REPO]")[1:]:
             lines = dict(l.split("=", 1) for l in part.split("\n") if "=" in l and not l.startswith(";"))
@@ -150,12 +171,35 @@ def main():
             check(have.get("whomper/" + repo) == tags[repo], "%s %s downloaded" % (repo, tags[repo]))
         check(not os.path.exists(ci_path(hd, "NET/EMAIL/emailst.prg")), "the ST editions left out")
         check(os.path.exists(ci_path(hd, "sigs.dat")), "the checked signatures kept in SIGS.DAT")
-        check(os.path.exists(ci_path(hd, "ehypview.acc")) and
-              os.path.getsize(ci_path(hd, "ehypview.acc")) ==
-              os.path.getsize(ci_path(os.path.join(cache, "EHypView", tags["EHypView"]), "ehypview.acc")),
-              "EHYPVIEW.ACC into C:\\, by its rule")
+        acc = "ehypfb.acc" if FB else "ehypview.acc"
+        check(os.path.exists(ci_path(hd, acc)) and
+              os.path.getsize(ci_path(hd, acc)) ==
+              os.path.getsize(ci_path(os.path.join(cache, "EHypView", tags["EHypView"]), acc)),
+              "%s into C:\\, by its rule" % acc.upper())
+        # this machine's editions only: in C:\ and in every folder
+        roots = sorted(n.lower() for n in os.listdir(hd) if n.lower()[-4:] in (".acc", ".acx"))
+        want = sorted(["ehypfb.acc", "emchkfb.acc", "ehypview.acx"] if FB else
+                      ["ehypview.acc", "emailchk.acc", "ehypfb.acx"])
+        check(roots == want, "C:\\'s accessories: %s (%s)" % (" ".join(roots), "the FireBee's" if FB else "a Falcon's"))
+        check(open(ci_path(hd, TWIN[:-1] + "x"), "rb").read() == b"the other machine's",
+              "the other machine's %s switched off as %s, as it was" % (TWIN.upper(), TWIN[:-1].upper() + "X"))
+        wrong = []
+        for d, _, fs in os.walk(os.path.join(hd, "NET")):
+            for n in fs:
+                stem, ext = os.path.splitext(n.lower())
+                if ext in (".prg", ".acc") and stem.endswith("fb") != FB and n.lower() != "eftpst.prg":
+                    wrong.append(os.path.relpath(os.path.join(d, n), hd))
+        check(not wrong, "every program the %s edition%s" % ("FireBee" if FB else "Falcon",
+                                                             (": not " + " ".join(wrong)) if wrong else ""))
+        if FB:
+            check(os.path.exists(ci_path(hd, "NET/EPDF/econvert/econvfb.prg")),
+                  "a zip's program in its folder too: EPDF's ECONVERT\\ECONVFB.PRG")
         st = os.path.exists(ci_path(hd, "NET/EFTP/eftpst.prg"))
-        if one_for_all:
+        if FB:
+            # EFTP.PRG isn't written here, so the ST edition beside it stays:
+            # a program, it doesn't load by itself
+            check(st, "EFTP: the hand-copied EFTPST.PRG left (EFTPFB.PRG written, not EFTP.PRG)")
+        elif one_for_all:
             check(os.path.exists(ci_path(hd, "NET/EFTP/tls.ovl")) and
                   os.path.getsize(ci_path(hd, "NET/EFTP/tls.ovl")) ==
                   os.path.getsize(ci_path(os.path.join(cache, "EFTP", tags["EFTP"]), "tls.ovl")),

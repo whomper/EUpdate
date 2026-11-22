@@ -359,7 +359,7 @@ static int job_begin(void)
    and an accessory's said at the job's end, as it is loaded until the
    Atari restarts */
 #define NREPLACED 4
-static char replaced[NREPLACED][160];
+static char replaced[NREPLACED][200];
 static short nreplaced;
 
 /* EUpdate's window drawn again while a dialog window is open over it */
@@ -380,17 +380,29 @@ static void shown(char *out, const char *name, int size)
 	out[i] = 0;
 }
 
-static void on_replaced(const REPO *r, const char *old, const char *now)
+static void on_replaced(const REPO *r, const char *old, const char *now, int off)
 {
 	const char *app = strchr(r->full, '/');
-	char o[16], n[16];
+	char o[16], n[16], x[16];
 	app = app ? app + 1 : r->full;	/* the log has it already (update.c's say) */
 	shown(o, old, sizeof(o));
 	shown(n, now, sizeof(n));
-	if (nreplaced < NREPLACED && wild_match("*.ACC", now))
+	if (nreplaced >= NREPLACED || !wild_match("*.ACC", now))
+		return;
+	if (!off) {
 		snprintf(replaced[nreplaced++], sizeof(replaced[0]),
 			 "[1][%s's accessory is now %s (%s is gone). Restart the Atari to load it; "
 			 "the Desk menu still says %s.][ OK ]", app, n, o, app);
+		return;
+	}
+	/* the other machine's switched off (update.c, up_fb_switch_off) */
+	str_copy(x, o, sizeof(x));
+	if (x[0])
+		x[strlen(x) - 1] = 'X';
+	snprintf(replaced[nreplaced++], sizeof(replaced[0]),
+		 "[1][%s's accessory is now %s%s; %s%s is switched off as %s. Restart the Atari to load it; "
+		 "the Desk menu still says %s.][ OK ]", app, n, up_firebee ? ", the FireBee's" : "", o,
+		 up_firebee ? "" : ", the FireBee's,", x, app);
 }
 
 static void job_end(void)
@@ -1057,7 +1069,9 @@ const char cpu_alert[] = "[3][EUPDFB.PRG is for the FireBee.|On a Falcon or a TT
    tester's FireBee froze with 2.08 and 2.09, 17 Nov 2026) */
 const long cpu_need = 20;
 const char cpu_alert[] = "[3][EUpdate needs a 68020 or|better: a Falcon or a TT.][ Quit ]";
+#ifndef EU_CF_TEST	/* make cftest: EUPDATE.PRG on the FireBee stand-in, for the rigs */
 const char cpu_cf_alert[] = "[3][EUPDATE.PRG is for the Falcon and|the TT. On the FireBee, run|EUPDFB.PRG.][ Quit ]";
+#endif
 #endif
 int app_main(void);
 int app_main(void)
@@ -1130,6 +1144,7 @@ int app_main(void)
 	str_copy(gh_base, opt.api, sizeof(gh_base));
 	snprintf(http_user_agent, sizeof(http_user_agent), "EUpdate/%s (Atari)", app_version);
 	up_boot_drive = boot_drive();
+	up_firebee = get_cookie(0x5F43465FL) != 0;	/* _CF_: its editions (update.c) */
 	colours_init();
 	font_apply();
 	hebrew_kbd_hook = hebrew_changed;

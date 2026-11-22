@@ -16,8 +16,9 @@
 extern void (*up_status)(const char *msg);
 /* an AERA ST edition (ECALST.ACC) removed by up_install, as the release
    now has one program for every Atari (now: ECAL.ACC, the guidelines
-   7.4); or NULL */
-extern void (*up_replaced)(const REPO *r, const char *old, const char *now);
+   7.4); off 1: the other machine's accessory switched off as NAME.ACX
+   (up_fb_switch_off); or NULL */
+extern void (*up_replaced)(const REPO *r, const char *old, const char *now, int off);
 
 /* asks GitHub for r's latest release (rel); r->latest follows it. 1 when
    it is newer than what r has, 0 when it isn't or there is none, -1 on
@@ -44,6 +45,19 @@ const RULE *up_rule(const REPO *r, const char *name);
    accessories -> the boot drive's root. st_machine: this is a 68000 */
 void up_suggest(REPO *r, const GHREL *rel, int st_machine);
 extern int up_boot_drive;	/* 0 = A:, 2 = C: (the Atari's; for up_suggest) */
+
+/* the FireBee's editions (NAMEFB.PRG, NAMEFB.ACC beside NAME.PRG and
+   NAME.ACC): up_firebee set (the _CF_ cookie), a release's FB ones are
+   taken and its others of that kind left out; else the other way.
+   up_fb_kind: a name's kind, 1 .PRG, 2 .ACC, else 0, *fb set for an FB
+   one; up_fb_kinds: the kinds rel has both of; up_fb_other: name is the
+   other machine's; up_fb_switch_off: after an install, the other
+   machine's accessory beside the one written renamed NAME.ACX */
+extern int up_firebee;
+int up_fb_kind(const char *name, int *fb);
+int up_fb_kinds(const GHREL *rel);
+int up_fb_other(int kinds, const char *name);
+void up_fb_switch_off(const REPO *r);
 
 /* name and pattern, case aside: '*' any run, '?' one character */
 int wild_match(const char *pat, const char *name);

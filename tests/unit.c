@@ -497,8 +497,11 @@ static void test_zip(void)
 /* ---------------- TLS.OVL and the ST editions (the guidelines 7.4) ---------------- */
 
 static char replaced_old[16], replaced_now[16];
-static void note_replaced(const REPO *r, const char *old, const char *now)
+static int replaced_off;
+
+static void note_replaced(const REPO *r, const char *old, const char *now, int off)
 {
+	replaced_off = off;
 	str_copy(replaced_old, old, sizeof(replaced_old));
 	str_copy(replaced_now, now, sizeof(replaced_now));
 }
@@ -899,6 +902,92 @@ static void test_plain(void)
 	plain_is("", "");
 }
 
+/* ---------------- the FireBee's editions ----------------
+ * (Erez, 22 Nov 2026: "Make the other apps native on the FireBee too")
+ * a FireBee takes a release's NAMEFB.PRG and NAMEFB.ACC, every other
+ * Atari the others; the other machine's accessory in the root switched
+ * off as NAME.ACX */
+static void test_firebee(void)
+{
+	static const char *const ecal[] = { "ecal.prg", "ecal.acc", "ecalst.acc", "ecalfb.prg", "ecalfb.acc",
+					    "ecal.hyp", "tls.ovl", "tlsfb.ovl" };
+	static const char *const email[] = { "email.prg", "emailfb.prg", "emailchk.acc", "email.hyp" };
+	static const char *const mail2[] = { "email.prg", "emailfb.prg", "emailchk.acc", "emchkfb.acc" };
+	static const char *const theirs[] = { "toolfb.prg", "tool.txt" };
+	static const char *const acc[] = { "ecal.acc", "ecalfb.acc", "tls.ovl" };
+	static const char *const two = "HTTP/1.1 200 OK\r\nContent-Length: 4\r\n\r\nACC!"
+				       FUZZ_NET_NEXT "HTTP/1.1 200 OK\r\nContent-Length: 4\r\n\r\nOVL!";
+	char dir[] = "build/unit-fb";
+	short which[GH_MAXASSET];
+	int fb;
+	GHREL e = release_of(ecal, 8);
+	REPO r;
+
+	CHECK(up_fb_kind("x/ECALFB.ACC", &fb) == 2 && fb && up_fb_kind("ecal.prg", &fb) == 1 && !fb);
+	CHECK(up_fb_kind("fb.prg", &fb) == 1 && !fb && up_fb_kind("tlsfb.ovl", &fb) == 0 && !fb);
+	CHECK(up_fb_kinds(&e) == 3);
+	e = release_of(email, 4);
+	CHECK(up_fb_kinds(&e) == 1);		/* its accessory has no FB twin: untouched */
+	e = release_of(mail2, 4);
+	CHECK(up_fb_kinds(&e) == 3);		/* the names needn't match */
+	e = release_of(theirs, 2);
+	CHECK(up_fb_kinds(&e) == 0);		/* only an FB one: theirs, taken anywhere */
+	memset(&r, 0, sizeof(r));
+	CHECK(up_chosen(&r, &e, which) == 2);
+
+	/* which files: a Falcon the others, a FireBee the FB ones (and both
+	   TLS overlays with a program, as before) */
+	e = release_of(ecal, 8);
+	up_firebee = 0;
+	CHECK(up_chosen(&r, &e, which) == 6 && which[0] == 0 && which[1] == 1 && which[2] == 2 && which[3] == 5);
+	up_firebee = 1;
+	CHECK(up_chosen(&r, &e, which) == 5 && which[0] == 3 && which[1] == 4 && which[2] == 5);
+	CHECK(up_fb_other(up_fb_kinds(&e), "ecal.acc") && up_fb_other(3, "ecalst.acc") &&
+	      !up_fb_other(3, "ecalfb.acc") && !up_fb_other(3, "ecal.hyp"));
+
+	/* on a FireBee: ECALFB.ACC into the root, the ECAL.ACC there
+	   switched off as ECAL.ACX (an older ECAL.ACX replaced) */
+	rm_rf(dir);
+	pf_mkdir(dir);
+	pf_mkdir("build/unit-fb/ROOT");
+	CHECK(pf_save("build/unit-fb/ROOT/ecal.acc", "old", 3) == 0);
+	CHECK(pf_save("build/unit-fb/ROOT/ecal.acx", "older", 5) == 0);
+	e = release_of(acc, 3);
+	str_copy(r.full, "whomper/ECal", sizeof(r.full));
+	str_copy(r.folder, "build/unit-fb/ECAL", sizeof(r.folder));
+	str_copy(r.rule[0].names, "*.ACC", sizeof(r.rule[0].names));
+	str_copy(r.rule[0].folder, "build/unit-fb/ROOT", sizeof(r.rule[0].folder));
+	str_copy(gh_base, "http://api.test", sizeof(gh_base));
+	up_replaced = note_replaced;
+	replaced_old[0] = 0;
+	opt.shorten = 1;
+	say(two);
+	CHECK(up_install(&r, &e));
+	http_close_all();
+	CHECK(pf_size("build/unit-fb/ROOT/ecalfb.acc") == 4 && pf_size("build/unit-fb/ECAL/tls.ovl") == 4);
+	CHECK(pf_size("build/unit-fb/ROOT/ecal.acc") < 0 && pf_size("build/unit-fb/ROOT/ecal.acx") == 3);
+	CHECK(replaced_off && !strcmp(replaced_old, "ecal.acc") && !strcmp(replaced_now, "ecalfb.acc"));
+
+	/* on a Falcon, the other way */
+	up_firebee = 0;
+	replaced_old[0] = 0;
+	say(two);
+	CHECK(up_install(&r, &e));
+	http_close_all();
+	CHECK(pf_size("build/unit-fb/ROOT/ecal.acc") == 4 && pf_size("build/unit-fb/ROOT/ecalfb.acc") < 0 &&
+	      pf_size("build/unit-fb/ROOT/ecalfb.acx") == 4);
+	CHECK(replaced_off && !strcmp(replaced_old, "ecalfb.acc") && !strcmp(replaced_now, "ecal.acc"));
+
+	/* nothing to switch off: nothing said */
+	replaced_old[0] = 0;
+	say(two);
+	CHECK(up_install(&r, &e) && !replaced_old[0]);
+	http_close_all();
+	up_replaced = 0;
+	str_copy(gh_base, "https://api.github.com", sizeof(gh_base));
+	rm_rf(dir);
+}
+
 int main(void)
 {
 	pf_init();
@@ -908,6 +997,7 @@ int main(void)
 	test_plain();
 	test_zip();
 	test_tlsovl();
+	test_firebee();
 	test_download_mem();
 	test_store();
 	printf("%d checks, %d failed\n", checks, fails);

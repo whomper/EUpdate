@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include "ui.h"
+#include "update.h"
 #include "bidi.h"
 #include "util.h"
 #include "clip.h"
@@ -774,7 +775,7 @@ int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 	nticks = 0;
 	s_on[T_UNZIP] = r->unzip;
 	s_on[T_NOW] = *now;
-	d_begin(64, 21);
+	d_begin(64, 22);
 	{
 		static char band[90];
 		snprintf(band, sizeof(band), " %s %s", is_new ? "Follow" : "", r->full);
@@ -810,10 +811,13 @@ int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 		f_rule[k] = d_field(32, ROW(y), fl_rfolder[k], 22, sizeof(fl_rfolder[k]) - 1, 'X');
 		b_rule[k] = d_button(56, ROW(y), 6, "...", EXIT);
 	}
+	/* the FireBee's editions, a built-in (update.c, up_fb_other) */
+	d_text(2, ROW(y), up_firebee ? "FireBee editions (*FB.PRG, *FB.ACC) in place of the others" :
+				       "FireBee editions (*FB.PRG, *FB.ACC) are left out here");
 	if (is_new)
-		d_tick(2, 19, "Download the latest release now", T_NOW);
-	d_button(40, 19, 10, "Cancel", EXIT);
-	ok = d_button(52, 19, 10, is_new ? "Follow" : "OK", EXIT | DEFAULT);
+		d_tick(2, 20, "Download the latest release now", T_NOW);
+	d_button(40, 20, 10, "Cancel", EXIT);
+	ok = d_button(52, 20, 10, is_new ? "Follow" : "OK", EXIT | DEFAULT);
 	d_end();
 	open_box(is_new ? "Follow" : "Get info");
 	for (;;) {
