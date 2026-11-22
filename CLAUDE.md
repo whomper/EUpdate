@@ -139,7 +139,8 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
   EUpdate's own release is two zips, the FireBee's uploaded first (2.14 and older unpack every zip
   in the release's order). **2.15 is the bridge** (Erez: "Bridge for 2.15"): its standard zip carries EUPDFB.PRG and TLSFB.OVL
   once more, so a FireBee on 2.14's EUPDFB.PRG (which unpacks both zips) becomes 2.15; built on
-  common 173309d0, whose ColdFire build loads TLSFB.OVL. 2.16, on 8c94c08's common, drops them.
+  common 173309d0, whose ColdFire build loads TLSFB.OVL. 2.16, on common 50cf160 (its ColdFire build
+  loads tls.ovl, c184d49), drops them, with the tags feature in the same release (the hub, 22 Nov 2026).
   Rig: `family_test.py WORK FireBee:16` (`make cftest`; plain HTTP, the stand-in runs no TLS) and
   on a Falcon; the stand-ins are zips only.
 - Lifted for one feature (Erez, 22 Nov 2026, on slaapliedje/u6e: "Can we support also only tags?",
@@ -231,7 +232,7 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
   common's under qemu).
 - **A release** is two zips from `make dist` (the guidelines 7.4): `eupdate-x.y.zip` with
   `EUPDATE.PRG`, `TLS.OVL` (common's, copied), and `eupdate-x.y-firebee.zip` with the ColdFire
-  `EUPDATE.PRG` and `TLSFB.OVL` (TLS.OVL from 2.16); the standard one, in 2.15 only, `EUPDFB.PRG` and `TLSFB.OVL` too (the bridge); both with `EUPDATE.HYP`,
+  `EUPDATE.PRG` and `TLS.OVL`, both ColdFire builds (TLSFB.OVL in 2.15); the standard one, in 2.15 only, `EUPDFB.PRG` and `TLSFB.OVL` too (the bridge); both with `EUPDATE.HYP`,
   `CACERT.PEM`, `ROOTS.DAT`, `DEFAULTS.INF` and the icon (`icons/`, `make icons`). `DEFAULTS.INF` (Erez, 24 Oct 2026) is
   what a first start follows, with no `EUPDATE.INF` yet: the AERA programs into `C:\AERA\NAME`,
   accessories to `C:\`, EUpdate in its own folder (`.`) at the release's version

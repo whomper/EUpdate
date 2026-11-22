@@ -301,26 +301,25 @@ itest: $(OBJDIR)/eupd-cli
 # root and just have two ZIP files, one for each platform"): two zips in
 # dist/, every file and folder in them in lowercase (the guidelines 6.6:
 # MiNT's ext2 tells the cases apart), the icons in icons/:
-# - eupdate-x.y.zip, the Falcon's and the TT's: EUPDATE.PRG and TLS.OVL,
-#   and for 2.15, the bridge (Erez, 22 Nov 2026: "Bridge for 2.15"),
-#   EUPDFB.PRG, the ColdFire build, and TLSFB.OVL once more: 2.14 on a
-#   FireBee unpacks both zips and keeps running EUPDFB.PRG, which so
-#   becomes 2.15, that takes the FireBee's zip alone from then on;
+# - eupdate-x.y.zip, the Falcon's and the TT's: EUPDATE.PRG and TLS.OVL
+#   (2.15's carried EUPDFB.PRG and TLSFB.OVL too, the bridge: Erez, 22 Nov
+#   2026, "Bridge for 2.15"; 2.15 on a FireBee takes the FireBee's zip alone);
 # - eupdate-x.y-firebee.zip, the FireBee's: EUPDATE.PRG the ColdFire build,
-#   and its TLS, TLSFB.OVL while common's ColdFire build loads that name
-#   (common 173309d0; TLS.OVL from 2.16)
+#   and TLS.OVL, TLS.OVL's ColdFire build (common's ColdFire build loads
+#   tls.ovl, AERA-Atari c184d49)
 DIST    := binary/cacert.pem binary/roots.dat binary/eupdate.hyp binary/defaults.inf
 ICONS   := icons/eupdate.rsc icons/eupdnv.rsc icons/eupdate.icn icons/eupdmk.icn
 dist: all help binary/defaults.inf
 	rm -rf dist
 	mkdir -p dist/zip/icons
-	cp $(DIST) binary/eupdate.prg binary/tls.ovl binary/eupdfb.prg binary/tlsfb.ovl dist/zip/
+	cp $(DIST) binary/eupdate.prg binary/tls.ovl dist/zip/
 	cp $(ICONS) dist/zip/icons/
 	cd dist/zip && zip -q -9 -r ../eupdate-$(VERSION_STR).zip .
 	rm -rf dist/zip
 	mkdir -p dist/zip/icons
-	cp $(DIST) binary/tlsfb.ovl dist/zip/
+	cp $(DIST) dist/zip/
 	cp binary/eupdfb.prg dist/zip/eupdate.prg
+	cp binary/tlsfb.ovl dist/zip/tls.ovl
 	cp $(ICONS) dist/zip/icons/
 	cd dist/zip && zip -q -9 -r ../eupdate-$(VERSION_STR)-firebee.zip .
 	rm -rf dist/zip
