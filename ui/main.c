@@ -400,9 +400,8 @@ static void on_replaced(const REPO *r, const char *old, const char *now, int off
 	if (x[0])
 		x[strlen(x) - 1] = 'X';
 	snprintf(replaced[nreplaced++], sizeof(replaced[0]),
-		 "[1][%s's accessory is now %s%s; %s%s is switched off as %s. Restart the Atari to load it; "
-		 "the Desk menu still says %s.][ OK ]", app, n, up_firebee ? ", the FireBee's" : "", o,
-		 up_firebee ? "" : ", the FireBee's,", x, app);
+		 "[1][%s's accessory is now %s%s; %s%s is switched off as %s. Restart the Atari to load it.][ OK ]",
+		 app, n, up_firebee ? ", the FireBee's" : "", o, up_firebee ? "" : ", the FireBee's,", x);
 }
 
 static void job_end(void)

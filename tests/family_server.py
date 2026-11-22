@@ -58,6 +58,11 @@ def load(cache):
 FILES_HOST = os.environ.get("FILES_HOST", "127.0.0.1")
 
 
+# PLAIN=1: no TLS (family_test on the FireBee stand-in, a 68060 that runs
+# neither TLSFB.OVL's ColdFire code nor TLS.OVL's 64-bit multiplies)
+SCHEME = "http" if os.environ.get("PLAIN") else "https"
+
+
 def main():
     api_port, files_port, cache, cert, key = int(sys.argv[1]), int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5]
     rel, files = load(cache)
@@ -104,7 +109,7 @@ def main():
             if len(p) >= 4 and p[0] == "repos" and p[3] == "releases":
                 if len(p) == 6 and p[4] == "assets":
                     return self.send(302, b"", "text/html", extra=(
-                        ("Location", "https://%s:%d/dl/%s?%s" % (FILES_HOST, files_port, p[5], SIGNED)),))
+                        ("Location", "%s://%s:%d/dl/%s?%s" % (SCHEME, FILES_HOST, files_port, p[5], SIGNED)),))
                 if p[2] in rel and len(p) == 4:
                     # the list (What's new...): the latest with Markdown notes, then an older one
                     tag, assets = rel[p[2]]
@@ -131,11 +136,12 @@ def main():
     # a TLS session is kept by the server's name, and with both on
     # 127.0.0.1 each would be offered the other's
     srv = ThreadingHTTPServer((FILES_HOST if api_port == files_port else "127.0.0.1", api_port), Handler)
-    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ctx.load_cert_chain(cert, key)
-    if len(sys.argv) > 7:           # an ECDSA one too, as GitHub has: the hello chooses
-        ctx.load_cert_chain(sys.argv[6], sys.argv[7])
-    srv.socket = ctx.wrap_socket(srv.socket, server_side=True)
+    if SCHEME == "https":
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.load_cert_chain(cert, key)
+        if len(sys.argv) > 7:           # an ECDSA one too, as GitHub has: the hello chooses
+            ctx.load_cert_chain(sys.argv[6], sys.argv[7])
+        srv.socket = ctx.wrap_socket(srv.socket, server_side=True)
     print("ready", flush=True)
     srv.serve_forever()
 

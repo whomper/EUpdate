@@ -12,7 +12,9 @@ into C:\\. The check at the start downloads all that is new (FETCH=1).
 Each release has its FireBee editions too (NAMEFB.PRG, NAMEFB.ACC; Erez,
 22 Nov 2026): on a Falcon they are left out, on FireBee:16 (machines.py's
 stand-in, the _CF_ cookie; make cftest's EUPDATE.PRG, without its FireBee
-alert, with TLS.OVL as its TLSFB.OVL: the stand-in runs no ColdFire code)
+alert; over plain HTTP, PLAIN=1 for tests/family_server.py: the stand-in,
+a 68060 without the 060 package, runs neither TLSFB.OVL's ColdFire code nor
+TLS.OVL's 64-bit multiplies, exception 61 at the first handshake)
 they are taken and the others left out, and the other machine's accessory
 already in C:\\ is switched off as .ACX, with an alert.
 No other AERA program is fetched or loaded (Erez, 8 Nov 2026; the
@@ -115,7 +117,7 @@ def main():
     shutil.copy(os.environ.get("PRG", os.path.join(TOP, "build", "cft", "eupdate.prg") if FB else
                                os.path.join(TOP, "binary", "eupdate.prg")), os.path.join(hd, "eupdate.prg"))
     shutil.copy(os.path.join(TOP, "binary", "tls.ovl"), os.path.join(hd, "tls.ovl"))
-    if FB:      # what common's tls_ovl.c loads where _CF_ is: here the 68030's
+    if FB:      # what common's tls_ovl.c loads where _CF_ is (loaded at the first job, no handshake here)
         shutil.copy(os.path.join(TOP, "binary", "tls.ovl"), os.path.join(hd, "tlsfb.ovl"))
     with open(os.path.join(hd, TWIN), "wb") as f:
         f.write(b"the other machine's")
@@ -129,7 +131,7 @@ def main():
     eftp = [n.upper() for n in os.listdir(os.path.join(cache, "EFTP", tags["EFTP"]))]  # any case (6.6)
     one_for_all = "TLS.OVL" in eftp and "EFTPST.PRG" not in eftp
     with open(os.path.join(hd, "eupdate.inf"), "w", newline="") as f:
-        f.write("[OPTIONS]\r\nNATFEATS=1\r\nCHECK=1\r\nFETCH=1\r\nLOG=1\r\nAPIBASE=https://127.0.0.1:%d\r\n" % PORT)
+        f.write("[OPTIONS]\r\nNATFEATS=1\r\nCHECK=1\r\nFETCH=1\r\nLOG=1\r\nAPIBASE=%s://127.0.0.1:%d\r\n" % ("http" if FB else "https", PORT))
         for repo, have in FOLLOW:
             f.write("[REPO]\r\nREPO=whomper/%s\r\nFOLDER=C:\\NET\\%s\r\nUNZIP=1\r\nHAVE=%s\r\n" %
                     (repo, repo.upper()[:8], tags[repo] if have else ""))
@@ -140,7 +142,7 @@ def main():
     chain, key = os.path.join(work, "chain.pem"), os.path.join(work, "leaf.key")
     srv = [subprocess.Popen([sys.executable, os.path.join(TOP, "tests", "family_server.py"), str(port), str(PORT + 1),
                              cache, chain, key, os.path.join(work, "ecchain.pem"), os.path.join(work, "ecleaf.key")],
-                            stdout=subprocess.DEVNULL, env=dict(os.environ, FILES_HOST=FILES_HOST))
+                            stdout=subprocess.DEVNULL, env=dict(os.environ, FILES_HOST=FILES_HOST, PLAIN="1" if FB else ""))
            for port in (PORT, PORT + 1)]
     wait_port(PORT)
     wait_port(PORT + 1, FILES_HOST)
@@ -170,7 +172,7 @@ def main():
         for repo, _ in FOLLOW:
             check(have.get("whomper/" + repo) == tags[repo], "%s %s downloaded" % (repo, tags[repo]))
         check(not os.path.exists(ci_path(hd, "NET/EMAIL/emailst.prg")), "the ST editions left out")
-        check(os.path.exists(ci_path(hd, "sigs.dat")), "the checked signatures kept in SIGS.DAT")
+        check(FB or os.path.exists(ci_path(hd, "sigs.dat")), "the checked signatures kept in SIGS.DAT")
         acc = "ehypfb.acc" if FB else "ehypview.acc"
         check(os.path.exists(ci_path(hd, acc)) and
               os.path.getsize(ci_path(hd, acc)) ==
@@ -212,7 +214,7 @@ def main():
         # the hello asks for RSA certificates, DSP or not: GitHub's ECDSA
         # signature took a stock Falcon's DSP 5.5 s (common's conn.c)
         log = open(ci_path(hd, "eupdate.log"), errors="replace").read()
-        check("RSA-2048 signature" in log and "ECDSA" not in log,
+        check(FB or ("RSA-2048 signature" in log and "ECDSA" not in log),
               "GitHub's RSA certificate asked for, not its ECDSA one")
         # What's new... (^L, Erez 21 Nov 2026): ECal's row, its notes in the
         # lower pane from GitHub's list of releases, Backspace gives Find's
