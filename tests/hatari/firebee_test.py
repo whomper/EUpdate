@@ -4,7 +4,7 @@
 """The FireBee's two programs, each where it belongs (a tester's FireBee
 froze with 2.08's and 2.09's EUPDATE.PRG, 17 Nov 2026: its 68030 code
 doesn't run on a ColdFire; Erez, 18 Nov 2026: EUPDFB.PRG, the ColdFire
-build, tools/mkfirebee.py):
+build, common/tools/mkfirebee.py):
 
   wrong   EUPDATE.PRG on machines.py's FireBee stand-in (FireTOS's
           cookies): common's cpucheck.c names EUPDFB.PRG in an alert and

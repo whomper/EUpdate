@@ -193,7 +193,7 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
   GitHub's real API isn't asked by any test.
 - **The FireBee edition** (Erez, 18 Nov 2026, on a tester's FireBee, where 2.08's and 2.09's
   EUPDATE.PRG froze: 68030 code doesn't run reliably on the ColdFire, and the 68060 stand-in
-  can't show it): `EUPDFB.PRG`, `make binary/eupdfb.prg`, `tools/mkfirebee.py` running
+  can't show it): `EUPDFB.PRG`, `make binary/eupdfb.prg`, common's `tools/mkfirebee.py` (AERA-Atari b89dd31; EUpdate's own until 2.15) running
   EUPDATE.PRG's own rules again as `-mcpu=5475` code into `build/cf/` (EWeb's way:
   `cpucheck_cf.S` its first code, `ll64.c` for libgcc). EUPDATE.PRG on a FireBee names it in
   an alert (`cpu_cf_alert`), it on any other machine names EUPDATE.PRG (`cpu_alert` under

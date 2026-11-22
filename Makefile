@@ -92,11 +92,12 @@ all: binary/eupdate.prg binary/eupdfb.prg binary/tls.ovl binary/tlsfb.ovl binary
 binary/eupdate.prg: $(OBJDIR)/eupdate.elf common/tools/elf2tos.py | binary
 	PRGFLAGS=7 python3 common/tools/elf2tos.py $< $@
 # EUPDFB.PRG, the FireBee's (ColdFire, -mcpu=5475; Erez, 18 Nov 2026): the
-# same rules again as ColdFire code (tools/mkfirebee.py), into build/cf/;
-# EUPDATE.PRG on a FireBee names it (cpu_cf_alert), it on any other machine
-# names EUPDATE.PRG (cpu_alert, common's cpucheck_cf.S)
-binary/eupdfb.prg: binary/eupdate.prg tools/mkfirebee.py common/atari/cpucheck_cf.S common/atari/ll64.c | binary
-	python3 tools/mkfirebee.py $@
+# same rules again as ColdFire code (common's tools/mkfirebee.py, once
+# EUpdate's own), into build/cf/; EUPDATE.PRG on a FireBee names it
+# (cpu_cf_alert), it on any other machine names EUPDATE.PRG (cpu_alert,
+# common's cpucheck_cf.S)
+binary/eupdfb.prg: binary/eupdate.prg common/tools/mkfirebee.py common/atari/cpucheck_cf.S common/atari/ll64.c | binary
+	python3 common/tools/mkfirebee.py --elf build/eupdate.elf --make PADS=no $@
 # the family's TLS.OVL, as it comes with common/: copied, never built here
 binary/tls.ovl: common/tlsovl/tls.ovl | binary
 	cp $< $@

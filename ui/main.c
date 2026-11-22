@@ -1057,7 +1057,7 @@ static void warn_plain(const char *keyfile)
 }
 
 #ifdef __mcoldfire__
-/* EUPDFB.PRG, the FireBee's (tools/mkfirebee.py): common's cpucheck_cf.S
+/* EUPDFB.PRG, the FireBee's (common/tools/mkfirebee.py): common's cpucheck_cf.S
    is main(), and says this anywhere without the _CF_ cookie */
 const char cpu_alert[] = "[3][EUPDFB.PRG is for the FireBee.|On a Falcon or a TT, run|EUPDATE.PRG.][ Quit ]";
 #else
