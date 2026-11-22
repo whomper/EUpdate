@@ -3,8 +3,9 @@ name: Release
 # Builds the programs and publishes them as a GitHub Release: two packages,
 # eupdate-x.y-firebee.zip and eupdate-x.y.zip (the guidelines 7.4), the
 # FireBee's uploaded first: EUpdate 2.14 and older unpack every zip of a
-# release in its order, so the standard one must come last. Two ways to
-# start it:
+# release in the order GitHub's API lists them (by name, byte by byte, as
+# v2.12-v2.14 show; not documented), so the standard one must come last,
+# and the run checks it. Two ways to start it:
 # - Actions > Release > Run workflow, on main, with the notes: it tags
 #   main's commit vX.Y, from VERSION;
 # - push a tag vX.Y that matches VERSION: the tag's message
@@ -77,7 +78,8 @@ jobs:
           fi
           V=$(cat VERSION)
           # one upload at a time (gh uploads a list side by side), the
-          # FireBee's first, and the order checked as the API gives it
+          # FireBee's first, and the order checked as the API gives it:
+          # "-firebee.zip" sorts before ".zip"
           gh release create "$TAG" "dist/eupdate-$V-firebee.zip" --target "$GITHUB_SHA" --title "${GITHUB_REPOSITORY#*/} $V" \
             --notes-file "$RUNNER_TEMP/notes.md"
           gh release upload "$TAG" "dist/eupdate-$V.zip"
