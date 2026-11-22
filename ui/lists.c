@@ -383,6 +383,11 @@ static int repos_tip(WIN *w, short mx, short my, char *out, int size)
 	r = repos[row];
 	if (r->note[0])
 		snprintf(out, size, "%s|%s", r->full, r->note);
+	else if (r->latest[0] && !r->latest_date[0])
+		/* a tag, with no release: its source (Erez, 22 Nov 2026) */
+		snprintf(out, size, "%s: tag %s, no release: its source|%s%s%s", r->full, r->latest,
+			 r->have[0] ? r->have : "", !r->have[0] ? "Nothing downloaded yet" :
+			 r->have_date[0] ? " downloaded on " : " downloaded", r->have[0] ? r->have_date : "");
 	else if (r->latest[0])
 		/* (What's new: Erez, 21 Nov 2026; the tip's two lines of 60, 3.4) */
 		snprintf(out, size, "%s: %s published on %s|%s%s%s. What's new: ^L", r->full, r->latest,

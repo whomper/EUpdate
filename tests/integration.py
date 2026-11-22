@@ -99,6 +99,22 @@ def run(base, ca):
     check(rc == 0 and "no release yet" in out, "no release")
     rc, out, err = cli(base, ca, "latest", "whomper/Nothing")
     check(rc == 0 and "no such repository" in out, "no repository")
+    # no full release: its newest pre-release; none at all: its newest tag (Erez, 22 Nov 2026)
+    rc, out, err = cli(base, ca, "latest", "someone/Beta")
+    check(rc == 0 and out.startswith("v0.2-beta\t") and "BETA.PRG" in out, "pre-releases only: the newest")
+    rc, out, err = cli(base, ca, "latest", "someone/u6e")
+    check(rc == 0 and out.startswith("v0.9.10-beta\t") and "v0.9.10-beta.zip" in out, "tags only: the newest by version")
+    rc, out, err = cli(base, ca, "notes", "someone/Beta")
+    check(rc == 0 and out.startswith("2\n") and "the second beta" in out and "v0.3" not in out, "a beta's notes")
+    rc, out, err = cli(base, ca, "notes", "someone/u6e")
+    check(rc == 0 and "only tags" in out + err, "no notes for tags")
+    src = os.path.join(W, "src")
+    shutil.rmtree(src, ignore_errors=True)
+    rc, out, err = cli(base, ca, "get", "someone/u6e", src, token="good-token")
+    check(rc == 0 and "have v0.9.10-beta" in out, "a tag's source downloaded (chunked, its size not said)")
+    check(sorted(os.listdir(src)) == ["GAME.PRG", "docs"] and
+          open(os.path.join(src, "docs", "README.TXT"), "rb").read() == b"u6e v0.9.10-beta",
+          "unpacked into the folder itself, its top folder dropped")
     rc, out, err = cli(base, ca, "latest", "whomper/Limit")
     check(rc == 1 and "limit" in err, "the hour's limit")
     # What's new...: the releases newer than the one had, no draft or pre-release, Markdown made plain

@@ -19,6 +19,9 @@ repository's, as the API gave it), over HTTP or TLS.
       whomper/EDOS       no release (404, and the repository is there)
       anything else      404 twice: no such repository
       whomper/Limit      403, the hour's limit
+      someone/u6e        no release, tags only (/tags): /zipball/TAG 302 to
+                         /src/TAG, chunked as codeload's, one top folder
+      someone/Beta       pre-releases only
   /repos/O/N/releases/assets/ID  302 to /dl/ID?SIGNED on the same server
       (a query of 900 characters and more, as GitHub's), which gives the
       file to Accept: application/octet-stream and the whole query only
@@ -29,8 +32,10 @@ request's Authorization goes into FILE, a line each.
 """
 import copy
 import gzip
+import io
 import json
 import os
+import zipfile
 import ssl
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -121,6 +126,29 @@ def release(full, tag):
             "reactions": {"+1": 2, "heart": 1}}
 
 
+# a repository with tags and no release (Erez, 22 Nov 2026: u6e's)
+U6E_TAGS = ["v0.9.3-beta", "v0.9.10-beta", "v0.9-beta", "v0.9.2-beta"]
+
+
+def source_zip(tag):
+    """GitHub's zip of a tag: everything in one folder, OWNER-NAME-SHA"""
+    b = io.BytesIO()
+    with zipfile.ZipFile(b, "w", zipfile.ZIP_DEFLATED) as z:
+        top = "someone-u6e-ca4dd56/"
+        z.writestr(zipfile.ZipInfo(top), b"")
+        z.writestr(top + "GAME.PRG", b"PRG" + tag.encode() * 300)
+        z.writestr(zipfile.ZipInfo(top + "docs/"), b"")
+        z.writestr(top + "docs/README.TXT", b"u6e " + tag.encode())
+    return b.getvalue()
+
+
+def beta_releases():
+    rel = release("someone/Beta", "v0.2-beta")
+    return [dict(rel, tag_name="v0.3-beta", name="draft", draft=True, prerelease=True),
+            dict(rel, prerelease=True, body="the second beta"),
+            dict(rel, tag_name="v0.1-beta", prerelease=True, assets=[], body="the first")]
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -177,6 +205,8 @@ class Handler(BaseHTTPRequestHandler):
             if self.headers.get("Accept") != "application/octet-stream":
                 return self.send(415, {"message": "Accept"})
             data = ZIP if path[4:] == "900" else HYP if path[4:].isdigit() else None
+            if path[4:].startswith("src-") and path[8:] in U6E_TAGS:
+                return self.send(200, source_zip(path[8:]), "application/zip", chunked=True)
             return self.send(200, data, "application/octet-stream") if data else self.send(404, {})
         if auth and auth not in ("Bearer good-token", "Bearer " + LONG_TOKEN):
             return self.send(401, {"message": "Bad credentials"})
@@ -198,6 +228,20 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, [repo("whomper/" + n, 3, d) for n, d, _ in FAMILY], chunked=True)
             return self.send(200, [repo("%s/R%d" % (p[1], i), i, "repo %d" % i) for i in range(40)],
                              chunked=True)
+        if len(p) >= 4 and p[0] == "repos" and p[1] + "/" + p[2] == "someone/u6e":
+            if p[3] == "tags" and len(p) == 4:
+                return self.send(200, [{"name": t, "commit": {"sha": "ca4dd56"}} for t in U6E_TAGS])
+            if p[3] == "zipball" and len(p) == 5:
+                return self.send(302, b"", "text/html", extra=(("Location", "/dl/src-%s?%s" % (p[4], SIGNED)),))
+            if p[3] == "releases" and len(p) == 4:
+                return self.send(200, [])
+            return self.send(404, {"message": "Not Found"})
+        if len(p) >= 4 and p[0] == "repos" and p[1] + "/" + p[2] == "someone/Beta" and p[3] == "releases":
+            if len(p) == 4:
+                return self.send(200, beta_releases())
+            if len(p) == 6 and p[4] == "assets":
+                return self.send(302, b"", "text/html", extra=(("Location", "/dl/%s?%s" % (p[5], SIGNED)),))
+            return self.send(404, {"message": "Not Found"})
         if len(p) >= 4 and p[0] == "repos" and p[3] == "releases":
             full = p[1] + "/" + p[2]
             if len(p) == 6 and p[4] == "assets":
@@ -212,8 +256,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, release(full, TAGS[full]))
             return self.send(404, {"message": "Not Found"})
         if len(p) == 3 and p[0] == "repos":
-            if p[1] + "/" + p[2] == "whomper/EDOS":
-                return self.send(200, repo("whomper/EDOS", 5, "Disk Utility Package"))
+            if p[1] + "/" + p[2] in ("whomper/EDOS", "someone/u6e", "someone/Beta"):
+                return self.send(200, repo(p[1] + "/" + p[2], 5, "x"))
             return self.send(404, {"message": "Not Found"})
         self.send(404, {"message": "Not Found"})
 

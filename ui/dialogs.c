@@ -762,7 +762,9 @@ int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 		str_copy(fl_rfolder[k], r->rule[k].folder, sizeof(fl_rfolder[k]));
 	}
 	snprintf(fl_l1, sizeof(fl_l1), "%.62s", desc && desc[0] ? desc : r->full);
-	if (r->latest[0])
+	if (r->latest[0] && !r->latest_date[0])	/* a tag, no release (gh_latest) */
+		snprintf(fl_l2, sizeof(fl_l2), "Latest tag %.20s, no release: its source", r->latest);
+	else if (r->latest[0])
 		snprintf(fl_l2, sizeof(fl_l2), "Latest release %.20s, published %s", r->latest, r->latest_date);
 	else
 		snprintf(fl_l2, sizeof(fl_l2), "%.*s", is_new ? 62 : 44, r->note[0] ? r->note : "Its releases aren't known yet");

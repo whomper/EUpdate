@@ -29,15 +29,16 @@ typedef struct {
 } GHUSER;
 
 typedef struct {
-	long id;
+	long id;		/* 0: the source at the release's tag, its name TAG.zip */
 	char name[64];		/* the file's name on GitHub */
-	long size;
+	long size;		/* -1 when GitHub doesn't say (the source's zip) */
 } GHASSET;
 
 typedef struct {
 	char tag[40];		/* "v1.45" */
 	char name[64];		/* the release's title */
 	char date[11];		/* published: "2026-10-20" */
+	short source;		/* only a tag, no release: its source's zip the one file */
 	short nasset;
 	GHASSET asset[GH_MAXASSET];
 } GHREL;
@@ -58,8 +59,11 @@ int gh_find_repos(const char *text, GHREPO *out, int max, long *total, char *err
 int gh_find_owners(const char *text, GHUSER *out, int max, long *total, char *err, int errlen);
 /* an owner's public repositories, the last changed first */
 int gh_owner_repos(const char *login, GHREPO *out, int max, char *err, int errlen);
-/* the latest release of "owner/name": 1, 0 when it has none (no release,
-   or no such repository: err says which), -1 on error */
+/* the latest release of "owner/name"; with no full release its newest
+   pre-release, and with no release at all its newest tag by version
+   (rel->source: GitHub's zip of the source at it its one file): 1, 0
+   when it has none (no release or tag, or no such repository: err says
+   which), -1 on error */
 int gh_latest(const char *full, GHREL *rel, char *err, int errlen);
 /* one of its files, appended to out (at most max bytes) */
 int gh_download(const char *full, const GHASSET *a, SBUF *out, long max, char *err, int errlen);
@@ -67,12 +71,16 @@ int gh_download(const char *full, const GHASSET *a, SBUF *out, long max, char *e
 int gh_download_file(const char *full, const GHASSET *a, const char *file, char *err, int errlen);
 /* the same into memory: a buffer of room bytes (32 KB at least), and
    when it is full it goes to file in one write, and the download goes
-   on into it again. *mem: the whole file when it fitted (pf_big_free
+   on into it again. *len: the bytes that came. *mem: the whole file when it fitted (pf_big_free
    it; file untouched), else 0 and the file is in file. No disk between
    those writes (Erez, 2 Nov 2026: a write every 32 KB stalled each
    download) */
 int gh_download_mem(const char *full, const GHASSET *a, const char *file, long room, char **mem,
-		    char *err, int errlen);
+		    long *len, char *err, int errlen);
+/* a version against another ("v1.10" > "v1.9", "1.0" > "1.0-beta"): < 0, 0, > 0 */
+int gh_vercmp(const char *a, const char *b);
+/* a tag EUpdate takes as it is into an address and a name */
+int gh_valid_ref(const char *ref);
 
 /* what is new: the notes of the releases newer than have (a tag; "" or 0
    when none is had), up to max, newest first; when have is the latest,

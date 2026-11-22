@@ -91,8 +91,18 @@ and what that means:
 | New release | there is a newer one (orange): Update downloads it |
 | Not downloaded | it has releases, and you have none of them yet |
 | Not checked | EUpdate hasn't asked yet |
-| No release | the repository has published no release |
+| No release | the repository has published no release and has no tags |
 | Failed | the last check or update went wrong: the row's tip says why |
+
+### Pre-releases and tags
+
+A repository with no full release is still followed: EUpdate takes its
+newest pre-release, with its files. With no release at all, it takes the
+newest of its tags by version (v0.9.10 after v0.9.2, a -beta before its
+release), and the one file is GitHub's zip of the source at that tag.
+With **Unzip** on, its files go into the folder itself, without the
+top folder GitHub puts them in. A tag has no notes, so What's new has
+nothing to show for it.
 
 The folder its files go to is in the last column, when there is room.
 Rest the mouse on a row for when the release was published and when you
@@ -361,8 +371,8 @@ fixed-width GDOS font under NVDI or SpeedoGDOS.
   token; wait, or add one (see [Your GitHub token](#your-github-token)).
 - **"GitHub didn't take the token"**: it has expired or was mistyped:
   make a new one, or leave the field empty.
-- **"No release"**: the repository publishes its programs some other
-  way. EUpdate follows releases only.
+- **"No release"**: the repository has published no release and has
+  no tags: it publishes its programs some other way.
 - **"Can't make its folder"**, **"can't write"**: the drive is full or
   locked, or the path is too long for TOS.
 - **"the file is too big for this Atari's memory"**: a release's file is

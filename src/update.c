@@ -280,6 +280,7 @@ static struct {
 	int on;
 	short nprog, nseen;
 	int unzip;			/* an AERA release of zips alone: unpacked */
+	int strip;			/* a tag's source zip: its one top folder dropped */
 	char prog[NPROG][260];
 	char seen[NSEEN][13];
 } inst;
@@ -412,6 +413,14 @@ static int file_begin(void *ud, const char *name, long size)
 	   never half of it written */
 	if (pf_idle)
 		pf_idle();
+	if (inst.on && inst.strip) {
+		/* GitHub's zip of a tag puts it all in one folder, NAME-TAG: its
+		   files go into the repository's folder itself (Erez, 22 Nov 2026) */
+		const char *t = name + strcspn(name, "/\\");
+		if (!*t || !t[1])
+			return 2;
+		name = t + 1;
+	}
 	seen(name);
 	r = out_path(j, name);
 	if (r)
@@ -568,6 +577,7 @@ int up_install(REPO *r, const GHREL *rel)
 	}
 	memset(&inst, 0, sizeof(inst));
 	inst.on = 1;
+	inst.strip = rel->source;
 	if (up_aera(r)) {
 		inst.unzip = 1;
 		for (i = 0; i < rel->nasset; i++)
@@ -580,7 +590,7 @@ int up_install(REPO *r, const GHREL *rel)
 		char dl[260];
 		int ok;
 		char *mem;
-		long room = pf_big_avail() - UP_RESERVE;
+		long len, room = pf_big_avail() - UP_RESERVE;
 		say("Downloading %s from %s...", a->name, r->full);
 		/* into memory, with no disk at all while it comes (Erez, 2 Nov
 		   2026: a write every 32 KB stalled each download), then unpacked
@@ -594,9 +604,9 @@ int up_install(REPO *r, const GHREL *rel)
 			snprintf(dl, sizeof(dl), "%s%seupddl.$$$", r->folder,
 				 fl && r->folder[fl - 1] == PF_SEP ? "" : sep);
 		}
-		ok = gh_download_mem(r->full, a, dl, room, &mem, r->note, sizeof(r->note));
+		ok = gh_download_mem(r->full, a, dl, room, &mem, &len, r->note, sizeof(r->note));
 		if (ok && mem) {
-			ok = up_put(r, a->name, (const unsigned char *)mem, a->size, r->note, sizeof(r->note));
+			ok = up_put(r, a->name, (const unsigned char *)mem, len, r->note, sizeof(r->note));
 			pf_big_free(mem);
 		} else {
 			ok = ok && up_put_file(r, a->name, dl, r->note, sizeof(r->note));

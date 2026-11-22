@@ -286,10 +286,46 @@ static void test_gh(void)
 
 	/* no release; then no repository */
 	say("HTTP/1.1 404 Not Found\r\nContent-Length: 2\r\n\r\n{}" FUZZ_NET_NEXT
-	    "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}");
+	    "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}" FUZZ_NET_NEXT
+	    "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n[]" FUZZ_NET_NEXT
+	    "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n[]");
 	n = gh_latest("whomper/EFTP", &r, err, sizeof(err));
 	CHECK(n == 0 && strstr(err, "no release"));
 	http_close_all();
+	/* no full release: its newest pre-release, its files (Erez, 22 Nov 2026) */
+	{
+		static const char pre[] = "[{\"tag_name\":\"v0.9.3-beta\",\"draft\":true,\"prerelease\":true,\"assets\":[]},"
+			"{\"tag_name\":\"v0.9.2-beta\",\"name\":\"u6e\",\"draft\":false,\"prerelease\":true,"
+			"\"published_at\":\"2026-11-20T10:00:00Z\",\"assets\":[{\"id\":7,\"name\":\"u6e.zip\",\"size\":99}]},"
+			"{\"tag_name\":\"v0.9.1-beta\",\"prerelease\":true,\"assets\":[]}]";
+		char ans[600];
+		snprintf(ans, sizeof(ans), "HTTP/1.1 404 Not Found\r\nContent-Length: 2\r\n\r\n{}" FUZZ_NET_NEXT
+			 "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}" FUZZ_NET_NEXT
+			 "HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n%s", (int)strlen(pre), pre);
+		say(ans);
+		n = gh_latest("someone/u6e", &r, err, sizeof(err));
+		CHECK(n == 1 && !strcmp(r.tag, "v0.9.2-beta") && !r.source && r.nasset == 1 && r.asset[0].id == 7 &&
+		      !strcmp(r.date, "2026-11-20"));
+		http_close_all();
+	}
+	/* no release at all: its newest tag by version, the source's zip its one file */
+	{
+		static const char tags[] = "[{\"name\":\"v0.9.3-beta\"},{\"name\":\"v0.9.10-beta\"},{\"name\":\"v0.9-beta\"},"
+			"{\"name\":\"bad/tag\"},{\"name\":\"v0.9.2\"}]";
+		char ans[600];
+		snprintf(ans, sizeof(ans), "HTTP/1.1 404 Not Found\r\nContent-Length: 2\r\n\r\n{}" FUZZ_NET_NEXT
+			 "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}" FUZZ_NET_NEXT
+			 "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n[]" FUZZ_NET_NEXT
+			 "HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n%s", (int)strlen(tags), tags);
+		say(ans);
+		n = gh_latest("someone/u6e", &r, err, sizeof(err));
+		CHECK(n == 1 && !strcmp(r.tag, "v0.9.10-beta") && r.source && r.nasset == 1 && r.asset[0].id == 0 &&
+		      r.asset[0].size == -1 && !strcmp(r.asset[0].name, "v0.9.10-beta.zip"));
+		http_close_all();
+	}
+	CHECK(gh_vercmp("v1.10", "v1.9") > 0 && gh_vercmp("1.0", "1.0-beta") > 0 && gh_vercmp("v0.9.1-beta", "v0.9-beta") > 0);
+	CHECK(gh_vercmp("v2.0-rc1", "v2.0-beta3") > 0 && gh_vercmp("v1.2", "1.2") == 0 && gh_vercmp("1.0.1", "1.0-beta") > 0);
+	CHECK(gh_vercmp("beta2", "beta10") < 0 && gh_valid_ref("v0.9.3-beta") && !gh_valid_ref("a/b") && !gh_valid_ref(".."));
 	say("HTTP/1.1 404 Not Found\r\nContent-Length: 2\r\n\r\n{}" FUZZ_NET_NEXT
 	    "HTTP/1.1 404 Not Found\r\nContent-Length: 2\r\n\r\n{}");
 	n = gh_latest("whomper/NONE", &r, err, sizeof(err));
@@ -837,7 +873,7 @@ static void test_store(void)
 static void test_download_mem(void)
 {
 	static const char file[] = "build/unit-dl.$$$";
-	long n = 100000, k, i;
+	long n = 100000, k, i, len;
 	char *body = malloc(n), *ans = malloc(n + 100), *mem, err[120], *back;
 	GHASSET a;
 	memset(&a, 0, sizeof(a));
@@ -853,14 +889,14 @@ static void test_download_mem(void)
 
 	/* room for it all: in memory, no file made */
 	fuzz_net_set((unsigned char *)ans, k + n);
-	CHECK(gh_download_mem("whomper/EWeb", &a, file, 200000, &mem, err, sizeof(err)) && mem);
-	CHECK(mem && !memcmp(mem, body, n) && pf_size(file) < 0);
+	CHECK(gh_download_mem("whomper/EWeb", &a, file, 200000, &mem, &len, err, sizeof(err)) && mem);
+	CHECK(mem && !memcmp(mem, body, n) && len == n && pf_size(file) < 0);
 	pf_big_free(mem);
 	http_close_all();
 
 	/* room for 32 KB: the file in four writes, every byte in it */
 	fuzz_net_set((unsigned char *)ans, k + n);
-	CHECK(gh_download_mem("whomper/EWeb", &a, file, 32768, &mem, err, sizeof(err)) && !mem);
+	CHECK(gh_download_mem("whomper/EWeb", &a, file, 32768, &mem, &len, err, sizeof(err)) && !mem);
 	back = pf_load(file, &k);
 	CHECK(back && k == n && !memcmp(back, body, n));
 	free(back);
@@ -869,7 +905,7 @@ static void test_download_mem(void)
 
 	/* cut short: refused, and nothing in memory to free */
 	fuzz_net_set((unsigned char *)ans, 60000);
-	CHECK(!gh_download_mem("whomper/EWeb", &a, file, 200000, &mem, err, sizeof(err)) && !mem);
+	CHECK(!gh_download_mem("whomper/EWeb", &a, file, 200000, &mem, &len, err, sizeof(err)) && !mem);
 	http_close_all();
 	pf_remove(file);
 	str_copy(gh_base, "https://api.github.com", sizeof(gh_base));

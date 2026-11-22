@@ -285,12 +285,163 @@ static void asset_from(JSON *js, GHASSET *a)
 		}
 }
 
-int gh_latest(const char *full, GHREL *rel, char *err, int errlen)
+/* one release's object into rel; *skip: a draft, or a pre-release when
+   pre is 0 */
+static void rel_from(JSON *js, GHREL *rel, int pre, int *skip)
 {
-	char path[160], key[24], date[24];
+	char key[24], date[24];
+	memset(rel, 0, sizeof(*rel));
+	*skip = 0;
+	if (!json_object(js)) {
+		json_skip(js);
+		*skip = 1;
+		return;
+	}
+	while (json_key(js, key, sizeof(key))) {
+		if (!strcmp(key, "tag_name"))
+			json_string(js, rel->tag, sizeof(rel->tag));
+		else if (!strcmp(key, "name"))
+			json_string(js, rel->name, sizeof(rel->name));
+		else if (!strcmp(key, "published_at")) {
+			json_string(js, date, sizeof(date));
+			str_copy(rel->date, date, sizeof(rel->date));
+		} else if (!strcmp(key, "draft"))
+			*skip |= json_bool(js);
+		else if (!strcmp(key, "prerelease"))
+			*skip |= json_bool(js) && !pre;
+		else if (!strcmp(key, "assets") && json_array(js)) {
+			while (json_next(js)) {
+				GHASSET a;
+				asset_from(js, &a);
+				if (rel->nasset < GH_MAXASSET && a.id > 0 && a.name[0] && a.size >= 0)
+					rel->asset[rel->nasset++] = a;
+			}
+		} else {
+			json_skip(js);
+		}
+	}
+}
+
+/* a tag's or a release's version against another's: < 0, 0, > 0; the
+   digits as numbers, a pre-release (1.0-beta) before its release (1.0) */
+int gh_vercmp(const char *a, const char *b)
+{
+	while (*a && !isdigit((unsigned char)*a))
+		a++;
+	while (*b && !isdigit((unsigned char)*b))
+		b++;
+	while (*a || *b) {
+		if (isdigit((unsigned char)*a) && isdigit((unsigned char)*b)) {
+			long x = strtol(a, (char **)&a, 10), y = strtol(b, (char **)&b, 10);
+			if (x != y)
+				return x < y ? -1 : 1;
+		} else if (*a == '.' && *b == '.') {
+			a++, b++;
+		} else if (!*a || !*b) {
+			/* one ends: a suffix after a dash is a pre-release (older),
+			   anything else more of the version (newer) */
+			const char *rest = *a ? a : b;
+			int older = *rest == '-' || *rest == '~' || isalpha((unsigned char)*rest);
+			return (*a ? -1 : 1) * (older ? 1 : -1);
+		} else if (*a == '.' || *b == '.') {
+			/* 1.0.1 against 1.0-beta: the one going on with digits is newer */
+			return *a == '.' ? 1 : -1;
+		} else {
+			int c = tolower((unsigned char)*a) - tolower((unsigned char)*b);
+			if (c)
+				return c;
+			a++, b++;
+		}
+	}
+	return 0;
+}
+
+/* the newest of its releases, pre-releases too (releases/latest leaves
+   them out: a repository with only those has "no release"): 1, 0 none */
+static int newest_release(const char *full, GHREL *rel, char *err, int errlen)
+{
+	char path[160];
+	SBUF b;
+	JSON js;
+	int st, found = 0;
+	snprintf(path, sizeof(path), "/repos/%s/releases?per_page=10", full);
+	sb_init(&b);
+	st = ask(path, HTTP_GZIP, &b, MAXANSWER, err, errlen);
+	if (st != 200) {
+		sb_free(&b);
+		return st == 404 ? 0 : -1;
+	}
+	json_init(&js, b.s, b.len);
+	if (json_array(&js))
+		while (json_next(&js)) {
+			GHREL one;
+			int skip;
+			rel_from(&js, &one, 1, &skip);
+			if (!skip && one.tag[0] && !found) {
+				*rel = one;
+				found = 1;
+			}
+		}
+	sb_free(&b);
+	if (js.err) {
+		str_copy(err, "GitHub's answer didn't make sense", errlen);
+		return -1;
+	}
+	return found;
+}
+
+/* the newest of its tags by version, with no release: GitHub's zip of
+   the source at it as its one file (Erez, 22 Nov 2026) */
+static int newest_tag(const char *full, GHREL *rel, char *err, int errlen)
+{
+	char path[160], key[16], name[40];
 	SBUF b;
 	JSON js;
 	int st;
+	snprintf(path, sizeof(path), "/repos/%s/tags?per_page=100", full);
+	sb_init(&b);
+	st = ask(path, HTTP_GZIP, &b, MAXANSWER, err, errlen);
+	if (st != 200) {
+		sb_free(&b);
+		return st == 404 ? 0 : -1;
+	}
+	memset(rel, 0, sizeof(*rel));
+	json_init(&js, b.s, b.len);
+	if (json_array(&js))
+		while (json_next(&js)) {
+			name[0] = 0;
+			if (json_object(&js))
+				while (json_key(&js, key, sizeof(key))) {
+					if (!strcmp(key, "name"))
+						json_string(&js, name, sizeof(name));
+					else
+						json_skip(&js);
+				}
+			if (name[0] && strlen(name) < sizeof(rel->tag) - 1 && gh_valid_ref(name) &&
+			    (!rel->tag[0] || gh_vercmp(name, rel->tag) > 0))
+				str_copy(rel->tag, name, sizeof(rel->tag));
+		}
+	sb_free(&b);
+	if (js.err) {
+		str_copy(err, "GitHub's answer didn't make sense", errlen);
+		return -1;
+	}
+	if (!rel->tag[0])
+		return 0;
+	rel->source = 1;
+	rel->nasset = 1;
+	rel->asset[0].id = 0;
+	rel->asset[0].size = -1;
+	snprintf(rel->asset[0].name, sizeof(rel->asset[0].name), "%s.zip", rel->tag);
+	return 1;
+}
+
+int gh_latest(const char *full, GHREL *rel, char *err, int errlen)
+{
+	char path[160];
+	SBUF b;
+	JSON js;
+	int st, skip;
 	memset(rel, 0, sizeof(*rel));
 	if (!gh_valid_full(full)) {
 		str_copy(err, "not a repository's name", errlen);
@@ -307,7 +458,16 @@ int gh_latest(const char *full, GHREL *rel, char *err, int errlen)
 		sb_free(&b);
 		if (st < 0)
 			return -1;
-		str_copy(err, st == 404 ? "GitHub has no such repository" : "it has no release yet", errlen);
+		if (st == 404) {
+			str_copy(err, "GitHub has no such repository", errlen);
+			return 0;
+		}
+		/* with no full release: its newest pre-release, else its newest
+		   tag (Erez, 22 Nov 2026) */
+		if ((st = newest_release(full, rel, err, errlen)) != 0 ||
+		    (st = newest_tag(full, rel, err, errlen)) != 0)
+			return st;
+		str_copy(err, "it has no release yet", errlen);
 		return 0;
 	}
 	if (st < 0) {
@@ -315,26 +475,7 @@ int gh_latest(const char *full, GHREL *rel, char *err, int errlen)
 		return -1;
 	}
 	json_init(&js, b.s, b.len);
-	if (json_object(&js))
-		while (json_key(&js, key, sizeof(key))) {
-			if (!strcmp(key, "tag_name"))
-				json_string(&js, rel->tag, sizeof(rel->tag));
-			else if (!strcmp(key, "name"))
-				json_string(&js, rel->name, sizeof(rel->name));
-			else if (!strcmp(key, "published_at")) {
-				json_string(&js, date, sizeof(date));
-				str_copy(rel->date, date, sizeof(rel->date));
-			} else if (!strcmp(key, "assets") && json_array(&js)) {
-				while (json_next(&js)) {
-					GHASSET a;
-					asset_from(&js, &a);
-					if (rel->nasset < GH_MAXASSET && a.id > 0 && a.name[0] && a.size >= 0)
-						rel->asset[rel->nasset++] = a;
-				}
-			} else {
-				json_skip(&js);
-			}
-		}
+	rel_from(&js, rel, 1, &skip);
 	sb_free(&b);
 	if (js.err || !rel->tag[0]) {
 		str_copy(err, "GitHub's answer didn't make sense", errlen);
@@ -342,6 +483,20 @@ int gh_latest(const char *full, GHREL *rel, char *err, int errlen)
 	}
 	return 1;
 }
+
+/* where a file of it comes from: a release's file by its id, or the
+   source at a tag (its name TAG.zip), which GitHub sends from another host */
+static void file_path(char *path, int size, const char *full, const GHASSET *a)
+{
+	size_t n = strlen(a->name);
+	if (a->id)
+		snprintf(path, size, "/repos/%s/releases/assets/%ld", full, a->id);
+	else
+		snprintf(path, size, "/repos/%s/zipball/%.*s", full, (int)(n > 4 ? n - 4 : 0), a->name);
+}
+
+/* the most a file of unknown size may be */
+#define SOURCEMAX (64L * 1024 * 1024)
 
 typedef struct {
 	int h;
@@ -374,9 +529,9 @@ int gh_download_file(const char *full, const GHASSET *a, const char *file, char 
 		return 0;
 	}
 	sb_init(&b);
-	snprintf(path, sizeof(path), "/repos/%s/releases/assets/%ld", full, a->id);
+	file_path(path, sizeof(path), full, a);
 	http_sink(to_file, &t);
-	st = ask(path, HTTP_OCTET, &b, a->size, err, errlen);
+	st = ask(path, HTTP_OCTET, &b, a->size >= 0 ? a->size : SOURCEMAX, err, errlen);
 	http_sink(0, 0);
 	pf_close(t.h);
 	sb_free(&b);
@@ -386,7 +541,7 @@ int gh_download_file(const char *full, const GHASSET *a, const char *file, char 
 	}
 	if (st < 0)
 		return 0;
-	if (t.n != a->size) {
+	if (a->size >= 0 && t.n != a->size) {
 		str_copy(err, "the file came short", errlen);
 		return 0;
 	}
@@ -432,7 +587,7 @@ static int to_buf(void *u, const char *p, long n)
 }
 
 int gh_download_mem(const char *full, const GHASSET *a, const char *file, long room, char **mem,
-		    char *err, int errlen)
+		    long *len, char *err, int errlen)
 {
 	char path[160];
 	SBUF b;
@@ -457,17 +612,18 @@ int gh_download_mem(const char *full, const GHASSET *a, const char *file, long r
 		return 0;
 	}
 	sb_init(&b);
-	snprintf(path, sizeof(path), "/repos/%s/releases/assets/%ld", full, a->id);
+	file_path(path, sizeof(path), full, a);
 	http_sink(to_buf, &t);
-	st = ask(path, HTTP_OCTET, &b, a->size, err, errlen);
+	st = ask(path, HTTP_OCTET, &b, a->size >= 0 ? a->size : SOURCEMAX, err, errlen);
 	http_sink(0, 0);
 	sb_free(&b);
+	*len = t.n;
 	if (st == 404) {
 		str_copy(err, "the file is gone from GitHub", errlen);
 		ok = 0;
 	} else if (st < 0) {
 		ok = 0;
-	} else if (t.n != a->size) {
+	} else if (a->size >= 0 && t.n != a->size) {
 		str_copy(err, "the file came short", errlen);
 		ok = 0;
 	}
@@ -496,11 +652,11 @@ int gh_download(const char *full, const GHASSET *a, SBUF *out, long max, char *e
 		return 0;
 	}
 	/* the room it needs, at once: no doubling while it comes */
-	if (!sb_reserve(out, a->size)) {
+	if (a->size > 0 && !sb_reserve(out, a->size)) {
 		str_copy(err, "not enough memory for the file", errlen);
 		return 0;
 	}
-	snprintf(path, sizeof(path), "/repos/%s/releases/assets/%ld", full, a->id);
+	file_path(path, sizeof(path), full, a);
 	st = ask(path, HTTP_OCTET, out, max, err, errlen);
 	if (st == 404) {
 		str_copy(err, "the file is gone from GitHub", errlen);
@@ -508,7 +664,7 @@ int gh_download(const char *full, const GHASSET *a, SBUF *out, long max, char *e
 	}
 	if (st < 0)
 		return 0;
-	if (out->len - before != a->size) {
+	if (a->size >= 0 && out->len - before != a->size) {
 		str_copy(err, "the file came short", errlen);
 		return 0;
 	}
@@ -624,8 +780,9 @@ int gh_whats_new(const char *full, const char *have, int max, char **text, char 
 	char *body;
 	SBUF b, out;
 	JSON js;
-	int st, n = 0;
+	int st, n = 0, pre, any = 0;
 	*text = 0;
+	js.err = 0;
 	if (!gh_valid_full(full)) {
 		str_copy(err, "not a repository's name", errlen);
 		return -1;
@@ -647,47 +804,54 @@ int gh_whats_new(const char *full, const char *have, int max, char **text, char 
 		free(body);
 		return -1;
 	}
-	json_init(&js, b.s, b.len);
-	if (json_array(&js))
-		while (n < max && json_next(&js)) {
-			int skip = 0;
-			tag[0] = name[0] = date[0] = body[0] = 0;
-			if (!json_object(&js)) {
-				json_skip(&js);
-				continue;
-			}
-			while (json_key(&js, key, sizeof(key))) {
-				if (!strcmp(key, "tag_name"))
-					json_string(&js, tag, sizeof(tag));
-				else if (!strcmp(key, "name"))
-					json_string(&js, name, sizeof(name));
-				else if (!strcmp(key, "published_at"))
-					json_string(&js, date, sizeof(date));
-				else if (!strcmp(key, "body"))
-					json_string(&js, body, NOTEMAX);
-				else if (!strcmp(key, "draft") || !strcmp(key, "prerelease"))
-					skip |= json_bool(&js);
-				else
+	/* pre-releases left out as releases/latest leaves them; with no full
+	   release, they are what EUpdate takes (gh_latest), so theirs */
+	for (pre = 0; pre < 2 && !n && !js.err && (!pre || any); pre++) {
+		json_init(&js, b.s, b.len);
+		if (json_array(&js))
+			while (n < max && json_next(&js)) {
+				int skip = 0;
+				tag[0] = name[0] = date[0] = body[0] = 0;
+				if (!json_object(&js)) {
 					json_skip(&js);
+					continue;
+				}
+				while (json_key(&js, key, sizeof(key))) {
+					if (!strcmp(key, "tag_name"))
+						json_string(&js, tag, sizeof(tag));
+					else if (!strcmp(key, "name"))
+						json_string(&js, name, sizeof(name));
+					else if (!strcmp(key, "published_at"))
+						json_string(&js, date, sizeof(date));
+					else if (!strcmp(key, "body"))
+						json_string(&js, body, NOTEMAX);
+					else if (!strcmp(key, "draft"))
+						skip |= json_bool(&js);
+					else if (!strcmp(key, "prerelease"))
+						skip |= json_bool(&js) && !pre;
+					else
+						json_skip(&js);
+				}
+				if (tag[0])
+					any = 1;
+				if (skip || !tag[0])
+					continue;
+				/* down to the one had; when it is the latest, its own notes */
+				if (have && have[0] && !strcmp(tag, have) && n)
+					break;
+				date[10] = 0;
+				if (name[0] && strcmp(name, tag))
+					sb_printf(&out, "%s\f%s - %s (%s)\n", n ? "\n" : "", tag, name, date);
+				else
+					sb_printf(&out, "%s\f%s (%s)\n", n ? "\n" : "", tag, date);
+				gh_plain(body);
+				sb_adds(&out, body[0] ? body : "(no notes)");
+				sb_addc(&out, '\n');
+				n++;
+				if (have && have[0] && !strcmp(tag, have))
+					break;
 			}
-			/* (as releases/latest: no drafts, no pre-releases) */
-			if (skip || !tag[0])
-				continue;
-			/* down to the one had; when it is the latest, its own notes */
-			if (have && have[0] && !strcmp(tag, have) && n)
-				break;
-			date[10] = 0;
-			if (name[0] && strcmp(name, tag))
-				sb_printf(&out, "%s\f%s - %s (%s)\n", n ? "\n" : "", tag, name, date);
-			else
-				sb_printf(&out, "%s\f%s (%s)\n", n ? "\n" : "", tag, date);
-			gh_plain(body);
-			sb_adds(&out, body[0] ? body : "(no notes)");
-			sb_addc(&out, '\n');
-			n++;
-			if (have && have[0] && !strcmp(tag, have))
-				break;
-		}
+	}
 	sb_free(&b);
 	free(body);
 	if (js.err) {
@@ -697,7 +861,8 @@ int gh_whats_new(const char *full, const char *have, int max, char **text, char 
 	}
 	if (!n) {
 		sb_free(&out);
-		str_copy(err, "it has no release yet", errlen);
+		str_copy(err, any ? "it has no release yet" : "it has no release notes: only tags, or nothing yet",
+			 errlen);
 		return 0;
 	}
 	if (!(*text = out.s)) {	/* (n > 0: it holds the lines, unless memory ran out) */
@@ -705,4 +870,16 @@ int gh_whats_new(const char *full, const char *have, int max, char **text, char 
 		return -1;
 	}
 	return n;
+}
+
+/* a tag EUpdate takes: letters, digits and . _ - + only (it goes into
+   an address and a file's name as it is) */
+int gh_valid_ref(const char *ref)
+{
+	if (!*ref || *ref == '.')
+		return 0;
+	for (; *ref; ref++)
+		if (!isalnum((unsigned char)*ref) && !strchr("._-+", *ref))
+			return 0;
+	return 1;
 }

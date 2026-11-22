@@ -142,6 +142,13 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
   common 173309d0, whose ColdFire build loads TLSFB.OVL. 2.16, on 8c94c08's common, drops them.
   Rig: `family_test.py WORK FireBee:16` (`make cftest`; plain HTTP, the stand-in runs no TLS) and
   on a Falcon; the stand-ins are zips only.
+- Lifted for one feature (Erez, 22 Nov 2026, on slaapliedje/u6e: "Can we support also only tags?",
+  "this is also a mechanism to update and download source files"; his choices, put to him: every
+  tag counts, betas too; a pre-release only when there is no full release; the source zip into
+  the folder itself, its top folder dropped): `gh_latest` falls back to `newest_release` (the
+  releases list, pre-releases taken) and then `newest_tag` (`/tags`, `gh_vercmp`; the one file
+  `TAG.zip`, id 0, size -1, from `/zipball/TAG`), `inst.strip` in `file_begin`; What's new takes
+  pre-releases when there is no full release. Rig: `make itest` (someone/u6e, someone/Beta).
 - Speed: a change ships only if no row of the paired run (`make prof`, padded to the shipped
   places by common's `profpad.py`) is slower by more than one tick (AERA-Atari 098183d); a
   change that moves code gets a pad round first (`tools/objpad.py`, `atari/pads.txt` against the
