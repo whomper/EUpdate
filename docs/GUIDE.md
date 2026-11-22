@@ -32,14 +32,15 @@ runs.
 
 The files are in the latest release on EUpdate's GitHub page
 (github.com/whomper/EUpdate/releases), each on its own and all together
-in `EUPDATE-x.y.zip`. Copy them into a folder of their own, on any
-drive:
+in `EUPDATE-x.y.zip`; on a FireBee, take `EUPDATE-x.y-FIREBEE.ZIP`
+instead, the same files built for its ColdFire. Copy them into a folder
+of their own, on any drive:
 
 ```
-EUPDATE.PRG   the program, for a Falcon or a TT
-EUPDFB.PRG    the same for the FireBee
+EUPDATE.PRG   the program: for a Falcon or a TT, or in the FireBee's package
+              for the FireBee
 TLS.OVL       its TLS, loaded when EUpdate first talks to GitHub
-TLSFB.OVL     the same for a FireBee, loaded there instead
+TLSFB.OVL     the same in the FireBee's package, loaded there instead
 EUPDATE.HYP   this guide, for EHypView or ST-Guide (the Help key opens it)
 DEFAULTS.INF  what EUpdate follows on its first start
 CACERT.PEM    the root certificates GitHub's are checked against
@@ -211,24 +212,21 @@ GitHub, and written again like any other file: safely, so a reset never
 leaves half of it. If it is ever missing or damaged, EUpdate says so;
 copy it again from EUpdate's latest release.
 
-### The FireBee's editions
+### The FireBee's package
 
-The AERA programs have an edition for the FireBee beside each program,
-its name ending in FB: `ECALFB.PRG` and `ECALFB.ACC` beside `ECAL.PRG`
-and `ECAL.ACC`, `EMCHKFB.ACC` beside `EMAILCHK.ACC`. EUpdate takes the
-ones for your machine by itself, with no rule:
+An AERA release has two packages: `NAME-x.y.zip`, for the ST, the TT and
+the Falcon, and `NAME-x.y-firebee.zip`, the very same files built for
+the FireBee's ColdFire. EUpdate takes the one for the machine it runs on,
+with no rule:
 
-- On a FireBee it takes a release's FireBee editions and leaves out the
-  others (an ST edition too); on a Falcon or TT, the other way round.
-  This goes by kind: a release with a FireBee program and another
-  program, or a FireBee accessory and another accessory. A release with
-  no FireBee edition is taken as before.
-- TOS loads every accessory in the root, so the other machine's
-  accessory found there when this machine's is written (`ECAL.ACC` on a
-  FireBee when `ECALFB.ACC` comes) is switched off: renamed `ECAL.ACX`,
-  as you would switch one off yourself, and EUpdate says so. Rename it
-  back to `.ACC` to load it again.
-- Get info shows this under the rules.
+- On a FireBee it takes the FireBee's package alone, whatever **Files**
+  says; on any other Atari, never. A release without one (another
+  author's, or an older one) is taken as before.
+- Both packages have the same names, so either replaces the files in
+  place.
+- The FireBee editions of before (`EUPDFB.PRG` and the like) go once the
+  program of the standard name is written beside them, and EUpdate says
+  which to start from now on.
 
 ## Checking and updating
 

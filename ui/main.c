@@ -359,7 +359,7 @@ static int job_begin(void)
    and an accessory's said at the job's end, as it is loaded until the
    Atari restarts */
 #define NREPLACED 4
-static char replaced[NREPLACED][200];
+static char replaced[NREPLACED][160];
 static short nreplaced;
 
 /* EUpdate's window drawn again while a dialog window is open over it */
@@ -380,28 +380,25 @@ static void shown(char *out, const char *name, int size)
 	out[i] = 0;
 }
 
-static void on_replaced(const REPO *r, const char *old, const char *now, int off)
+static void on_replaced(const REPO *r, const char *old, const char *now)
 {
 	const char *app = strchr(r->full, '/');
-	char o[16], n[16], x[16];
+	char o[16], n[16];
 	app = app ? app + 1 : r->full;	/* the log has it already (update.c's say) */
 	shown(o, old, sizeof(o));
 	shown(n, now, sizeof(n));
-	if (nreplaced >= NREPLACED || !wild_match("*.ACC", now))
+	if (nreplaced >= NREPLACED)
 		return;
-	if (!off) {
+	if (wild_match("*.ACC", now))
 		snprintf(replaced[nreplaced++], sizeof(replaced[0]),
 			 "[1][%s's accessory is now %s (%s is gone). Restart the Atari to load it; "
 			 "the Desk menu still says %s.][ OK ]", app, n, o, app);
-		return;
-	}
-	/* the other machine's switched off (update.c, up_fb_switch_off) */
-	str_copy(x, o, sizeof(x));
-	if (x[0])
-		x[strlen(x) - 1] = 'X';
-	snprintf(replaced[nreplaced++], sizeof(replaced[0]),
-		 "[1][%s's accessory is now %s%s; %s%s is switched off as %s. Restart the Atari to load it.][ OK ]",
-		 app, n, up_firebee ? ", the FireBee's" : "", o, up_firebee ? "" : ", the FireBee's,", x);
+	else if (up_firebee && wild_match("*FB.PRG", old))
+		/* the FireBee's package: its program by the standard name (the
+		   guidelines 7.4); once, as the old file is gone */
+		snprintf(replaced[nreplaced++], sizeof(replaced[0]),
+			 "[1][%s is now %s on the FireBee too (%s is gone). Start %s from now on.][ OK ]",
+			 app, n, o, n);
 }
 
 static void job_end(void)
@@ -1057,9 +1054,10 @@ static void warn_plain(const char *keyfile)
 }
 
 #ifdef __mcoldfire__
-/* EUPDFB.PRG, the FireBee's (common/tools/mkfirebee.py): common's cpucheck_cf.S
-   is main(), and says this anywhere without the _CF_ cookie */
-const char cpu_alert[] = "[3][EUPDFB.PRG is for the FireBee.|On a Falcon or a TT, run|EUPDATE.PRG.][ Quit ]";
+/* the FireBee package's EUPDATE.PRG (common/tools/mkfirebee.py; the
+   guidelines 7.4): common's cpucheck_cf.S is main(), and says this
+   anywhere without the _CF_ cookie */
+const char cpu_alert[] = "[3][EUPDATE.PRG is for the FireBee.|On a Falcon or a TT, install|EUpdate's standard package.][ Quit ]";
 #else
 /* common's cpucheck.c is main(), built for the 68000: on an ST it says
    this, and goes; on a 68020 or better it calls app_main; on a FireBee
@@ -1069,7 +1067,7 @@ const char cpu_alert[] = "[3][EUPDFB.PRG is for the FireBee.|On a Falcon or a TT
 const long cpu_need = 20;
 const char cpu_alert[] = "[3][EUpdate needs a 68020 or|better: a Falcon or a TT.][ Quit ]";
 #ifndef EU_CF_TEST	/* make cftest: EUPDATE.PRG on the FireBee stand-in, for the rigs */
-const char cpu_cf_alert[] = "[3][EUPDATE.PRG is for the Falcon and|the TT. On the FireBee, run|EUPDFB.PRG.][ Quit ]";
+const char cpu_cf_alert[] = "[3][EUPDATE.PRG is for the Falcon|and TT. On the FireBee, install|EUpdate's FireBee package.][ Quit ]";
 #endif
 #endif
 int app_main(void);

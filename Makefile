@@ -298,10 +298,15 @@ itest: $(OBJDIR)/eupd-cli
 	python3 tests/integration.py $(OBJDIR)/eupd-cli
 
 # a release's files: each one in dist/, and all of them in
-# dist/eupdate-x.y.zip (the icons in icons/), for the release workflow: every
+# dist/eupdate-x.y.zip (the icons in icons/), and the FireBee's package
+# beside it, for the release workflow: every
 # file and folder named in lowercase (the guidelines 6.6: MiNT's ext2 tells
 # the cases apart)
 DIST    := binary/eupdate.prg binary/eupdfb.prg binary/tls.ovl binary/tlsfb.ovl binary/cacert.pem binary/roots.dat binary/eupdate.hyp binary/defaults.inf
+# the FireBee's package (the guidelines 7.4, Erez 22 Nov 2026): the same
+# names, EUPDATE.PRG the ColdFire build and TLSFB.OVL its TLS, only in
+# dist/eupdate-x.y-firebee.zip; the loose files are the standard package's
+FBDIST  := binary/tlsfb.ovl binary/cacert.pem binary/roots.dat binary/eupdate.hyp binary/defaults.inf
 ICONS   := icons/eupdate.rsc icons/eupdnv.rsc icons/eupdate.icn icons/eupdmk.icn
 dist: all help binary/defaults.inf
 	rm -rf dist
@@ -310,6 +315,12 @@ dist: all help binary/defaults.inf
 	cp $(DIST) dist/zip/
 	cp $(ICONS) dist/zip/icons/
 	cd dist/zip && zip -q -9 -r ../eupdate-$(VERSION_STR).zip .
+	rm -rf dist/zip
+	mkdir -p dist/zip/icons
+	cp $(FBDIST) dist/zip/
+	cp binary/eupdfb.prg dist/zip/eupdate.prg
+	cp $(ICONS) dist/zip/icons/
+	cd dist/zip && zip -q -9 -r ../eupdate-$(VERSION_STR)-firebee.zip .
 	rm -rf dist/zip
 
 # what a first start follows (the AERA programs), EUpdate itself at this version

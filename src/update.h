@@ -16,16 +16,17 @@
 extern void (*up_status)(const char *msg);
 /* an AERA ST edition (ECALST.ACC) removed by up_install, as the release
    now has one program for every Atari (now: ECAL.ACC, the guidelines
-   7.4); off 1: the other machine's accessory switched off as NAME.ACX
-   (up_fb_switch_off); or NULL */
-extern void (*up_replaced)(const REPO *r, const char *old, const char *now, int off);
+   7.4), or a FireBee edition by its package's program of the standard
+   name (EUPDFB.PRG by EUPDATE.PRG); or NULL */
+extern void (*up_replaced)(const REPO *r, const char *old, const char *now);
 
 /* asks GitHub for r's latest release (rel); r->latest follows it. 1 when
    it is newer than what r has, 0 when it isn't or there is none, -1 on
    error; r->note says what went wrong (or that there is no release) */
 int up_check(REPO *r, GHREL *rel);
 /* rel's files that r takes into its folder: their indices into which[],
-   and how many. TLS.OVL goes with a program, unless a rule leaves it out */
+   and how many. TLS.OVL goes with a program, unless a rule leaves it out.
+   A FireBee package (up_fb_package) is the only one on a FireBee */
 int up_chosen(const REPO *r, const GHREL *rel, short *which);
 /* one file downloaded, into r's folder: a zip unpacked when r says so.
    0 with err when it can't be written */
@@ -46,18 +47,11 @@ const RULE *up_rule(const REPO *r, const char *name);
 void up_suggest(REPO *r, const GHREL *rel, int st_machine);
 extern int up_boot_drive;	/* 0 = A:, 2 = C: (the Atari's; for up_suggest) */
 
-/* the FireBee's editions (NAMEFB.PRG, NAMEFB.ACC beside NAME.PRG and
-   NAME.ACC): up_firebee set (the _CF_ cookie), a release's FB ones are
-   taken and its others of that kind left out; else the other way.
-   up_fb_kind: a name's kind, 1 .PRG, 2 .ACC, else 0, *fb set for an FB
-   one; up_fb_kinds: the kinds rel has both of; up_fb_other: name is the
-   other machine's; up_fb_switch_off: after an install, the other
-   machine's accessory beside the one written renamed NAME.ACX */
+/* where the _CF_ cookie is (a FireBee): up_chosen takes a release's
+   FireBee package, NAME-X.Y-firebee.zip, alone where it has one; elsewhere
+   never (the guidelines 7.4) */
 extern int up_firebee;
-int up_fb_kind(const char *name, int *fb);
-int up_fb_kinds(const GHREL *rel);
-int up_fb_other(int kinds, const char *name);
-void up_fb_switch_off(const REPO *r);
+int up_fb_package(const char *name);
 
 /* name and pattern, case aside: '*' any run, '?' one character */
 int wild_match(const char *pat, const char *name);

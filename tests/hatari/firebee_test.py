@@ -7,10 +7,11 @@ doesn't run on a ColdFire; Erez, 18 Nov 2026: EUPDFB.PRG, the ColdFire
 build, common/tools/mkfirebee.py):
 
   wrong   EUPDATE.PRG on machines.py's FireBee stand-in (FireTOS's
-          cookies): common's cpucheck.c names EUPDFB.PRG in an alert and
+          cookies): common's cpucheck.c names the FireBee's package in an alert and
           EUpdate goes, before anything of its 68030 code runs;
-  falcon  EUPDFB.PRG on a Falcon (TOS 4.04): common's cpucheck_cf.S names
-          EUPDATE.PRG in an alert and it goes.
+  falcon  the FireBee package's EUPDATE.PRG (binary/eupdfb.prg here) on a
+          Falcon (TOS 4.04): common's cpucheck_cf.S names the standard package
+          in an alert and it goes.
 
 Each: an alert, answered with Return, the desktop again, and no
 EUPDATE.INF written (nothing of the program ran). The stand-in is a
@@ -34,8 +35,8 @@ TOP = os.path.normpath(os.path.join(HERE, "..", ".."))
 work = os.path.abspath(sys.argv[1])
 case = sys.argv[2] if len(sys.argv) > 2 else "wrong"
 fails = 0
-CASES = {"wrong": ("FireBee:16", "eupdate.prg", "EUPDFB.PRG"),
-         "falcon": ("Falcon:16", "eupdfb.prg", "EUPDATE.PRG")}
+CASES = {"wrong": ("FireBee:16", "eupdate.prg", "EUpdate's FireBee package"),
+         "falcon": ("Falcon:16", "eupdfb.prg", "EUpdate's standard package")}
 
 
 def check(cond, what):

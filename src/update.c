@@ -14,7 +14,7 @@
 #include "conn.h"
 
 void (*up_status)(const char *msg);
-void (*up_replaced)(const REPO *r, const char *old, const char *now, int off);
+void (*up_replaced)(const REPO *r, const char *old, const char *now);
 int up_boot_drive = 2;		/* C: */
 int up_firebee;
 
@@ -117,13 +117,23 @@ static int is_program(const char *name)
 
 int up_chosen(const REPO *r, const GHREL *rel, short *which)
 {
-	short i, n = 0, zips = 0, ovl = -1, fb = -1, prog = 0, kinds = (short)up_fb_kinds(rel);
+	short i, n = 0, zips = 0, ovl = -1, fb = -1, prog = 0;
+	/* a release with the FireBee's package (the guidelines 7.4, Erez 22
+	   Nov 2026: "EUpdate can then download the right package based on
+	   the running platform"): on a FireBee that zip alone, elsewhere
+	   anything but it */
+	for (i = 0; up_firebee && i < rel->nasset; i++)
+		if (up_fb_package(rel->asset[i].name) && !left_out(r, rel->asset[i].name)) {
+			which[0] = i;
+			return 1;
+		}
 	for (i = 0; i < rel->nasset; i++)
-		zips += is_zip(rel->asset[i].name);
+		zips += is_zip(rel->asset[i].name) && !up_fb_package(rel->asset[i].name);
 	for (i = 0; i < rel->nasset; i++) {
 		const char *name = rel->asset[i].name;
-		if ((r->files[0] ? listed(r->files, name) : !zips || is_zip(name)) && !left_out(r, name) &&
-		    !up_fb_other(kinds, name)) {
+		if (up_fb_package(name))
+			continue;
+		if ((r->files[0] ? listed(r->files, name) : !zips || is_zip(name)) && !left_out(r, name)) {
 			which[n++] = i;
 			prog |= is_program(name);
 		} else if (!strcasecmp(name, "tls.ovl") && !left_out(r, name)) {
@@ -266,7 +276,7 @@ typedef struct {
 #define NSEEN 64
 static struct {
 	int on;
-	short nprog, nseen, fbk;	/* fbk: up_fb_kinds */
+	short nprog, nseen;
 	char prog[NPROG][260];
 	char seen[NSEEN][13];
 } inst;
@@ -292,6 +302,12 @@ static const char *const st_edition[][2] = {
 	{ "econtst.acc", "econtact.acc" },
 	{ "emailst.prg", "email.prg" },
 	{ "eftpst.prg", "eftp.prg" },
+	/* and the FireBee editions of the same names' time (2.10-2.14's
+	   EUPDFB.PRG, EWeb's and EPlay's): a FireBee package's program has
+	   the standard name (the guidelines 7.4, 22 Nov 2026) */
+	{ "eupdfb.prg", "eupdate.prg" },
+	{ "ewebfb.prg", "eweb.prg" },
+	{ "eplayfb.prg", "eplay.prg" },
 };
 
 /* an ST edition on the disk beside the program that now takes its place,
@@ -316,7 +332,7 @@ static void retire(const REPO *r)
 				continue;
 			say("%s replaced by %s", st_edition[k][0], now);
 			if (up_replaced)
-				up_replaced(r, st_edition[k][0], now, 0);
+				up_replaced(r, st_edition[k][0], now);
 		}
 	}
 }
@@ -332,8 +348,6 @@ static int out_path(JOB *j, const char *name)
 	const RULE *u = up_rule(j->r, name);
 	long n;
 	int depth = 0;
-	if (inst.on && up_fb_other(inst.fbk, name))
-		return 2;		/* the other machine's edition */
 	if (u && !strcmp(u->folder, "-"))
 		return 2;		/* left out */
 	str_copy(path, u ? u->folder : j->r->folder, sizeof(j->path));
@@ -550,7 +564,6 @@ int up_install(REPO *r, const GHREL *rel)
 	}
 	memset(&inst, 0, sizeof(inst));
 	inst.on = 1;
-	inst.fbk = (short)up_fb_kinds(rel);
 	for (i = 0; i < rel->nasset; i++)
 		seen(rel->asset[i].name);
 	for (i = 0; i < n; i++) {
@@ -587,7 +600,6 @@ int up_install(REPO *r, const GHREL *rel)
 		}
 	}
 	retire(r);
-	up_fb_switch_off(r);
 	inst.on = 0;
 	str_copy(r->have, rel->tag, sizeof(r->have));
 	pf_now(&t);
@@ -596,70 +608,9 @@ int up_install(REPO *r, const GHREL *rel)
 	return 1;
 }
 
-/* ---------------- the FireBee's editions ----------------
- * A release with a FireBee edition beside a program (Erez, 22 Nov 2026:
- * "Make the other apps native on the FireBee too"): NAME.PRG and
- * NAMEFB.PRG, NAME.ACC and NAMEFB.ACC, the names otherwise free
- * (EMAILCHK.ACC and EMCHKFB.ACC). A FireBee takes the FB ones and every
- * other Atari the others; a FireBee loads every .ACC in the root, so the
- * other machine's accessory there is switched off. */
 
-int up_fb_kind(const char *name, int *fb)
+/* a release's FireBee package: NAME-X.Y-firebee.zip (the guidelines 7.4) */
+int up_fb_package(const char *name)
 {
-	const char *b = base_of(name), *dot = strrchr(b, '.');
-	int k = !dot ? 0 : !strcasecmp(dot, ".prg") ? 1 : !strcasecmp(dot, ".acc") ? 2 : 0;
-	*fb = k && dot - b > 2 && !strncasecmp(dot - 2, "fb", 2);
-	return k;
-}
-
-int up_fb_kinds(const GHREL *rel)
-{
-	int fbs = 0, others = 0, fb, k;
-	short i;
-	for (i = 0; i < rel->nasset; i++) {
-		k = up_fb_kind(rel->asset[i].name, &fb);
-		if (fb)
-			fbs |= k;
-		else
-			others |= k;
-	}
-	return fbs & others;
-}
-
-int up_fb_other(int kinds, const char *name)
-{
-	int fb, k = up_fb_kind(name, &fb);
-	return (k & kinds) && fb != (up_firebee != 0);
-}
-
-void up_fb_switch_off(const REPO *r)
-{
-	short i, s;
-	int fb;
-	if (!(inst.fbk & 2))
-		return;
-	for (i = 0; i < inst.nprog; i++) {
-		const char *now = base_of(inst.prog[i]);
-		if (up_fb_kind(now, &fb) != 2)
-			continue;
-		for (s = 0; s < inst.nseen; s++) {
-			char old[260], off[260], dn[16];
-			long n;
-			if (up_fb_kind(inst.seen[s], &fb) != 2 || !up_fb_other(inst.fbk, inst.seen[s]))
-				continue;
-			disk_name(inst.seen[s], dn, sizeof(dn));
-			snprintf(old, sizeof(old), "%.*s%s", (int)(now - inst.prog[i]), inst.prog[i], dn);
-			if (pf_size(old) < 0)
-				continue;
-			/* NAME.ACX: TOS's own way to switch one off */
-			str_copy(off, old, sizeof(off));
-			n = (long)strlen(off);
-			off[n - 1] = islower((unsigned char)off[n - 1]) ? 'x' : 'X';
-			if ((pf_size(off) >= 0 && pf_remove(off)) || pf_rename(old, off))
-				continue;
-			say("%s switched off: %s takes its place", dn, now);
-			if (up_replaced)
-				up_replaced(r, dn, now, 1);
-		}
-	}
+	return wild_match("*-firebee.zip", name);
 }
