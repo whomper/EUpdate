@@ -43,8 +43,8 @@ void dlg_about(void)
 
 /* the About box's 256-colour map made ahead, from the first timer event
    after the start (common's about_prepare, a769b86): its first opening on
-   a stock Falcon in 256 colours under NVDI then saves the 36 ms (Erez,
-   19 Nov 2026: the About box within its 150) */
+   a stock Falcon in 256 colours under NVDI then saves the 36 ms (19 Nov
+   2026: the About box within its 150) */
 void about_warm(void)
 {
 	ABOUT a = { "EUpdate", app_version, "", { 0, 0, 0 }, { 0, 0, 0 },

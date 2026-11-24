@@ -15,7 +15,7 @@ a host of their own. As GitHub's:
   - a file's download is a 302 to the other server, at a signed address
     of more than 900 characters, refused (400) if it comes back cut short;
   - an idle connection is closed after a few seconds (GitHub closes the
-    API's during every long download, Erez's log of 22 Oct 2026);
+    API's during every long download, seen 22 Oct 2026);
   - answers come gzip'ed when asked, with X-RateLimit-Remaining;
   - TLS with a chain like GitHub's (the rig makes it: a leaf signed by an
     intermediate of RSA-4096), and, as GitHub has, an ECDSA P-256 leaf

@@ -16,7 +16,7 @@ the objects.
 Why (17 Nov 2026, 2.08): the MiNTnet fix grew net_tos.o by 450 bytes and
 everything after it moved; a Falcon's start came out 10 ms slower in both
 pairs with no work added at the start (the hub's rule, AERA-Atari
-098183d: code-placement rows get a pad round before they go to Erez).
+098183d: code-placement rows get a pad round before they go to the owner).
 atari/pads.txt was made with it against v2.07's map. The speed rig's
 timed build is put at the shipped build's places by common's
 tools/profpad.py instead (make prof).

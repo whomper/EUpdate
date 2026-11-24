@@ -120,9 +120,8 @@ int up_chosen(const REPO *r, const GHREL *rel, short *which)
 	short i, n = 0, zips = 0, ovl = -1, fb = -1, prog = 0;
 	int aera = up_aera(r);
 	/* an AERA release with the FireBee's package (the guidelines 7.4,
-	   Erez 22 Nov 2026: "EUpdate can then download the right package
-	   based on the running platform", and "this special FireBee
-	   treatment is just for AERA applications"): on a FireBee that zip
+	   22 Nov 2026: the package for the running platform, a FireBee
+	   handling for AERA programs alone): on a FireBee that zip
 	   alone, elsewhere anything but it */
 	for (i = 0; aera && up_firebee && i < rel->nasset; i++)
 		if (up_fb_package(rel->asset[i].name) && !left_out(r, rel->asset[i].name)) {
@@ -415,7 +414,7 @@ static int file_begin(void *ud, const char *name, long size)
 		pf_idle();
 	if (inst.on && inst.strip) {
 		/* GitHub's zip of a tag puts it all in one folder, NAME-TAG: its
-		   files go into the repository's folder itself (Erez, 22 Nov 2026) */
+		   files go into the repository's folder itself (decided 22 Nov 2026) */
 		const char *t = name + strcspn(name, "/\\");
 		if (!*t || !t[1])
 			return 2;
@@ -461,8 +460,8 @@ static int file_end(void *ud, int whole)
 	r = pf_wclose(j->fh, j->path, keep);
 	unzip_ms_put += pf_ms() - t;		/* the rename too */
 	{
-		/* where its time went, for a report of a slow update (Erez,
-		   1 Nov 2026: "saving takes forever") */
+		/* where its time went, for a report of a slow update (1 Nov
+		   2026) */
 		char m[200];
 		snprintf(m, sizeof(m), "%s: %ld bytes; unpacking %lu ms, CRC %lu, writing %lu, reading the archive %lu",
 			 j->path, j->got, unzip_ms_unpack, unzip_ms_crc, unzip_ms_put, unzip_ms_read);
@@ -592,7 +591,7 @@ int up_install(REPO *r, const GHREL *rel)
 		char *mem;
 		long len, room = pf_big_avail() - UP_RESERVE;
 		say("Downloading %s from %s...", a->name, r->full);
-		/* into memory, with no disk at all while it comes (Erez, 2 Nov
+		/* into memory, with no disk at all while it comes (2 Nov
 		   2026: a write every 32 KB stalled each download), then unpacked
 		   from there into place. Where the memory is short (a stock
 		   Falcon with 4 MB had 510 KB free, and EMail's zip is 460 KB):

@@ -68,7 +68,7 @@ OBJDIR  := build
 # fails the link where one is left, naming its function
 TUNE64  := text unzip conn ctime libc win fontsel panebar aboutline
 $(addprefix $(OBJDIR)/,$(addsuffix .o,$(TUNE64))): CFLAGS += -mtune=68020-60
-# the link order (the guidelines' Speed, Erez 13 Nov 2026): the main flows'
+# the link order (the guidelines' Speed, 13 Nov 2026): the main flows'
 # hot loops first, after the start's assembly, so they sit together in
 # memory (link.ld keeps input order): unzip's CRC and inflate's piece loop
 HOT     := unzip inflate
@@ -91,7 +91,7 @@ all: binary/eupdate.prg binary/eupdfb.prg binary/tls.ovl binary/tlsfb.ovl binary
 
 binary/eupdate.prg: $(OBJDIR)/eupdate.elf common/tools/elf2tos.py | binary
 	PRGFLAGS=7 python3 common/tools/elf2tos.py $< $@
-# EUPDFB.PRG, the FireBee's (ColdFire, -mcpu=5475; Erez, 18 Nov 2026): the
+# EUPDFB.PRG, the FireBee's (ColdFire, -mcpu=5475; 18 Nov 2026): the
 # same rules again as ColdFire code (common's tools/mkfirebee.py, once
 # EUpdate's own), into build/cf/; EUPDATE.PRG on a FireBee names it
 # (cpu_cf_alert), it on any other machine names EUPDATE.PRG (cpu_alert,
@@ -102,7 +102,7 @@ binary/eupdfb.prg: binary/eupdate.prg common/tools/mkfirebee.py common/atari/cpu
 binary/tls.ovl: common/tlsovl/tls.ovl | binary
 	cp $< $@
 # and its ColdFire build, which tls_ovl.c loads on a FireBee (the _CF_
-# cookie; the guidelines' "TLSFB.OVL for the FireBee", Erez 15 and 17 Nov
+# cookie; the guidelines' "TLSFB.OVL for the FireBee", 15 and 17 Nov
 # 2026): copied too, from the same common
 binary/tlsfb.ovl: common/tlsovl/tlsfb.ovl | binary
 	cp $< $@
@@ -176,8 +176,8 @@ $(OBJDIR)/crash_s.o: common/atari/crash.S | $(OBJDIR)
 $(OBJDIR)/nf.o: common/atari/nf.S | $(OBJDIR)
 	$(CC) -m68030 -c -o $@ $<
 # the unzip's hot loop in assembly (common's inflate_piece, INFLATE_ASM):
-# programs unpack some 1.8 times as fast on a stock Falcon (Erez, 1 Nov
-# 2026, "saving takes forever"); the host's tests keep the C
+# programs unpack some 1.8 times as fast on a stock Falcon (1 Nov
+# 2026: saving the family took too long); the host's tests keep the C
 $(OBJDIR)/inflate_fast.o: common/atari/inflate_fast.S | $(OBJDIR)
 	$(CC) -m68030 -c -o $@ $<
 $(OBJDIR)/inflate.o: common/src/inflate.c $(HDRS) | $(OBJDIR)
@@ -297,13 +297,13 @@ test: $(OBJDIR)/unit $(addprefix $(OBJDIR)/replay_,$(FUZZERS))
 itest: $(OBJDIR)/eupd-cli
 	python3 tests/integration.py $(OBJDIR)/eupd-cli
 
-# a release (the guidelines 7.4, Erez 22 Nov 2026: "Remove all files from
+# a release (the guidelines 7.4, 22 Nov 2026: "Remove all files from
 # root and just have two ZIP files, one for each platform"): two zips in
 # dist/, every file and folder in them in lowercase (the guidelines 6.6:
 # MiNT's ext2 tells the cases apart), the icons in icons/:
 # - eupdate-x.y.zip, the Falcon's and the TT's: EUPDATE.PRG and TLS.OVL
-#   (2.15's carried EUPDFB.PRG and TLSFB.OVL too, the bridge: Erez, 22 Nov
-#   2026, "Bridge for 2.15"; 2.15 on a FireBee takes the FireBee's zip alone);
+#   (2.15's carried EUPDFB.PRG and TLSFB.OVL too, the bridge, decided 22 Nov
+#   2026; 2.15 on a FireBee takes the FireBee's zip alone);
 # - eupdate-x.y-firebee.zip, the FireBee's: EUPDATE.PRG the ColdFire build,
 #   and TLS.OVL, TLS.OVL's ColdFire build (common's ColdFire build loads
 #   tls.ovl, AERA-Atari c184d49)

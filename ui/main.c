@@ -169,9 +169,9 @@ static void set_logging(void)
 }
 
 /* the Hebrew keyboard is common's (hebkey.c); when F10 switches it, the
-   badge at the toolbar's right end follows (Erez, 6 Nov 2026: the badge
+   badge at the toolbar's right end follows (decided 6 Nov 2026: the badge
    at the right end, as in every app). It has no menu entry: F10 alone
-   (Erez, 7 Nov 2026) */
+   (decided 7 Nov 2026) */
 /* EUpdate's own colours, after the family's six (want16: TOS's darker
    shades, taken as the nearest pen the screen has; a state's colour never
    the dim one, else an Update button in it would look disabled) */
@@ -236,7 +236,7 @@ static void idle(void)
 
 /* a step of the job in EUPDATE.LOG, written at once to the file conn.c
    keeps open; the event wait closes it a second after a line, conn.c at
-   an error, a connection and the quit (the guidelines 6.5, Erez 17 Nov
+   an error, a connection and the quit (the guidelines 6.5, 17 Nov
    2026: the close, where GEMDOS writes the FAT and the directory, cost
    140 ms a line on a DFB1's IDE). A freeze loses a second's lines at most */
 static void log_step(const char *msg)
@@ -272,7 +272,7 @@ static void job_progress(long got, long total)
 		logged = got;
 		snprintf(m, sizeof(m), "%s of %s", a, b);
 		/* kept with the job's lines, not written out now: no disk while
-		   a download comes (Erez, 2 Nov 2026) */
+		   a download comes (decided 2 Nov 2026) */
 		conn_log("EUPD", " -- ", m, (long)strlen(m));
 	}
 }
@@ -1275,7 +1275,7 @@ int app_main(void)
 	http_close_all();
 	{
 		/* where this machine kept the user waiting longest (the
-		   guidelines' Speed): in the log, for Erez's reports */
+		   guidelines' Speed): in the log, for a user's report */
 		const char *slow = aes_slowest();
 		char m[200];
 		if (*slow) {
@@ -1309,7 +1309,7 @@ int app_main(void)
 
 /* What's new...: the notes of the releases newer than the one downloaded
    (the latest ten when none is; the one had when it is the latest), in
-   Find's pane (Erez, 21 Nov 2026) */
+   Find's pane (decided 21 Nov 2026) */
 void whats_new(REPO *r)
 {
 	char err[160], msg[120], since[48];

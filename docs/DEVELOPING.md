@@ -98,11 +98,11 @@ docs/       the user guide (GUIDE.md, the source of EUPDATE.HYP) and pictures
   in the desktop's folder).
 - `tests/hatari/noovl_test.py WORK`: with no `TLS.OVL` beside `EUPDATE.PRG`, the check at the
   start says so in an alert and in `EUPDATE.LOG`, asks GitHub nothing, and EUpdate goes on.
-- `tests/hatari/family_test.py WORK`: as on Erez's Falcon, EUpdate on its own: stand-in releases
+- `tests/hatari/family_test.py WORK`: as on the reference Falcon, EUpdate on its own: stand-in releases
   of the AERA family (`tests/github/standin_family.py`: each app's file names, sizes like the real
   ones', made-up bytes), served by `tests/family_server.py` as GitHub serves them (a certificate
   chain like GitHub's, the files from a second host at signed addresses, idle connections closed),
   at a NetUSBee's pace, with the suggested rules on (the ST editions left out, the accessories into
-  `C:\`). No other AERA program is fetched or loaded (Erez, 8 Nov 2026): the real ones together are
-  the hub's family checks. Under Erez's TOS 4.04 and NVDI where the machine has them
+  `C:\`). No other AERA program is fetched or loaded (decided 8 Nov 2026): the real ones together are
+  the hub's family checks. Under the reference TOS 4.04 and NVDI where the machine has them
   (`common/tools/machines.py`), EmuTOS otherwise.

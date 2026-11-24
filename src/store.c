@@ -25,7 +25,7 @@ short nrepos;
 int store_lost_token;
 
 static char inf_path[220];
-/* the 6.1 rule (Erez, 12 Nov 2026): EUPDATE.INF is written only when
+/* the 6.1 rule (decided 12 Nov 2026): EUPDATE.INF is written only when
    something in it changed. The text last read or written is kept to
    compare with (EUpdate writes the same text for the same settings); and the token as it was
    sealed, since a new seal has a new nonce: the same token, the same

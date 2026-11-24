@@ -201,7 +201,7 @@ static void draw_toolbar(GRECT *clip)
 	for (i = 0; i < NBUT; i++)
 		draw_button(i);
 	/* how many have a newer release: orange, the one thing that matters;
-	   the colour says it, not bold (Erez, 22 Oct 2026). Without colours
+	   the colour says it, not bold (decided 22 Oct 2026). Without colours
 	   it is in plain letters, the rest light */
 	if (k)
 		snprintf(t, sizeof(t), "%d new release%s", k, k > 1 ? "s" : "");
@@ -669,7 +669,7 @@ static void save_main_place(void)
 }
 
 /* x moved so the work area starts on a multiple of 8 across (the
-   guidelines' Speed: text on a byte, Erez 26 Oct 2026), and the width
+   guidelines' Speed: text on a byte, 26 Oct 2026), and the width
    taken in by as much where the window would go past the screen's right */
 static void on_x8(short *x, short y, short *w, short h)
 {

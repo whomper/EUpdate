@@ -292,7 +292,7 @@ static void test_gh(void)
 	n = gh_latest("whomper/EFTP", &r, err, sizeof(err));
 	CHECK(n == 0 && strstr(err, "no release"));
 	http_close_all();
-	/* no full release: its newest pre-release, its files (Erez, 22 Nov 2026) */
+	/* no full release: its newest pre-release, its files (decided 22 Nov 2026) */
 	{
 		static const char pre[] = "[{\"tag_name\":\"v0.9.3-beta\",\"draft\":true,\"prerelease\":true,\"assets\":[]},"
 			"{\"tag_name\":\"v0.9.2-beta\",\"name\":\"u6e\",\"draft\":false,\"prerelease\":true,"
@@ -710,7 +710,7 @@ static void test_store(void)
 	CHECK(nrepos == 2 && opt.check == CHECK_EVERY && opt.hours == 6);
 	CHECK(!strcmp(opt.token, "ghp_secret;with stuff"));
 	{
-		/* 6.1 (Erez, 12 Nov 2026): a quit, twice, with nothing changed
+		/* 6.1 (decided 12 Nov 2026): a quit, twice, with nothing changed
 		   leaves EUPDATE.INF as it was, the sealed token too (a new seal
 		   has a new nonce); a change writes it once */
 		long n0, n1;
@@ -865,7 +865,7 @@ static void test_store(void)
 	rm_rf(dir);
 }
 
-/* ---------------- a download into memory (Erez, 2 Nov 2026) ---------------- */
+/* ---------------- a download into memory (decided 2 Nov 2026) ---------------- */
 
 /* no disk while a download comes: in memory when it fits; else a buffer
    as big as there is room for, written to the file in one go each time
@@ -936,7 +936,7 @@ static void test_plain(void)
 }
 
 /* ---------------- the FireBee's package ----------------
- * (the guidelines 7.4, Erez 22 Nov 2026: "two packages, one for FireBee
+ * (the guidelines 7.4, 22 Nov 2026: "two packages, one for FireBee
  * and the other for standard ST") a FireBee takes NAME-X.Y-firebee.zip
  * alone, every other Atari anything but it; a release without one as
  * before. Its EUPDATE.PRG takes 2.10-2.14's EUPDFB.PRG's place */

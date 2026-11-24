@@ -7,9 +7,9 @@ the longest stretch between event calls of each thing the user does,
 from the AESGAP lines on the emulator's console. Fails when one is over
 its time.
 
-    make prof && speed.py WORK [MACHINE]     (MACHINE: Erez's configuration)
+    make prof && speed.py WORK [MACHINE]     (MACHINE: the reference configuration)
 
-By default Erez's own configuration (Erez, 10 Nov 2026): machines.ERZ_MACHINE,
+By default the reference configuration (decided 10 Nov 2026): machines.ERZ_MACHINE,
 a stock Falcon with TOS 4.04 and NVDI in 256 colours (erz_env()); where this
 computer has no TOS images or NVDI, the same machine on EmuTOS, a stand-in
 (common/tools/machines.py says which). Falcon-4:16 for a drawing change. The check and the

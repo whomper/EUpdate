@@ -526,8 +526,8 @@ static int get(GETW *w, const char *url, int flags, const char *auth, const char
 		const char *a = !hops && auth && auth_host && !strcmp(p->host, auth_host) ? auth : 0;
 		/* a request that fails before any answer is made once more, on a
 		   new connection: the kept one was closed meanwhile, or this
-		   one was the first of a job (Erez, 31 Oct 2026: a check's
-		   first row failed on his Falcon, the rows after it came; the
+		   one was the first of a job (31 Oct 2026: a check's
+		   first row failed on a Falcon, the rows after it came; the
 		   first connection is the first to ask STinG for GitHub's
 		   address, and its chain is checked in full, not from
 		   SIGS.DAT). Not when stopped, nor for a certificate refused */

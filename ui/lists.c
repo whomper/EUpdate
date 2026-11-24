@@ -384,12 +384,12 @@ static int repos_tip(WIN *w, short mx, short my, char *out, int size)
 	if (r->note[0])
 		snprintf(out, size, "%s|%s", r->full, r->note);
 	else if (r->latest[0] && !r->latest_date[0])
-		/* a tag, with no release: its source (Erez, 22 Nov 2026) */
+		/* a tag, with no release: its source (decided 22 Nov 2026) */
 		snprintf(out, size, "%s: tag %s, no release: its source|%s%s%s", r->full, r->latest,
 			 r->have[0] ? r->have : "", !r->have[0] ? "Nothing downloaded yet" :
 			 r->have_date[0] ? " downloaded on " : " downloaded", r->have[0] ? r->have_date : "");
 	else if (r->latest[0])
-		/* (What's new: Erez, 21 Nov 2026; the tip's two lines of 60, 3.4) */
+		/* (What's new: 21 Nov 2026; the tip's two lines of 60, 3.4) */
 		snprintf(out, size, "%s: %s published on %s|%s%s%s. What's new: ^L", r->full, r->latest,
 			 r->latest_date, r->have[0] ? r->have : "", !r->have[0] ? "Nothing downloaded yet" :
 			 r->have_date[0] ? " downloaded on " : " downloaded", r->have[0] ? r->have_date : "");
@@ -409,7 +409,7 @@ static long f_sel = -1;
 static char owners_title[80];
 
 /* What's new... (^L): a repository's release notes in the pane in place of
-   what Find found, which stays for Backspace (Erez, 21 Nov 2026). The text
+   what Find found, which stays for Backspace (decided 21 Nov 2026). The text
    is gh_whats_new's; n_line holds where each line starts, wrapped to the
    pane's width when shown, a release's first line (its tag) marked by
    N_HEAD. In the heap, as Find's lists */

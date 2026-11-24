@@ -36,7 +36,7 @@ void sb_big_free(SBUF *b)
    CRC is kept byte-swapped, a longword of the data XORed into it, and
    four tables give the four bytes' share. Byte by byte, the CRC was a
    quarter of an update's unpacking in the rig (23 of 94 s; EWEB.FNT's
-   7 s against its inflate's 3: Erez, 1 Nov 2026, "saving takes forever").
+   7 s against its inflate's 3: 1 Nov 2026, saving the family took too long).
    tab[0] is the usual table, byte-swapped; tab[k] a byte further on */
 typedef unsigned int u32c;		/* 32 bits on the Atari and here */
 typedef u32c __attribute__((may_alias)) u32a;	/* a longword read where the data is */

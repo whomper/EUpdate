@@ -391,7 +391,7 @@ static int newest_release(const char *full, GHREL *rel, char *err, int errlen)
 }
 
 /* the newest of its tags by version, with no release: GitHub's zip of
-   the source at it as its one file (Erez, 22 Nov 2026) */
+   the source at it as its one file (decided 22 Nov 2026) */
 static int newest_tag(const char *full, GHREL *rel, char *err, int errlen)
 {
 	char path[160], key[16], name[40];
@@ -463,7 +463,7 @@ int gh_latest(const char *full, GHREL *rel, char *err, int errlen)
 			return 0;
 		}
 		/* with no full release: its newest pre-release, else its newest
-		   tag (Erez, 22 Nov 2026) */
+		   tag (decided 22 Nov 2026) */
 		if ((st = newest_release(full, rel, err, errlen)) != 0 ||
 		    (st = newest_tag(full, rel, err, errlen)) != 0)
 			return st;

@@ -97,7 +97,7 @@ def main():
              "drag %d %d %d %d; wait 3; shot; click %d %d; wait 4; shot; key 0x61; wait 3; "
              "ctrl q; wait 8; shot" % (CHOOSE + FSEL_DRAG + (FSEL_CANCEL[0] - (FSEL_DRAG[0] - FSEL_DRAG[2]),
                                                            FSEL_CANCEL[1]))]
-    print("on", "FreeMiNT 1.17.0 + XaAES with Erez's NVDI, EmuTOS 1.4 under it,",
+    print("on", "FreeMiNT 1.17.0 + XaAES with the reference NVDI, EmuTOS 1.4 under it,",
           {"plain": "a Falcon's 68030", "ct60": "a 68060 (a CT60's stand-in)",
            "ext2": "the release on an ext2 D:"}[how], flush=True)
     r = subprocess.run(args, capture_output=True, text=True, timeout=900)

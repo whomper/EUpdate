@@ -67,8 +67,8 @@ def refused():
 
 
 def first_fails(ca):
-    """a job's first connection fails, and the rows after it work (Erez,
-    31 Oct 2026): the request is made once more, on a new connection"""
+    """a job's first connection fails, and the rows after it work (31
+    Oct 2026): the request is made once more, on a new connection"""
     print("-- the first connection fails")
     rc, out, err = cli("https://localhost:18733", ca, "latest", "whomper/EUpdate")
     check(rc == 0 and out.startswith("v1.1\t"), "no answer to the first request: asked once more (%s)" %
@@ -99,7 +99,7 @@ def run(base, ca):
     check(rc == 0 and "no release yet" in out, "no release")
     rc, out, err = cli(base, ca, "latest", "whomper/Nothing")
     check(rc == 0 and "no such repository" in out, "no repository")
-    # no full release: its newest pre-release; none at all: its newest tag (Erez, 22 Nov 2026)
+    # no full release: its newest pre-release; none at all: its newest tag (decided 22 Nov 2026)
     rc, out, err = cli(base, ca, "latest", "someone/Beta")
     check(rc == 0 and out.startswith("v0.2-beta\t") and "BETA.PRG" in out, "pre-releases only: the newest")
     rc, out, err = cli(base, ca, "latest", "someone/u6e")

@@ -126,7 +126,7 @@ def release(full, tag):
             "reactions": {"+1": 2, "heart": 1}}
 
 
-# a repository with tags and no release (Erez, 22 Nov 2026: u6e's)
+# a repository with tags and no release (22 Nov 2026, as slaapliedje/u6e)
 U6E_TAGS = ["v0.9.3-beta", "v0.9.10-beta", "v0.9-beta", "v0.9.2-beta"]
 
 
@@ -185,7 +185,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         # DROP_FIRST=n: the first n requests get no answer, the connection
         # closed after the handshake and the request (a check's first row
-        # on Erez's Falcon, 31 Oct 2026)
+        # on the reference Falcon, 31 Oct 2026)
         if Handler.dropped < int(os.environ.get("DROP_FIRST", "0")):
             Handler.dropped += 1
             self.close_connection = True

@@ -461,7 +461,7 @@ static TEDINFO *d_ted(const char *text, short just, short color)
 	return t;
 }
 
-/* the Hebrew keyboard's badge at the band's right end (Erez, 6 Nov 2026,
+/* the Hebrew keyboard's badge at the band's right end (decided 6 Nov 2026,
    guideline 5.3): a user-defined object over the band, its child, drawn
    by the AES whenever the band is; nothing while the keyboard is off */
 #define G_USERDEF 24
@@ -702,7 +702,7 @@ int find_dialog(char *text, int size, int *owners)
 	rows_at(2);
 	d_add(G_STRING, 0, 0, (long)"Look for", 2, ROW(0), 8, 1);
 	f = d_field(11, ROW(0), field, 34, (short)(size < (int)sizeof(field) ? size - 1 : (int)sizeof(field) - 1), 'X');
-	d_radio(11, ROW(1), "Names", T_REPOS);	/* Erez's words, 10 Nov 2026 */
+	d_radio(11, ROW(1), "Names", T_REPOS);	/* the words decided, 10 Nov 2026 */
 	d_radio(21, ROW(1), "Owners", T_OWNERS);
 	d_text(5, ROW(2), "(a double click lists their repositories)");
 	d_button(24, 8, 10, "Cancel", EXIT);
@@ -788,7 +788,7 @@ int dlg_follow(REPO *r, const char *desc, int is_new, int *now)
 	d_text(2, ROW(0), fl_l1);
 	d_text(2, ROW(1), fl_l2);
 	y = 2;
-	if (!is_new)		/* (Erez, 21 Nov 2026: OK, then the notes in Find's pane) */
+	if (!is_new)		/* (21 Nov 2026: OK, then the notes in Find's pane) */
 		b_new = d_button(48, ROW(1), 14, "What's new...", EXIT);
 	if (!is_new) {
 		d_text(2, ROW(y), fl_l3);
@@ -868,7 +868,7 @@ static void part_checks(short x, short y)
 {
 	rows_at(y);
 	d_add(G_STRING, 0, 0, (long)"Look for new releases", x, ROW(0), 21, 1);
-	/* one of three, as radio buttons (Erez's words, 10 Nov 2026) */
+	/* one of three, as radio buttons (the words decided, 10 Nov 2026) */
 	d_radio(x, ROW(1), "Never", T_NEVER);
 	d_radio(x + 10, ROW(1), "At start", T_START);
 	d_radio(x + 20, ROW(1), "Every", T_EVERY);
@@ -982,7 +982,7 @@ int dlg_settings(void)
 			continue;
 		}
 		if (r == ok && s_on[T_EVERY] && (atoi(s_hours) < 1 || atoi(s_hours) > 168)) {
-			/* refused, never changed quietly (D30; Erez's words, 10 Nov
+			/* refused, never changed quietly (D30; the words decided, 10 Nov
 			   2026): the field kept as typed, its page shown to correct */
 			tree[r].ob_state &= ~SELECTED;
 			alert(1, "[1][Check every 1 to 168 hours.|Please type a number|from 1 to 168.][ OK ]");

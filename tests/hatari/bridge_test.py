@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Copyright (C) 2026 AERA | Erez Yaary
 """A FireBee's EUpdate from 2.14's EUPDFB.PRG through 2.15, the bridge,
-to 2.16 (Erez, 22 Nov 2026: "Bridge for 2.15"; the guidelines 7.4):
+to 2.16 (decided 22 Nov 2026; the guidelines 7.4):
 
   1. 2.14, running as C:\\EUPDFB.PRG, follows whomper/EUpdate in its own
      folder and finds 2.15: two zips, which it unpacks both, the FireBee's

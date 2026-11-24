@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Copyright (C) 2026 AERA | Erez Yaary
 """Stand-in releases of the AERA family, for tests/family_server.py: no
-other AERA program is fetched or run for EUpdate's tests (Erez, 8 Nov 2026;
+other AERA program is fetched or run for EUpdate's tests (decided 8 Nov 2026;
 the guidelines 1.2). Each is made here, as each app's make dist names its
 files (lowercase, rule 6.6), with sizes like the real ones', so a download
-takes as long as Erez's: CACHE/<Repo>/<tag>/<file>, and CACHE/<Repo>/TAG.
+takes as long as a real one: CACHE/<Repo>/<tag>/<file>, and CACHE/<Repo>/TAG.
 The files hold made-up bytes, nothing of the programs.
 
     standin_family.py CACHE
@@ -19,7 +19,7 @@ import sys
 import zipfile
 
 # repo: (tag, [(name in the zip, size in KB, packs?)]); a release is two
-# zips, as the guidelines' 7.4 has them (Erez 22 Nov 2026): name-x.y.zip
+# zips, as the guidelines' 7.4 has them (decided 22 Nov 2026): name-x.y.zip
 # and name-x.y-firebee.zip, the same names with other bytes, the FireBee's
 # first; no loose files. Each file as the standard zip has it is in
 # CACHE/<Repo>/ref/, for the tests (not served)

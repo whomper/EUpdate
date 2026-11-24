@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Copyright (C) 2026 AERA | Erez Yaary
-"""EUPDATE.PRG updating the AERA family as on Erez's Falcon, on its own:
+"""EUPDATE.PRG updating the AERA family as on the reference Falcon, on its own:
 stand-in releases of the family (tests/github/standin_family.py: each
 app's file names, sizes like the real ones', made-up bytes), served by
 tests/family_server.py as GitHub serves them (TLS with a chain like
@@ -17,13 +17,13 @@ without the 060 package, runs neither TLSFB.OVL's ColdFire code nor
 TLS.OVL's 64-bit multiplies (exception 61 at the first handshake).
 2.10-2.14's EUPDFB.PRG beside the EUPDATE.PRG written goes, and on the
 FireBee an alert says which to start.
-No other AERA program is fetched or loaded (Erez, 8 Nov 2026; the
+No other AERA program is fetched or loaded (decided 8 Nov 2026; the
 guidelines 1.2): the real ones together, as accessories too, are the
 hub's family checks (AERA-Atari, common/tests/family/acc_all.py).
 
     family_test.py WORK [MACHINE]      (MACHINE: Falcon:16, FireBee:16; Xvfb, xdotool)
 
-Erez's TOS 4.04 and NVDI are used when this machine has them
+the reference TOS 4.04 and NVDI are used when this machine has them
 (machines.py: ~/.aera/tos, AERA_WITH_NVDI=1); EmuTOS otherwise.
 """
 import os
@@ -43,10 +43,9 @@ FB = spec.startswith("FireBee")
 MARK = b"FireBee"           # a FireBee package's file starts so (standin_family.py)
 PORT = 18760
 FILES_HOST = "127.0.0.2"      # GitHub's files are on a host of their own
-# Erez's list (22 Oct 2026); ECal and EContact current, the others not yet downloaded
-FOLLOW = (("ECal", True), ("EContact", True), ("EUpdate", False), ("ClaudeST", False), ("EHypView", False),
-          ("EWeb", False), ("EMail", False), ("EFTP", False),
-          ("EPDF", False))
+# the family as a first start follows it (defaults.inf): two current, the others not yet downloaded
+FOLLOW = (("ECal", True), ("EContact", True), ("EMail", False), ("EFTP", False), ("EHypView", False),
+          ("ClaudeST", False), ("EWeb", False), ("EPDF", False), ("EUpdate", False))
 # the rules EUpdate suggests for them on a Falcon (update.c, up_suggest)
 SKIP = {"ECal": "ECALST.ACC", "EContact": "ECONTST.ACC", "EMail": "EMAILST.PRG", "EFTP": "EFTPST.PRG",
         "EWeb": "EWEBST.PRG"}
@@ -80,7 +79,7 @@ def certs():
     with open(os.path.join(work, "chain.pem"), "w") as f:
         f.write(open(os.path.join(work, "leaf.pem")).read() + open(os.path.join(work, "int.pem")).read())
     # and an ECDSA P-256 leaf, as GitHub has both: which one a hello gets
-    # shows in the log (Erez's stock Falcon, 1 Nov 2026: GitHub's ECDSA
+    # shows in the log (a stock Falcon, 1 Nov 2026: GitHub's ECDSA
     # signature took its DSP 5.5 s, and every handshake ran out of time)
     ossl("ecparam", "-name", "prime256v1", "-genkey", "-noout", "-out", "ecleaf.key")
     ossl("req", "-new", "-key", "ecleaf.key", "-subj", "/CN=127.0.0.1", "-out", "ecleaf.csr")
@@ -221,7 +220,7 @@ def main():
         log = open(ci_path(hd, "eupdate.log"), errors="replace").read()
         check(FB or ("RSA-2048 signature" in log and "ECDSA" not in log),
               "GitHub's RSA certificate asked for, not its ECDSA one")
-        # What's new... (^L, Erez 21 Nov 2026): ECal's row, its notes in the
+        # What's new... (^L, 21 Nov 2026): ECal's row, its notes in the
         # lower pane from GitHub's list of releases, Backspace gives Find's
         # pane back as it was
         r.click(100, ROW1)
@@ -246,7 +245,7 @@ def main():
         back = changed(before, r.shot("notes-back"), PANE)
         check(back < 0.002, "Backspace: Find's pane as it was (%.4f differs)" % back)
         # the quit, each step in the log at once, and no crash after it
-        # (EFTP's and EMail's bombs at quit, Erez 10 Nov 2026: the catcher
+        # (EFTP's and EMail's bombs at quit, 10 Nov 2026: the catcher
         # left in a chain another program hooked over it)
         r.ctrl("q")
         time.sleep(8)

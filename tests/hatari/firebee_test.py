@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Copyright (C) 2026 AERA | Erez Yaary
-"""The FireBee's two programs, each where it belongs (a tester's FireBee
+"""The FireBee's two programs, each where it belongs (a FireBee
 froze with 2.08's and 2.09's EUPDATE.PRG, 17 Nov 2026: its 68030 code
-doesn't run on a ColdFire; Erez, 18 Nov 2026: EUPDFB.PRG, the ColdFire
+doesn't run on a ColdFire; 18 Nov 2026: EUPDFB.PRG, the ColdFire
 build, common/tools/mkfirebee.py):
 
   wrong   EUPDATE.PRG on machines.py's FireBee stand-in (FireTOS's

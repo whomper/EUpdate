@@ -12,7 +12,7 @@
  * Where the system and bitmap fonts keep their Hebrew letters is
  * EUPDATE.INF's HEBFONT=: the Atari character set (TOS, EmuTOS) or the
  * ISO-8859-8 or DOS places, as Israeli system fonts and many GDOS fonts
- * have them (the dialog no longer asks: Erez, 20 Oct 2026). A vector
+ * have them (the dialog no longer asks: 20 Oct 2026). A vector
  * font (Speedo, TrueType, Type 1) is asked through NVDI for its Hebrew
  * letters by Unicode; when it has none, they are drawn in the system
  * font in the same cells.

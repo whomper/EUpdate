@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Copyright (C) 2026 AERA | Erez Yaary
-"""EUpdate started beside a program resident from boot (a FireBee tester's,
+"""EUpdate started beside a program resident from boot (a FireBee's,
 21 Nov 2026: with HypView open after the boot, EUpdate crashed the system;
 with HypView closed, or after EWeb had run, it worked). Under FreeMiNT and
 XaAES through common's tests/xaaes/run.py: HOLD.PRG (hold.c, a help viewer's
@@ -103,7 +103,7 @@ def main():
         args += ["--mem-prot"]
     # the check: two repositories, each tried twice, 20 s a try unanswered
     args += ["--wait", "150", "--steps", "shot; wait 20; shot"]
-    print("on", "FreeMiNT 1.17.0 + XaAES with Erez's NVDI, EmuTOS 1.4 under it,",
+    print("on", "FreeMiNT 1.17.0 + XaAES with the reference NVDI, EmuTOS 1.4 under it,",
           {"plain": "a Falcon's 68030, memory protection on",
            "ct60": "a 68060 (a CT60's stand-in), memory protection off, as on a FireBee",
            "ct60-prot": "a 68060 (a CT60's stand-in), memory protection on"}[how],
