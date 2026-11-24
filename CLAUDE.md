@@ -18,7 +18,7 @@ These come from AERA-Atari's repo template and are the same in every app's CLAUD
 
   When a change touches one of these, do it the guideline's way, even if the old code here did it
   differently.
-- **Speed is set by the stock machines** (Erez, 26 Oct 2026; the guidelines' "Speed"): an 8 MHz ST
+- **Speed is set by the stock machines** (decided 26 Oct 2026; the guidelines' "Speed"): an 8 MHz ST
   and a stock Falcon (`ST`, `ST-1`, `Falcon-4`), not the DFB1. Design and code for them: draw only
   what changed, keep the 68000's slow operations out of inner loops, do work once. A change to
   drawing, a loop over the data or the start gives its `AESGAP` stretches on `ST` and `Falcon-4`,
@@ -36,47 +36,46 @@ These come from AERA-Atari's repo template and are the same in every app's CLAUD
   A build must leave every tracked file unchanged and shows the version in `VERSION` as it is (there is
   no `-dev` label). Don't
   commit built programs, help files or certificates (`binary/`, `dist/`). Never reuse a number.
-- **Only formal releases leave the build machine.** Erez gets vX.Y releases made by the Release workflow from
+- **Only formal releases leave the build machine.** The owner gets vX.Y releases made by the Release workflow from
   `main`, nothing else: no test builds, no CI artifacts, no builds from a branch.
   Work lands on `main`; to try a fix on real hardware, release it. If a release doesn't work, roll back
   with a release: revert on `main`, release the next number, and run the Withdraw workflow
   (`.github/workflows/withdraw.yml`) on the bad one: it puts "Withdrawn: use vX.Y" at the top of its notes.
-- **Releases go out without asking Erez** (his decision, 23 Oct 2026; guidelines 1.2), through
-  **the regression gate** (Erez, 17 Nov 2026: "we need to be extra careful with regression issues
-  as there are users of our software. This means testing across all configurations" and "make sure
-  we don't loose performance"; guidelines 1.2, AERA-Atari a22574e). Every code candidate, in order:
+- **Releases go out without asking the owner** (decided 23 Oct 2026; guidelines 1.2), through
+  **the regression gate** (decided 17 Nov 2026: the software has users, so every configuration is
+  tested and no speed is lost; guidelines 1.2, AERA-Atari a22574e). Every code candidate, in order:
   1. this repo's checks;
-  2. the rigs on every row of `standards/TEST-MATRIX.md`'s gate table EUpdate runs on, on Erez's TOS
+  2. the rigs on every row of `standards/TEST-MATRIX.md`'s gate table EUpdate runs on, on the reference TOS
      images and NVDI (EmuTOS is no evidence for a release), each row named by `describe()`, a row
-     that can't run said with why. EUpdate's: Erez's configuration; `Falcon-4:16` without NVDI;
+     that can't run said with why. EUpdate's: the reference configuration (Falcon-4:256, TOS 4.04, NVDI); `Falcon-4:16` without NVDI;
      `Falcon:65536`; TT; MiNT + XaAES (plain, ct60, ext2); a 68060; the FireBee stand-in; on an ST
      only its alert (`st_test.py`: cpucheck.c is its only 68000 code); the network path it has
      (Direct, TLS.OVL and tlsfb.ovl, through STinG and MiNTnet); one boot with NatFeats off. No
      accessory, no Gateway;
   3. the paired speed run against the last release (`make prof`, at the shipped layout by
-     common's `profpad.py`) on Erez's configuration and `Falcon-4:16`: no row slower beyond a tick
-     on either; fix it first, and only Erez accepts one;
+     common's `profpad.py`) on the reference configuration and `Falcon-4:16`: no row slower beyond a tick
+     on either; fix it first, and only the owner accepts one;
   4. the candidate commit and the results to the hub, who runs the family check (the real programs
      together) and answers go or the faults;
   5. only then the release.
 
-  A fault a user reports becomes a case in the rigs, in the release that fixes it. Then give Erez the link in one line, with anything he has to do, and send the hub the link. Roll
-  back a bad release the same way. Decisions that are his still go to him first.
-- **Who decides what** (Erez, 31 Oct 2026; the guidelines' "Who decides what"). Erez's part, put
-  to him before the work as a decision with a short context:
+  A fault a user reports becomes a case in the rigs, in the release that fixes it. Then give the owner the link in one line, with anything to do, and send the hub the link. Roll
+  back a bad release the same way. Decisions that are the owner's still go to the owner first.
+- **Who decides what** (decided 31 Oct 2026; the guidelines' "Who decides what"). The owner's part, put
+  to the owner before the work as a decision with a short context:
   - new programs and ideas, their core capabilities, and how they work with the other programs;
   - the user experience: the look, the layout, the way through a task, the words, the icons, the
     defaults;
-  - phases: work stays inside the phase he approved; at its end, one phase report (what it set out
+  - phases: work stays inside the approved phase; at its end, one phase report (what it set out
     to do, what was done with the release links, what is left, the next phase as a proposal), and
-    the next phase starts when he says so;
+    the next phase starts when the owner says so;
   - priorities and conflicts between programs or sessions (through the hub, with its options and
     recommendation);
   - packages on the Pi and ports.
 
   How it is made is the team's, without asking: code, structure, shared code, tests, measurements,
   fixes, docs and releases inside an approved phase.
-- **No test uses another AERA program or accessory** (Erez, 8 Nov 2026; the guidelines 1.2): EUpdate's
+- **No test uses another AERA program or accessory** (decided 8 Nov 2026; the guidelines 1.2): EUpdate's
   tests run it alone, with nothing of the family loaded beside it, started by it or fetched for it
   (no `getrelease.py`). What it does with the others' releases is tested against stand-ins this repo
   makes; the real programs together are the hub's family checks.
@@ -91,61 +90,60 @@ These come from AERA-Atari's repo template and are the same in every app's CLAUD
   - real addresses from the owner's network: use `192.168.1.x`, `PI_IP`, `ATARI_IP`
   - passwords, session keys, `.KEY` / `.INF` files from a test run
   - photos that still carry EXIF/GPS data
+  - anything the owner provides: his files, logs, screenshots, share links or file IDs, his words
+    (`standards/GITHUB-IDENTITY.md`, Commits; a reported fault becomes a case made from scratch)
 - **README:** keep the section order from the template (Highlights, Getting started, How it reaches the
   servers, Building, Source, Tests, Licence, family footer). Use British English.
 
-## Talking with Erez
+## Talking with the owner
 
-His rule for the whole family (18 Oct 2026): no progress or in-between messages; write to him
-only when he has to decide something, with a short context and the decision. Findings: the
-information, your assessment and what he should do, nothing more.
+The family's rule (18 Oct 2026): no progress or in-between messages; write to the owner only
+when there is something to decide, with a short context and the decision. Findings: the
+information, your assessment and what to do, nothing more.
 
-## Maintenance mode (Erez, 1 Nov 2026; what it means since 17 Nov 2026)
+## Maintenance mode (decided 1 Nov 2026; what it means since 17 Nov 2026)
 
 EUpdate is in maintenance mode while EWeb, EPDF and EPlay go to 1.0 (AERA-Atari,
-ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
+ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until the owner ends it:
 - No new features and no speed rounds of its own.
-- **Every family rule holds for it as for the focus apps** (Erez, 17 Nov 2026: "all applications
-  must adhere to family rules and be notified. We will review whether they need to issue a
-  release." and "Applications on maintenance does not mean they contain faults"). The hub
+- **Every family rule holds for it as for the focus apps** (decided 17 Nov 2026: every app
+  follows the family's rules and is told of them, whether that needs a release is reviewed, and
+  maintenance doesn't mean an app has faults). The hub
   notifies EUpdate of each new or changed rule and each shared fix; EUpdate adopts it, with the
   shared code it needs (a sync of `common/` with `tools/sync-common.sh`), and its row in the
   guidelines' table is ticked. Its ✗, ~ and ? there are work for EUpdate.
-- Whether such a change needs a release is reviewed with Erez through the hub. A fault fix always
+- Whether such a change needs a release is reviewed with the owner through the hub. A fault fix always
   gets one, as do a security or data-loss fault, a crash or breakage, something outside that stops
   it working (a certificate, GitHub's API), and something EWeb, EPDF or EPlay need from it. The
   release notes say why.
 - Work on `main` that isn't released stays unreleased until that review.
-- Nothing runs in the background of its own accord; the session waits for Erez or the hub.
-- Only Erez's explicit word ends this mode; the hub passes it on quoting him.
-- Lifted for one speed fix (Erez, 19 Nov 2026, on the About box at 210 ms against its 150 on
-  `Falcon-4:256` with NVDI: "Fix it"): the About box within its time on his configuration, with no
-  other row slower beyond a tick; done in 2.11 (130 ms; the close 50 -> 120 accepted by Erez,
-  "Accept"), and maintenance is back on.
-- Lifted for one feature (Erez, 21 Nov 2026: "It would be nice to get a popup from GitHub with all
-  the latest changes of a specific release when you hover on that release ID in the list view";
-  his choices, put to him: a hint in the row's tip, since a tip is two lines of 60 (guidelines
+- Nothing runs in the background of its own accord; the session waits for the owner or the hub.
+- Only the owner's explicit word ends this mode; the hub passes it on.
+- Lifted for one speed fix (19 Nov 2026, the About box at 210 ms against its 150 on
+  `Falcon-4:256` with NVDI): the About box within its time on the reference configuration, with no
+  other row slower beyond a tick; done in 2.11 (130 ms; the close 50 -> 120 accepted), and
+  maintenance is back on.
+- Lifted for one feature (21 Nov 2026: a release's changes from GitHub for a row of the list;
+  the choices made: a hint in the row's tip, since a tip is two lines of 60 (guidelines
   3.4), and **What's new...** (^L, Get info's button, the row's menu) showing the notes in the
   lower pane, Backspace back to Find's): `gh_whats_new`, `found_show_notes`. Done in 2.13
   (the hub's go, 21 Nov 2026), and maintenance is back on.
-- Lifted for one item (Erez, 22 Nov 2026, through the hub: "Make the other apps native on the
-  FireBee too", then two packages, "Remove all files from root and just have two ZIP files, one for
-  each platform", the same names, and "this special FireBee treatment is just for AERA
-  applications"; guidelines 7.4, AERA-Atari 8c94c08). For a `whomper/` repository (`up_aera`),
+- Lifted for one item (22 Nov 2026: the AERA programs native on the FireBee, as two zips, one
+  per platform, with the same file names, the FireBee's handling for AERA programs alone;
+  guidelines 7.4, AERA-Atari 8c94c08). For a `whomper/` repository (`up_aera`),
   `up_chosen` takes the `-firebee.zip` alone where `_CF_` is set (`up_firebee`) and never
   elsewhere, and a release of zips alone is unpacked whatever UNZIP says; every other repository
   as before. `retire()` removes EUPDFB.PRG, EWEBFB.PRG, EPLAYFB.PRG and TLSFB.OVL once the
   standard name is written and the release no longer has them, with an alert on the FireBee.
   EUpdate's own release is two zips, the FireBee's uploaded first (2.14 and older unpack every zip
-  in the release's order). **2.15 is the bridge** (Erez: "Bridge for 2.15"): its standard zip carries EUPDFB.PRG and TLSFB.OVL
+  in the release's order). **2.15 is the bridge** (decided 22 Nov 2026): its standard zip carries EUPDFB.PRG and TLSFB.OVL
   once more, so a FireBee on 2.14's EUPDFB.PRG (which unpacks both zips) becomes 2.15; built on
   common 173309d0, whose ColdFire build loads TLSFB.OVL. 2.16, on common 50cf160 (its ColdFire build
   loads tls.ovl, c184d49), drops them, with the tags feature in the same release (the hub, 22 Nov 2026).
   Rig: `family_test.py WORK FireBee:16` (`make cftest`; plain HTTP, the stand-in runs no TLS) and
   on a Falcon; the stand-ins are zips only.
-- Lifted for one feature (Erez, 22 Nov 2026, on slaapliedje/u6e: "Can we support also only tags?",
-  "this is also a mechanism to update and download source files"; his choices, put to him: every
-  tag counts, betas too; a pre-release only when there is no full release; the source zip into
+- Lifted for one feature (22 Nov 2026: repositories with tags alone, such as slaapliedje/u6e,
+  and a way to fetch source; the choices made: every tag counts, betas too; a pre-release only when there is no full release; the source zip into
   the folder itself, its top folder dropped): `gh_latest` falls back to `newest_release` (the
   releases list, pre-releases taken) and then `newest_tag` (`/tags`, `gh_vercmp`; the one file
   `TAG.zip`, id 0, size -1, from `/zipball/TAG`), `inst.strip` in `file_begin`; What's new takes
@@ -153,17 +151,17 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
 - Speed: a change ships only if no row of the paired run (`make prof`, padded to the shipped
   places by common's `profpad.py`) is slower by more than one tick (AERA-Atari 098183d); a
   change that moves code gets a pad round first (`tools/objpad.py`, `atari/pads.txt` against the
-  last release's map), and a row still slower goes to Erez through the hub.
+  last release's map), and a row still slower goes to the owner through the hub.
 
 ## EUpdate
 
 - **What it is:** `EUPDATE.PRG`, a program only (no accessory: its work is TLS to GitHub, which an
   accessory may not do in the background, guidelines 2.2), for the Falcon and TT only: 68030
-  code, TLS on the Atari in the family's `TLS.OVL` (Erez, 27 Oct 2026; guidelines 7.4:
+  code, TLS on the Atari in the family's `TLS.OVL` (decided 27 Oct 2026; guidelines 7.4:
   `atari/tls_ovl.c`, `src/ovl.c`, `ui/dsp_ovl.c`; RSA and the curves on the DSP), loaded at the
   first job (`job_begin`), its error in an alert; the host builds keep `src/tls.c`. There is no
   ST edition and no gateway: `opt.falcon` is always 1, kept only because `dsp_ovl.c` reads it.
-- **Light (Erez's wish):** every file is built with `-ffunction-sections -fdata-sections` and
+- **Light:** every file is built with `-ffunction-sections -fdata-sections` and
   linked with `--gc-sections`, so of `common/` only what EUpdate calls is in the program. Don't
   add code nothing calls, nor settings nobody asked for; take what `common/` has before writing
   your own. Results of searches live in the heap (TT RAM), not the BSS.
@@ -185,7 +183,7 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
   window changes, `tests/hatari/screenshots.py WORK` for `docs/` and `helpfront.py thumb` for
   `docs/help/WINDOW.IMG`. After a change to the start (common's `cpucheck.c`, `app_main()`, crt0, the
   Makefile's flags), `tests/hatari/st_test.py WORK`: on an ST, the alert and the desktop again; after
-  a change to where EUpdate finds its files, `tests/hatari/appdir_test.py WORK` (on Erez's TOS 4.04
+  a change to where EUpdate finds its files, `tests/hatari/appdir_test.py WORK` (on the reference TOS 4.04
   where the session has it: EmuTOS hides the bug). After a change to how TLS.OVL
   is loaded, `tests/hatari/noovl_test.py WORK`.
 - **Speed:** EUpdate runs only on a TT or Falcon, so its slow machine is `Falcon-4:16`, with and
@@ -193,18 +191,18 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
   drawn, rows, scrolling, the dialogs); `PRG=build/prof/eupdate.prg tests/hatari/family_test.py
   WORK Falcon-4:16` times the check, the downloads and the unzip (the `AESGAP` lines in
   `WORK/hatari.log`).
-- **The rigs mimic Erez's machine as closely as they can** (Erez, 22 Oct 2026): before a release,
+- **The rigs mimic the reference machine as closely as they can** (decided 22 Oct 2026): before a release,
   `tests/hatari/family_test.py WORK` updates stand-ins of the AERA family
   (`tests/github/standin_family.py`: each app's file names, sizes like the real ones', made-up
   bytes), served by `tests/family_server.py` as GitHub serves them: TLS with a chain like GitHub's,
   the files from a second host at signed addresses of 900 characters and more, idle connections
-  closed; at a NetUSBee's pace, EUpdate on its own, the suggested rules on; under Erez's TOS 4.04
+  closed; at a NetUSBee's pace, EUpdate on its own, the suggested rules on; under the reference TOS 4.04
   and NVDI where this machine has them. What it can't mimic (STinG with a NetUSBee, GitHub itself,
   the real programs) is said in the report; the real family is the hub's acc_all.
 - **The tests' GitHub** is `tests/server.py` (its repository is `tests/github/repo.json`, a real
   one as the API gave it): `APIBASE=` points EUpdate at it, as at a GitHub Enterprise server.
   GitHub's real API isn't asked by any test.
-- **The FireBee edition** (Erez, 18 Nov 2026, on a tester's FireBee, where 2.08's and 2.09's
+- **The FireBee edition** (18 Nov 2026, from a FireBee where 2.08's and 2.09's
   EUPDATE.PRG froze: 68030 code doesn't run reliably on the ColdFire, and the 68060 stand-in
   can't show it): `EUPDFB.PRG`, `make binary/eupdfb.prg`, common's `tools/mkfirebee.py` (AERA-Atari b89dd31; EUpdate's own until 2.15) running
   EUPDATE.PRG's own rules again as `-mcpu=5475` code into `build/cf/` (EWeb's way:
@@ -212,16 +210,16 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
   an alert (`cpu_cf_alert`), it on any other machine names EUPDATE.PRG (`cpu_alert` under
   `__mcoldfire__`); `tests/hatari/firebee_test.py WORK wrong|falcon` checks both. EUpdate
   updates itself from its zip, so a FireBee gets EUPDFB.PRG too. Its own code on a ColdFire is
-  common's `tests/coldfire` (qemu-m68k -cpu cfv4e) and the tester's: 2.10's EUPDFB.PRG runs on
-  the tester's real FireBee (Erez, 18 Nov 2026: "The tester reported it now works"), which
-  closes 2.08's and 2.09's freeze. A second tester's FireBee crashed the system when EUpdate started
+  common's `tests/coldfire` (qemu-m68k -cpu cfv4e) and a real one: 2.10's EUPDFB.PRG runs on
+  a real FireBee (18 Nov 2026), which
+  closes 2.08's and 2.09's freeze. A second FireBee crashed the system when EUpdate started
   with HypView open from the boot (21 Nov 2026); the suspected cause, common's cache push after an
   overlay's load without a nop to drain the ColdFire's store buffer, is fixed in common (AERA-Atari
   aa30896), and `tests/hatari/resident_test.py WORK plain|ct60|ct60-prot` (`hold.c`, a viewer's
-  stand-in resident from boot; MiNTnet through common's `run.py --inet`) is its rig case. Should the tester send an EUPDATE.LOG, its machine block (no
-  addresses or tokens from it) becomes the FireBee's reference in the tests.
+  stand-in resident from boot; MiNTnet through common's `run.py --inet`) is its rig case. A FireBee's reference in the tests is made from scratch,
+  never from a log someone sent.
 - **TLSFB.OVL for the FireBee** (the guidelines' rule of 15 Nov 2026, AERA-Atari a99ea65; for
-  EUpdate Erez, 17 Nov: "every application that has a TLS must have this dual approach"):
+  EUpdate 17 Nov 2026: every program with TLS carries both builds):
   `tlsfb.ovl`, TLS.OVL's ColdFire build, ships beside `tls.ovl`, both copied from the same
   common commit and of one version; common's `tls_ovl.c` loads it where the `_CF_` cookie is
   set, and `update.c` carries it with a program as it carries TLS.OVL. The program is built
@@ -233,12 +231,12 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until Erez ends it:
 - **A release** is two zips from `make dist` (the guidelines 7.4): `eupdate-x.y.zip` with
   `EUPDATE.PRG`, `TLS.OVL` (common's, copied), and `eupdate-x.y-firebee.zip` with the ColdFire
   `EUPDATE.PRG` and `TLS.OVL`, both ColdFire builds (TLSFB.OVL in 2.15); the standard one, in 2.15 only, `EUPDFB.PRG` and `TLSFB.OVL` too (the bridge); both with `EUPDATE.HYP`,
-  `CACERT.PEM`, `ROOTS.DAT`, `DEFAULTS.INF` and the icon (`icons/`, `make icons`). `DEFAULTS.INF` (Erez, 24 Oct 2026) is
+  `CACERT.PEM`, `ROOTS.DAT`, `DEFAULTS.INF` and the icon (`icons/`, `make icons`). `DEFAULTS.INF` (24 Oct 2026) is
   what a first start follows, with no `EUPDATE.INF` yet: the AERA programs into `C:\AERA\NAME`,
   accessories to `C:\`, EUpdate in its own folder (`.`) at the release's version
   (`HAVE=v@VERSION@`, filled in by make). A new AERA program is added there.
 
-## UI alignment (Erez's decisions of 9 and 10 Nov 2026; released in 2.03)
+## UI alignment (decided 9 and 10 Nov 2026; released in 2.03)
 
 Done in 2.03 (maintenance lifted for it, then back on 11 Nov): D8, D14 and Copy, D15, D18, D23, D24,
 D30, D35, D37, D41 (bold drawn as plain text twice: the VDI's bold cost a stock Falcon 55-95 ms),
@@ -248,10 +246,10 @@ D42, D43, D44, D50, D51, W1, W2, W6, W7. Still open:
 - C11 (the own `form_loop` onto `dlg_do`) and C12 (the token's copy flag): the hub's, in `common/`
   first; taken with a release made anyway.
 
-## Testing configuration (Erez, 10 Nov 2026; AERA-Atari 148df17, TEST-MATRIX.md)
+## Testing configuration (decided 10 Nov 2026; AERA-Atari 148df17, TEST-MATRIX.md)
 
-From the next release made anyway: the speed rig's NVDI run on `Falcon-4:16` becomes Erez's own
+From the next release made anyway: the speed rig's NVDI run on `Falcon-4:16` becomes the reference
 configuration, `Falcon-4:256` with `AERA_WITH_NVDI=1` (`machines.ERZ_MACHINE`, `machines.erz_env()`);
 the plain `Falcon-4:16` run stays only for a drawing change. A replacement, not an extra run. Since
 the regression gate (17 Nov 2026) `Falcon-4:16` without NVDI is paired for speed too, and every rig
-runs on Erez's TOS images and NVDI: a row without them is named as not run, not run on EmuTOS.
+runs on the reference TOS images and NVDI: a row without them is named as not run, not run on EmuTOS.
