@@ -41,6 +41,13 @@ These come from AERA-Atari's repo template and are the same in every app's CLAUD
   Work lands on `main`; to try a fix on real hardware, release it. If a release doesn't work, roll back
   with a release: revert on `main`, release the next number, and run the Withdraw workflow
   (`.github/workflows/withdraw.yml`) on the bad one: it puts "Withdrawn: use vX.Y" at the top of its notes.
+- **Fewer releases, each carrying more** (decided 26 Nov 2026; guidelines 1.2, AERA-Atari 9da7632): no
+  release for every single fix or feature. Changes gather on `main` and go out together when a body of
+  work is complete, as one candidate through the gate and the hub's family check. Only a data-loss,
+  security or crash/breakage fault that stops users working goes out on its own at once, with only that
+  fix, its notes saying why. A reported fault is fixed with its rig case and rides the next release;
+  docs and rig changes need no release; the hub's shared fixes ride the next release unless the hub
+  names one as the exception. This replaces 23 Oct's "as soon as the work is done".
 - **Releases go out without asking the owner** (decided 23 Oct 2026; guidelines 1.2), through
   **the regression gate** (decided 17 Nov 2026: the software has users, so every configuration is
   tested and no speed is lost; guidelines 1.2, AERA-Atari a22574e). Every code candidate, in order:
@@ -59,7 +66,7 @@ These come from AERA-Atari's repo template and are the same in every app's CLAUD
      together) and answers go or the faults;
   5. only then the release.
 
-  A fault a user reports becomes a case in the rigs, in the release that fixes it. Then give the owner the link in one line, with anything to do, and send the hub the link. Roll
+  A fault a user reports becomes a case in the rigs, in the release that carries its fix. Then give the owner the link in one line, with anything to do, and send the hub the link. Roll
   back a bad release the same way. Decisions that are the owner's still go to the owner first.
 - **Who decides what** (decided 31 Oct 2026; the guidelines' "Who decides what"). The owner's part, put
   to the owner before the work as a decision with a short context:
@@ -112,10 +119,11 @@ ATARI-APP-GUIDELINES.md, section 8, as of 8ddb463). Until the owner ends it:
   notifies EUpdate of each new or changed rule and each shared fix; EUpdate adopts it, with the
   shared code it needs (a sync of `common/` with `tools/sync-common.sh`), and its row in the
   guidelines' table is ticked. Its ✗, ~ and ? there are work for EUpdate.
-- Whether such a change needs a release is reviewed with the owner through the hub. A fault fix always
-  gets one, as do a security or data-loss fault, a crash or breakage, something outside that stops
-  it working (a certificate, GitHub's API), and something EWeb, EPDF or EPlay need from it. The
-  release notes say why.
+- Whether such a change needs a release is reviewed with the owner through the hub; since 26 Nov
+  2026 (guidelines 1.2) it rides the next release with the rest. A release of its own at once only
+  for a security or data-loss fault, a crash or breakage that stops users working (something outside
+  that stops it working counts: a certificate, GitHub's API), with only that fix; something EWeb,
+  EPDF or EPlay need from it is put to the owner through the hub. The release notes say why.
 - Work on `main` that isn't released stays unreleased until that review.
 - Nothing runs in the background of its own accord; the session waits for the owner or the hub.
 - Only the owner's explicit word ends this mode; the hub passes it on.
