@@ -103,6 +103,28 @@ def measure(con, what, limit, wait=2.0, need=False):
     report(what, max(gaps or [(0, "")]), limit)
 
 
+def same(a, b):
+    """two screenshots alike: PIL's difference has no box"""
+    from PIL import Image, ImageChops
+    return ImageChops.difference(Image.open(a).convert("RGB"), Image.open(b).convert("RGB")).getbbox() is None
+
+
+def closed(con, r, what, limit, before):
+    """a dialog's close whose redraw can come under the profile's 20 ms
+    (Find's on Falcon-4:16: 20 ms, logged in some runs and not in others):
+    the screenshot says it closed (the window as it was before the dialog),
+    the stretches how long it took; nothing logged then counts as under 20"""
+    global fails
+    time.sleep(2.0)
+    gaps = con.gaps()
+    if not same(r.shot(what.split(" ")[0].lower() + "-closed"), before):
+        fails += 1
+        results.append((what, 99999, limit))
+        print("FAIL %-46s still open: the key lost?" % what, flush=True)
+        return
+    report(what, max(gaps or [(0, "under 20 ms")]), limit)
+
+
 def each(con, what, limit, do, times, pace=0.6):
     """an action done several times, its longest stretch"""
     con.gaps()
@@ -141,7 +163,7 @@ def main():
         r.move(*REST)
         each(con, "a page scrolled (a click in the track)", 150, lambda: r.click(*TRACK), 3, 1.0)
         r.move(*REST)
-        r.shot("scrolled")
+        scrolled = r.shot("scrolled")
         con.gaps()
         r.click(*DESK)
         time.sleep(1)
@@ -159,8 +181,11 @@ def main():
         measure(con, "Find opened (^F)", 150, need=True)
         each(con, "a letter typed in Find's field", 50, lambda: r.type("e", 0), 6, 0.4)
         r.shot("find")
+        r.move(*REST)                          # the pointer where it was in "scrolled"
+        time.sleep(0.5)
+        con.gaps()
         r.key(K["UNDO"])
-        measure(con, "Find closed (Undo), the window uncovered", 300, need=True)
+        closed(con, r, "Find closed (Undo), the window uncovered", 300, scrolled)
         r.move(60, 129)                        # a row: its tip
         measure(con, "a row's tip shown", 150, 2.5)
         r.move(*REST)
